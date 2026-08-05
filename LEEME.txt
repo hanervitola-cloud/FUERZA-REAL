@@ -1,0 +1,4 @@
+Coloca aquí tus 3 fotos:
+- hero.jpg (portada principal)
+- articulo-esteroides-thumb.jpg (miniatura de la tarjeta)
+- portada-esteroides.jpg (imagen grande del artículo)
