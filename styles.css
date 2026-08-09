@@ -125,7 +125,15 @@ nav.site a:hover{ color:var(--text); }
 }
 .illus svg{ width:100%; height:100%; }
 
-.hero-img{ height:240px; margin-top:32px; }
+.hero-img{
+  width:auto;
+  max-width:280px;
+  height:340px;
+  margin-top:32px;
+  margin-left:auto;
+  margin-right:auto;
+  object-position:top center;
+}
 .card-img{ height:150px; margin-bottom:14px; }
 .cover-img{ height:280px; margin-bottom:28px; }
 
