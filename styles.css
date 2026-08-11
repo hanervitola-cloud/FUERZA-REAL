@@ -477,6 +477,99 @@ footer.site p{
   #intro-overlay{ display:none; }
 }
 
+/* ---------- Modal de nivel ---------- */
+.level-modal{
+  position:fixed;
+  inset:0;
+  background:rgba(20,23,26,0.85);
+  backdrop-filter:blur(4px);
+  z-index:500;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.4s ease;
+}
+.level-modal.show{
+  opacity:1;
+  pointer-events:auto;
+}
+.level-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:32px 28px;
+  max-width:380px;
+  width:100%;
+  text-align:center;
+  transform:translateY(16px);
+  transition:transform 0.4s ease;
+}
+.level-modal.show .level-card{ transform:translateY(0); }
+.level-eyebrow{
+  font-family:var(--mono);
+  font-size:0.68rem;
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+  color:var(--red);
+}
+.level-card h3{
+  font-family:var(--display);
+  font-size:1.8rem;
+  margin:10px 0 6px;
+}
+.level-card p{
+  color:var(--muted);
+  font-size:0.9rem;
+  margin-bottom:22px;
+}
+.level-options{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.level-options button{
+  font-family:var(--body);
+  font-weight:600;
+  font-size:0.95rem;
+  color:var(--text);
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:12px;
+  cursor:pointer;
+  transition:border-color 0.2s ease, background 0.2s ease;
+}
+.level-options button:hover{
+  border-color:var(--red);
+  background:var(--red-soft);
+}
+.level-skip{
+  margin-top:16px;
+  background:none;
+  border:none;
+  color:var(--muted);
+  font-family:var(--mono);
+  font-size:0.72rem;
+  text-decoration:underline;
+  cursor:pointer;
+}
+
+.recommended-badge{
+  display:inline-block;
+  font-family:var(--mono);
+  font-size:0.62rem;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--bg);
+  background:var(--red);
+  padding:4px 8px;
+  border-radius:3px;
+  margin-bottom:10px;
+}
+
 /* ---------- Animaciones y pulido visual ---------- */
 
 body{
