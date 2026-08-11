@@ -406,6 +406,20 @@ footer.site{
   border-top:1px solid var(--border);
   padding:32px 0 48px;
 }
+.footer-links{
+  display:flex;
+  gap:20px;
+  margin-bottom:16px;
+}
+.footer-links a{
+  font-family:var(--mono);
+  font-size:0.72rem;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  color:var(--muted);
+  transition:color 0.2s ease;
+}
+.footer-links a:hover{ color:var(--red); }
 footer.site p{
   font-family:var(--mono);
   font-size:0.7rem;
