@@ -36,9 +36,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 3800);
   }
 
-  // --- Pregunta de nivel (solo en portada) ---
+  const hasHero = !!document.querySelector('.hero');
+  const introTotalTime = hasHero ? 3900 : 200;
+
+  // --- Pregunta de nivel (solo en portada, siempre pregunta) ---
   if (document.querySelector('.feed-grid')) {
-    const savedLevel = localStorage.getItem('fr_level');
 
     function applyLevel(level) {
       const priority = {
@@ -71,42 +73,43 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
-    if (savedLevel) {
-      applyLevel(savedLevel);
-    } else {
-      const modal = document.createElement('div');
-      modal.className = 'level-modal';
-      modal.innerHTML =
-        '<div class="level-card">' +
-        '<span class="level-eyebrow">Antes de empezar</span>' +
-        '<h3>¿Cuál es tu nivel?</h3>' +
-        '<p>Te mostramos primero lo que más te sirve.</p>' +
-        '<div class="level-options">' +
-        '<button data-level="principiante">Principiante</button>' +
-        '<button data-level="proceso">En proceso</button>' +
-        '<button data-level="avanzado">Avanzado</button>' +
-        '</div>' +
-        '<button class="level-skip">Saltar</button>' +
-        '</div>';
-      document.body.appendChild(modal);
+    const modal = document.createElement('div');
+    modal.className = 'level-modal';
+    modal.innerHTML =
+      '<div class="level-card">' +
+      '<span class="level-eyebrow">Antes de empezar</span>' +
+      '<h3>¿Cuál es tu nivel?</h3>' +
+      '<p>Te mostramos primero lo que más te sirve.</p>' +
+      '<div class="level-options">' +
+      '<button data-level="principiante">Principiante</button>' +
+      '<button data-level="proceso">En proceso</button>' +
+      '<button data-level="avanzado">Avanzado</button>' +
+      '</div>' +
+      '<button class="level-skip">Saltar</button>' +
+      '</div>';
+    document.body.appendChild(modal);
 
-      setTimeout(function () { modal.classList.add('show'); }, 800);
+    setTimeout(function () {
+      modal.classList.add('show');
+      document.body.style.overflow = 'hidden';
+      window.scrollTo({ top: 0 });
+    }, introTotalTime);
 
-      modal.querySelectorAll('[data-level]').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          const level = btn.getAttribute('data-level');
-          localStorage.setItem('fr_level', level);
-          applyLevel(level);
-          modal.classList.remove('show');
-          setTimeout(function () { modal.remove(); }, 400);
-        });
-      });
-
-      modal.querySelector('.level-skip').addEventListener('click', function () {
-        modal.classList.remove('show');
-        setTimeout(function () { modal.remove(); }, 400);
-      });
+    function closeModal() {
+      modal.classList.remove('show');
+      document.body.style.overflow = '';
+      setTimeout(function () { modal.remove(); }, 400);
     }
+
+    modal.querySelectorAll('[data-level]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const level = btn.getAttribute('data-level');
+        applyLevel(level);
+        closeModal();
+      });
+    });
+
+    modal.querySelector('.level-skip').addEventListener('click', closeModal);
   }
 
   // --- Fade-in general al cargar la página ---
