@@ -11,11 +11,11 @@ document.addEventListener('DOMContentLoaded', function () {
     setTimeout(function () {
       intro.classList.add('intro-hide');
       document.body.style.overflow = '';
-    }, 1500);
+    }, 2800);
 
     setTimeout(function () {
       intro.remove();
-    }, 2400);
+    }, 3700);
   }
 
   // --- Fade-in general al cargar la página ---
