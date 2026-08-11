@@ -4,18 +4,36 @@ document.addEventListener('DOMContentLoaded', function () {
   if (document.querySelector('.hero')) {
     const intro = document.createElement('div');
     intro.id = 'intro-overlay';
-    intro.innerHTML = '<div class="intro-logo">FUERZA<span>REAL</span></div><div class="intro-line"></div>';
+
+    const word1 = 'FUERZA';
+    const word2 = 'REAL';
+    let lettersHTML = '';
+    let delay = 0;
+    word1.split('').forEach(function (ch) {
+      lettersHTML += '<span class="ch" style="animation-delay:' + delay + 'ms">' + ch + '</span>';
+      delay += 55;
+    });
+    word2.split('').forEach(function (ch) {
+      lettersHTML += '<span class="ch ch-accent" style="animation-delay:' + delay + 'ms">' + ch + '</span>';
+      delay += 55;
+    });
+
+    intro.innerHTML =
+      '<div class="intro-panel intro-panel-top"></div>' +
+      '<div class="intro-panel intro-panel-bottom"></div>' +
+      '<div class="intro-logo-wrap"><div class="intro-logo">' + lettersHTML + '</div><div class="intro-line"></div></div>';
+
     document.body.prepend(intro);
     document.body.style.overflow = 'hidden';
 
     setTimeout(function () {
       intro.classList.add('intro-hide');
       document.body.style.overflow = '';
-    }, 4500);
+    }, 2600);
 
     setTimeout(function () {
       intro.remove();
-    }, 5400);
+    }, 3800);
   }
 
   // --- Fade-in general al cargar la página ---
