@@ -65,4 +65,96 @@ document.addEventListener('DOMContentLoaded', function () {
         const oldBadge = card.querySelector('.recommended-badge');
         if (oldBadge) oldBadge.remove();
         if (i === 0) {
-          const badge =
+          const badge = document.createElement('span');
+          badge.className = 'recommended-badge';
+          badge.textContent = 'Recomendado para ti';
+          card.prepend(badge);
+        }
+      });
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'level-modal';
+    modal.innerHTML =
+      '<div class="level-card">' +
+      '<span class="level-eyebrow">Antes de empezar</span>' +
+      '<h3>¿Cuál es tu nivel?</h3>' +
+      '<p>Te mostramos primero lo que más te sirve.</p>' +
+      '<div class="level-options">' +
+      '<button data-level="principiante">Principiante</button>' +
+      '<button data-level="proceso">En proceso</button>' +
+      '<button data-level="avanzado">Avanzado</button>' +
+      '</div>' +
+      '<button class="level-skip">Saltar</button>' +
+      '</div>';
+    document.body.appendChild(modal);
+
+    setTimeout(function () {
+      modal.classList.add('show');
+      document.body.style.overflow = 'hidden';
+      window.scrollTo({ top: 0 });
+    }, introTotalTime);
+
+    function closeModal() {
+      modal.classList.remove('show');
+      document.body.style.overflow = '';
+      setTimeout(function () { modal.remove(); }, 400);
+    }
+
+    modal.querySelectorAll('[data-level]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const level = btn.getAttribute('data-level');
+        applyLevel(level);
+        closeModal();
+      });
+    });
+
+    modal.querySelector('.level-skip').addEventListener('click', closeModal);
+  }
+
+  // --- Fade-in general al cargar la página ---
+  document.body.classList.add('page-loaded');
+
+  // --- Scroll reveal: los bloques de contenido aparecen al hacer scroll ---
+  const revealSelectors = '.card, .risk, .callout, .day-block, .table-wrap, .video-embed, .curve-block, article h2, .cover-img, .hero-img';
+  const revealEls = document.querySelectorAll(revealSelectors);
+
+  revealEls.forEach(function (el) {
+    el.classList.add('js-reveal');
+  });
+
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in-view');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    revealEls.forEach(function (el) { observer.observe(el); });
+  } else {
+    revealEls.forEach(function (el) { el.classList.add('in-view'); });
+  }
+
+  // --- Botón "volver arriba" ---
+  const backToTop = document.createElement('button');
+  backToTop.className = 'back-to-top';
+  backToTop.setAttribute('aria-label', 'Volver arriba');
+  backToTop.innerHTML = '↑';
+  document.body.appendChild(backToTop);
+
+  window.addEventListener('scroll', function () {
+    if (window.scrollY > 500) {
+      backToTop.classList.add('show');
+    } else {
+      backToTop.classList.remove('show');
+    }
+  });
+
+  backToTop.addEventListener('click', function () {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+});
