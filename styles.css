@@ -413,6 +413,51 @@ footer.site p{
   line-height:1.7;
 }
 
+/* ---------- Animación de entrada (splash estilo cinemático) ---------- */
+#intro-overlay{
+  position:fixed;
+  inset:0;
+  background:var(--bg);
+  z-index:9999;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  transition:transform 0.9s cubic-bezier(0.76, 0, 0.24, 1), opacity 0.7s ease 0.2s;
+}
+#intro-overlay.intro-hide{
+  transform:translateY(-100%);
+  opacity:0.4;
+}
+.intro-logo{
+  font-family:var(--display);
+  font-size:clamp(2.4rem, 8vw, 4.6rem);
+  letter-spacing:0.05em;
+  color:var(--text);
+  opacity:0;
+  transform:scale(0.92);
+  animation:introLogoIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.15s;
+}
+.intro-logo span{ color:var(--red); }
+.intro-line{
+  width:0;
+  height:2px;
+  background:var(--red);
+  margin-top:18px;
+  animation:introLineGrow 0.7s ease forwards 0.75s;
+}
+@keyframes introLogoIn{
+  from{ opacity:0; transform:scale(0.92) translateY(10px); letter-spacing:0.15em; }
+  to{ opacity:1; transform:scale(1) translateY(0); letter-spacing:0.05em; }
+}
+@keyframes introLineGrow{
+  from{ width:0; }
+  to{ width:160px; }
+}
+@media (prefers-reduced-motion: reduce){
+  #intro-overlay{ display:none; }
+}
+
 /* ---------- Animaciones y pulido visual ---------- */
 
 body{
