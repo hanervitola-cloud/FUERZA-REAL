@@ -195,6 +195,18 @@ table.protein-table tr:hover td{ background:rgba(91,133,189,0.06); }
 
 .color-img{ filter:none !important; }
 
+.media-placeholder{
+  border:2px dashed var(--border);
+  border-radius:6px;
+  padding:44px 20px;
+  text-align:center;
+  color:var(--muted);
+  font-family:var(--mono);
+  font-size:0.75rem;
+  line-height:1.6;
+  margin:24px 0 32px;
+}
+
 /* ---------- Illustrations (para las que no tienen foto) ---------- */
 .illus{
   width:100%;
