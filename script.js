@@ -5,8 +5,9 @@ document.addEventListener('DOMContentLoaded', function () {
   const revealSelectors = '.card, .risk, .callout, .day-block, .table-wrap, .video-embed, .curve-block, article h2, .cover-img, .hero-img';
   const revealEls = document.querySelectorAll(revealSelectors);
 
-  revealEls.forEach(function (el) {
+  revealEls.forEach(function (el, i) {
     el.classList.add('js-reveal');
+    el.style.transitionDelay = (i % 4) * 90 + 'ms';
   });
 
   if ('IntersectionObserver' in window) {
