@@ -1,5 +1,23 @@
 document.addEventListener('DOMContentLoaded', function () {
 
+  // --- Splash simple de entrada (solo en portada) ---
+  if (document.querySelector('.hero-full') && !document.querySelector('.article-hero-full')) {
+    const intro = document.createElement('div');
+    intro.id = 'intro-splash';
+    intro.innerHTML = '<span class="intro-splash-logo">FUERZA<span>REAL</span></span>';
+    document.body.prepend(intro);
+    document.body.style.overflow = 'hidden';
+
+    setTimeout(function () {
+      intro.classList.add('intro-splash-hide');
+      document.body.style.overflow = '';
+    }, 1400);
+
+    setTimeout(function () {
+      intro.remove();
+    }, 2100);
+  }
+
   document.body.classList.add('page-loaded');
 
   const revealSelectors = '.card, .risk, .callout, .day-block, .table-wrap, .video-embed, .curve-block, article h2, .cover-img, .hero-img, .statement-img, .hero-full-img';
