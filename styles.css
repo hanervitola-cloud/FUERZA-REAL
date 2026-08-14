@@ -358,6 +358,47 @@ table.protein-table tr:hover td{ background:rgba(91,133,189,0.06); }
 .dot.blue{ background:var(--blue); }
 .dot.red{ background:var(--red); }
 
+/* ---------- Sección de declaración (foto pantalla completa + frase) ---------- */
+.statement{
+  position:relative;
+  height:65vh;
+  min-height:420px;
+  max-height:640px;
+  overflow:hidden;
+}
+.statement-img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  filter:grayscale(100%) brightness(0.55);
+  display:block;
+}
+.statement::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg, rgba(20,23,26,0.35) 0%, rgba(20,23,26,0.55) 50%, rgba(20,23,26,0.9) 100%);
+  pointer-events:none;
+}
+.statement-text{
+  position:absolute;
+  inset:0;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:20px;
+}
+.statement-text p{
+  font-family:var(--display);
+  font-size:clamp(1.9rem, 5.2vw, 3.4rem);
+  line-height:1.15;
+  color:var(--text);
+  max-width:17ch;
+  letter-spacing:0.01em;
+}
+
 /* ---------- Barra de estadísticas / credibilidad ---------- */
 .stats-bar{
   border-bottom:1px solid var(--border);
