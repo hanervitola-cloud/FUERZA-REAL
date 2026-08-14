@@ -443,6 +443,18 @@ table.protein-table tr:hover td{ background:rgba(91,133,189,0.06); }
 .dot.blue{ background:var(--blue); }
 .dot.red{ background:var(--red); }
 
+.statement-alt{
+  height:48vh;
+  min-height:340px;
+  max-height:480px;
+}
+.statement-alt .statement-text p{
+  font-size:clamp(1.6rem, 4.2vw, 2.6rem);
+}
+.feed-continued{
+  padding-top:44px;
+}
+
 /* ---------- Sección de declaración (foto pantalla completa + frase) ---------- */
 .statement{
   position:relative;
