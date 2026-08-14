@@ -110,6 +110,11 @@ nav.site a:hover{ color:var(--text); }
   border-radius:4px;
   border:1px solid var(--border);
   filter:grayscale(100%) contrast(1.05);
+  transition:transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.4s ease;
+}
+.real-img:hover{
+  transform:scale(1.025);
+  filter:grayscale(60%) contrast(1.08);
 }
 
 .video-embed{
@@ -372,6 +377,11 @@ table.protein-table tr:hover td{ background:rgba(91,133,189,0.06); }
   object-fit:cover;
   filter:grayscale(100%) brightness(0.55);
   display:block;
+  transition:transform 6s cubic-bezier(0.16, 1, 0.3, 1), filter 0.6s ease;
+}
+.statement:hover .statement-img{
+  transform:scale(1.05);
+  filter:grayscale(70%) brightness(0.6);
 }
 .statement::after{
   content:'';
@@ -804,8 +814,8 @@ body.page-loaded{
 
 .js-reveal{
   opacity:0;
-  transform:translateY(24px) scale(0.98);
-  transition:opacity 0.6s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  transform:translateY(14px) scale(0.99);
+  transition:opacity 0.7s ease, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .js-reveal.in-view{
   opacity:1;
