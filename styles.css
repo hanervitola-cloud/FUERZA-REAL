@@ -56,7 +56,7 @@ header.site{
 header.site .wrap{
   display:flex;
   align-items:center;
-  justify-content:space-between;
+  justify-content:center;
 }
 .logo{
   font-family:var(--display);
@@ -247,6 +247,33 @@ table.protein-table tr:hover td{ background:rgba(91,133,189,0.06); }
 
 @media (max-width:560px){
   .cover-img{ height:200px; }
+}
+
+/* ---------- Splash de entrada simple ---------- */
+#intro-splash{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  background:var(--bg);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  opacity:1;
+  transition:opacity 0.7s ease;
+}
+#intro-splash.intro-splash-hide{
+  opacity:0;
+  pointer-events:none;
+}
+.intro-splash-logo{
+  font-family:var(--display);
+  font-size:clamp(2.2rem, 8vw, 4rem);
+  letter-spacing:0.03em;
+  color:var(--text);
+}
+.intro-splash-logo span{ color:var(--red); }
+@media (prefers-reduced-motion: reduce){
+  #intro-splash{ display:none; }
 }
 
 /* ---------- Hero de pantalla completa (estilo Bugatti) ---------- */
