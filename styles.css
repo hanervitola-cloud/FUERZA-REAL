@@ -771,6 +771,14 @@ body.page-loaded{
   transform:translateY(0) scale(1);
 }
 
+img.js-reveal{
+  transform:scale(1.09);
+  transition:opacity 1s ease, transform 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+img.js-reveal.in-view{
+  transform:scale(1);
+}
+
 .card{
   transition:opacity 0.15s ease, transform 0.25s ease, border-color 0.25s ease;
 }
