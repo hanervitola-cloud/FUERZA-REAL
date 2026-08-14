@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   document.body.classList.add('page-loaded');
 
-  const revealSelectors = '.card, .risk, .callout, .day-block, .table-wrap, .video-embed, .curve-block, article h2, .cover-img, .hero-img, .statement-img';
+  const revealSelectors = '.card, .risk, .callout, .day-block, .table-wrap, .video-embed, .curve-block, article h2, .cover-img, .hero-img, .statement-img, .hero-full-img';
   const revealEls = document.querySelectorAll(revealSelectors);
 
   revealEls.forEach(function (el, i) {
