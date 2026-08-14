@@ -293,6 +293,15 @@ table.protein-table tr:hover td{ background:rgba(91,133,189,0.06); }
   .hero-full-text{ padding-bottom:36px; }
 }
 
+.article-hero-full{
+  height:75vh;
+  min-height:460px;
+  max-height:680px;
+}
+@media (max-width:700px){
+  .article-hero-full{ height:65vh; min-height:400px; }
+}
+
 /* ---------- Hero: efectos premium (glow, grid lines, glass card) ---------- */
 .hero{
   position:relative;
