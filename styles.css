@@ -812,15 +812,6 @@ body.page-loaded{
   transform:translateY(0) scale(1);
 }
 
-img.js-reveal{
-  clip-path:inset(0 0 0 100%);
-  transform:none;
-  transition:clip-path 1.1s cubic-bezier(0.76, 0, 0.24, 1);
-}
-img.js-reveal.in-view{
-  clip-path:inset(0 0 0 0%);
-}
-
 .card{
   transition:opacity 0.15s ease, transform 0.25s ease, border-color 0.25s ease;
 }
