@@ -596,6 +596,45 @@ table.protein-table tr:hover td{ background:rgba(91,133,189,0.06); }
 }
 .risk p{ color:var(--muted); font-size:0.94rem; margin:0; }
 
+.quick-summary{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-left:3px solid var(--red);
+  border-radius:6px;
+  padding:26px 28px;
+  margin:28px 0 40px;
+}
+.quick-summary .label{
+  font-family:var(--mono);
+  font-size:0.68rem;
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+  color:var(--red);
+  display:block;
+  margin-bottom:14px;
+}
+.quick-summary ul{
+  list-style:none;
+  margin:0;
+  padding:0;
+}
+.quick-summary li{
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+  font-size:1rem;
+  color:var(--text);
+  margin-bottom:12px;
+  line-height:1.5;
+}
+.quick-summary li:last-child{ margin-bottom:0; }
+.quick-summary li::before{
+  content:'→';
+  color:var(--red);
+  font-weight:700;
+  flex-shrink:0;
+}
+
 .callout{
   background:var(--surface);
   border:1px solid var(--border);
