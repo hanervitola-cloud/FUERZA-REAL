@@ -597,8 +597,9 @@ table.protein-table tr:hover td{ background:rgba(91,133,189,0.06); }
 .featured-card h3{ font-size:2.1rem; }
 .featured-badge{
   position:absolute;
-  top:16px;
-  right:16px;
+  top:36px;
+  right:36px;
+  z-index:2;
   font-family:var(--mono);
   font-size:0.62rem;
   letter-spacing:0.08em;
