@@ -249,6 +249,86 @@ table.protein-table tr:hover td{ background:rgba(91,133,189,0.06); }
   .cover-img{ height:200px; }
 }
 
+/* ---------- Compartir y artículos relacionados ---------- */
+.share-bar{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex-wrap:wrap;
+  margin:44px 0 8px;
+  padding-top:28px;
+  border-top:1px solid var(--border);
+}
+.share-label{
+  font-family:var(--mono);
+  font-size:0.68rem;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+.share-bar a{
+  font-family:var(--mono);
+  font-size:0.72rem;
+  color:var(--text);
+  background:var(--surface);
+  border:1px solid var(--border);
+  padding:7px 14px;
+  border-radius:4px;
+  transition:border-color 0.2s ease, color 0.2s ease;
+}
+.share-bar a:hover{
+  border-color:var(--red);
+  color:var(--red);
+}
+
+.related-section{
+  margin-top:40px;
+  padding-top:32px;
+  border-top:1px solid var(--border);
+}
+.related-section .section-title{
+  font-family:var(--display);
+  font-size:1.4rem;
+  color:var(--muted);
+  margin-bottom:20px;
+}
+.related-grid{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:16px;
+}
+@media (max-width:700px){
+  .related-grid{ grid-template-columns:1fr; }
+}
+.related-card{
+  display:block;
+  padding:16px;
+  border:1px solid var(--border);
+  border-radius:4px;
+  background:var(--surface);
+  transition:border-color 0.2s ease, transform 0.2s ease;
+}
+.related-card:hover{
+  border-color:var(--red);
+  transform:translateY(-2px);
+}
+.related-card .tag{
+  font-family:var(--mono);
+  font-size:0.64rem;
+  color:var(--blue);
+  text-transform:uppercase;
+}
+.related-card h4{
+  font-family:var(--body);
+  font-weight:700;
+  font-size:0.92rem;
+  color:var(--text);
+  margin:6px 0 0;
+  line-height:1.35;
+}
+
+/* ---------- Compartir y artículos relacionados FIN ---------- */
+
 /* ---------- Splash de entrada simple ---------- */
 #intro-splash{
   position:fixed;
