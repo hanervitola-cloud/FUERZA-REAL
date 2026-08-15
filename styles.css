@@ -580,6 +580,13 @@ table.protein-table tr:hover td{ background:rgba(91,133,189,0.06); }
   .feed-grid{ grid-template-columns:1fr; }
 }
 
+.wide-card{
+  grid-column:1 / -1;
+}
+.wide-card .card-img{
+  height:220px;
+}
+
 .featured-card{
   position:relative;
   grid-column:1 / -1;
