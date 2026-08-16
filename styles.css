@@ -249,6 +249,90 @@ table.protein-table tr:hover td{ background:rgba(91,133,189,0.06); }
   .cover-img{ height:200px; }
 }
 
+/* ---------- Calculadora ---------- */
+.calc-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:32px;
+  margin:32px 0;
+}
+.calc-field{
+  margin-bottom:20px;
+}
+.calc-field label{
+  display:block;
+  font-family:var(--mono);
+  font-size:0.7rem;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:8px;
+}
+.calc-input, .calc-select{
+  width:100%;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:12px 14px;
+  color:var(--text);
+  font-family:var(--body);
+  font-size:1rem;
+  transition:border-color 0.2s ease;
+}
+.calc-input:focus, .calc-select:focus{
+  outline:none;
+  border-color:var(--blue);
+}
+.calc-button{
+  width:100%;
+  background:var(--red);
+  color:var(--bg);
+  font-family:var(--body);
+  font-weight:700;
+  font-size:1rem;
+  text-transform:uppercase;
+  letter-spacing:0.03em;
+  border:none;
+  border-radius:4px;
+  padding:14px;
+  cursor:pointer;
+  transition:opacity 0.2s ease;
+}
+.calc-button:hover{ opacity:0.88; }
+.calc-results{
+  display:none;
+  margin-top:28px;
+  padding-top:24px;
+  border-top:1px solid var(--border);
+}
+.calc-results.show{ display:block; }
+.calc-result-item{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  padding:12px 0;
+  border-bottom:1px solid var(--border);
+}
+.calc-result-item:last-child{ border-bottom:none; }
+.calc-result-item .rlabel{
+  font-family:var(--mono);
+  font-size:0.78rem;
+  color:var(--muted);
+}
+.calc-result-item .rvalue{
+  font-family:var(--display);
+  font-size:1.5rem;
+  color:var(--red);
+}
+.calc-note{
+  font-family:var(--mono);
+  font-size:0.7rem;
+  color:var(--muted);
+  margin-top:16px;
+  line-height:1.6;
+}
+
 /* ---------- Compartir y artículos relacionados ---------- */
 .share-bar{
   display:flex;
