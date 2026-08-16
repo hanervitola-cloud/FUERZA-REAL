@@ -251,27 +251,45 @@ table.protein-table tr:hover td{ background:rgba(91,133,189,0.06); }
 
 .calc-float-btn{
   position:fixed;
-  bottom:24px;
-  left:24px;
-  z-index:20;
+  bottom:28px;
+  left:28px;
+  z-index:9000;
   display:flex;
   align-items:center;
-  gap:8px;
-  background:var(--surface);
-  border:1px solid var(--border);
-  color:var(--text);
+  gap:10px;
+  background:var(--red);
+  border:2px solid var(--red);
+  color:var(--bg);
   font-family:var(--body);
-  font-weight:600;
-  font-size:0.85rem;
-  padding:12px 18px;
-  border-radius:30px;
-  box-shadow:0 4px 14px rgba(0,0,0,0.35);
+  font-weight:800;
+  font-size:1rem;
+  padding:16px 24px;
+  border-radius:32px;
+  box-shadow:0 6px 20px rgba(0,0,0,0.5);
   transition:border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+  animation:calcPulse 2.4s ease-in-out infinite;
 }
 .calc-float-btn:hover{
-  border-color:var(--red);
-  background:var(--red-soft);
-  transform:translateY(-2px);
+  background:var(--text);
+  border-color:var(--text);
+  color:var(--bg);
+  transform:translateY(-3px) scale(1.03);
+  animation:none;
+}
+@keyframes calcPulse{
+  0%, 100%{ box-shadow:0 6px 20px rgba(0,0,0,0.5), 0 0 0 0 rgba(200,68,59,0.6); }
+  50%{ box-shadow:0 6px 20px rgba(0,0,0,0.5), 0 0 0 12px rgba(200,68,59,0); }
+}
+@media (prefers-reduced-motion: reduce){
+  .calc-float-btn{ animation:none; }
+}
+@media (max-width:560px){
+  .calc-float-btn{
+    bottom:18px;
+    left:18px;
+    padding:13px 18px;
+    font-size:0.85rem;
+  }
 }
 @media (max-width:560px){
   .calc-float-btn{
@@ -651,6 +669,56 @@ table.protein-table tr:hover td{ background:rgba(91,133,189,0.06); }
 }
 .feed-continued{
   padding-top:44px;
+}
+
+.calc-banner{
+  border-bottom:1px solid var(--border);
+  padding:36px 0;
+  background:linear-gradient(90deg, var(--red-soft) 0%, transparent 60%);
+}
+.calc-banner-inner{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:24px;
+  flex-wrap:wrap;
+}
+.calc-banner-eyebrow{
+  font-family:var(--mono);
+  font-size:0.68rem;
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+  color:var(--red);
+}
+.calc-banner-text h3{
+  font-family:var(--display);
+  font-size:1.7rem;
+  margin:6px 0 4px;
+  color:var(--text);
+}
+.calc-banner-text p{
+  color:var(--muted);
+  font-size:0.92rem;
+}
+.calc-banner-btn{
+  flex-shrink:0;
+  background:var(--red);
+  color:var(--bg);
+  font-family:var(--body);
+  font-weight:700;
+  font-size:0.9rem;
+  padding:13px 22px;
+  border-radius:30px;
+  white-space:nowrap;
+  transition:transform 0.2s ease, opacity 0.2s ease;
+}
+.calc-banner-btn:hover{
+  transform:translateY(-2px);
+  opacity:0.9;
+}
+@media (max-width:600px){
+  .calc-banner-inner{ flex-direction:column; align-items:flex-start; }
+  .calc-banner-btn{ width:100%; text-align:center; }
 }
 
 /* ---------- Sección de declaración (foto pantalla completa + frase) ---------- */
