@@ -61,4 +61,13 @@ document.addEventListener('DOMContentLoaded', function () {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
+  // --- Botón flotante de la calculadora (en todas las páginas menos la propia calculadora) ---
+  if (!window.location.pathname.endsWith('calculadora.html')) {
+    const calcBtn = document.createElement('a');
+    calcBtn.href = 'calculadora.html';
+    calcBtn.className = 'calc-float-btn';
+    calcBtn.innerHTML = '🧮 <span>Calculadora</span>';
+    document.body.appendChild(calcBtn);
+  }
+
 });
