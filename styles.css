@@ -249,6 +249,40 @@ table.protein-table tr:hover td{ background:rgba(91,133,189,0.06); }
   .cover-img{ height:200px; }
 }
 
+.calc-float-btn{
+  position:fixed;
+  bottom:24px;
+  left:24px;
+  z-index:20;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  color:var(--text);
+  font-family:var(--body);
+  font-weight:600;
+  font-size:0.85rem;
+  padding:12px 18px;
+  border-radius:30px;
+  box-shadow:0 4px 14px rgba(0,0,0,0.35);
+  transition:border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+.calc-float-btn:hover{
+  border-color:var(--red);
+  background:var(--red-soft);
+  transform:translateY(-2px);
+}
+@media (max-width:560px){
+  .calc-float-btn{
+    bottom:16px;
+    left:16px;
+    padding:10px 14px;
+    font-size:0.78rem;
+  }
+  .calc-float-btn span{ display:none; }
+}
+
 /* ---------- Calculadora ---------- */
 .calc-card{
   background:var(--surface);
