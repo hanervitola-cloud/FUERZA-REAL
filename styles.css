@@ -301,6 +301,54 @@ table.protein-table tr:hover td{ background:rgba(91,133,189,0.06); }
   .calc-float-btn span{ display:none; }
 }
 
+/* ---------- Volver a artículos + Fuentes ---------- */
+.back-link{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-family:var(--mono);
+  font-size:0.72rem;
+  letter-spacing:0.05em;
+  color:var(--muted);
+  margin-bottom:18px;
+  transition:color 0.2s ease;
+}
+.back-link:hover{ color:var(--red); }
+
+.sources-section{
+  margin-top:36px;
+  padding-top:24px;
+  border-top:1px solid var(--border);
+}
+.sources-section .label{
+  font-family:var(--mono);
+  font-size:0.68rem;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--muted);
+  display:block;
+  margin-bottom:12px;
+}
+.sources-section ul{
+  list-style:none;
+  margin:0;
+  padding:0;
+}
+.sources-section li{
+  font-size:0.85rem;
+  color:var(--muted);
+  margin-bottom:8px;
+  padding-left:16px;
+  position:relative;
+  line-height:1.5;
+}
+.sources-section li::before{
+  content:'—';
+  position:absolute;
+  left:0;
+  color:var(--red);
+}
+
 /* ---------- Calculadora ---------- */
 .calc-card{
   background:var(--surface);
