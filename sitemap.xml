@@ -1,67 +1,71 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://hanervitola-cloud.github.io/FUERZA-REAL/</loc>
+    <loc>https://fuerza-real.netlify.app/</loc>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://hanervitola-cloud.github.io/FUERZA-REAL/articulo-esteroides.html</loc>
+    <loc>https://fuerza-real.netlify.app/articulo-esteroides.html</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://hanervitola-cloud.github.io/FUERZA-REAL/mitos-gimnasio.html</loc>
+    <loc>https://fuerza-real.netlify.app/mitos-gimnasio.html</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://hanervitola-cloud.github.io/FUERZA-REAL/proteina-diaria.html</loc>
+    <loc>https://fuerza-real.netlify.app/proteina-diaria.html</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://hanervitola-cloud.github.io/FUERZA-REAL/rutina-principiantes.html</loc>
+    <loc>https://fuerza-real.netlify.app/rutina-principiantes.html</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://hanervitola-cloud.github.io/FUERZA-REAL/creatina-guia.html</loc>
+    <loc>https://fuerza-real.netlify.app/creatina-guia.html</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://hanervitola-cloud.github.io/FUERZA-REAL/sueno-descanso.html</loc>
+    <loc>https://fuerza-real.netlify.app/sueno-descanso.html</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://hanervitola-cloud.github.io/FUERZA-REAL/volumen-definicion.html</loc>
+    <loc>https://fuerza-real.netlify.app/volumen-definicion.html</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://hanervitola-cloud.github.io/FUERZA-REAL/sobreentrenamiento.html</loc>
+    <loc>https://fuerza-real.netlify.app/sobreentrenamiento.html</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://hanervitola-cloud.github.io/FUERZA-REAL/redes-comparacion.html</loc>
+    <loc>https://fuerza-real.netlify.app/redes-comparacion.html</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://hanervitola-cloud.github.io/FUERZA-REAL/disciplina-motivacion.html</loc>
+    <loc>https://fuerza-real.netlify.app/disciplina-motivacion.html</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://hanervitola-cloud.github.io/FUERZA-REAL/hipertrofia-fuerza.html</loc>
+    <loc>https://fuerza-real.netlify.app/hipertrofia-fuerza.html</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://hanervitola-cloud.github.io/FUERZA-REAL/calculadora.html</loc>
+    <loc>https://fuerza-real.netlify.app/calculadora.html</loc>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://hanervitola-cloud.github.io/FUERZA-REAL/acerca.html</loc>
+    <loc>https://fuerza-real.netlify.app/acerca.html</loc>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://hanervitola-cloud.github.io/FUERZA-REAL/contacto.html</loc>
+    <loc>https://fuerza-real.netlify.app/contacto.html</loc>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://hanervitola-cloud.github.io/FUERZA-REAL/privacidad.html</loc>
+    <loc>https://fuerza-real.netlify.app/privacidad.html</loc>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://fuerza-real.netlify.app/terminos.html</loc>
     <priority>0.3</priority>
   </url>
 </urlset>
