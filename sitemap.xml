@@ -57,6 +57,10 @@
     <priority>0.5</priority>
   </url>
   <url>
+    <loc>https://fuerza-real.netlify.app/autor.html</loc>
+    <priority>0.5</priority>
+  </url>
+  <url>
     <loc>https://fuerza-real.netlify.app/contacto.html</loc>
     <priority>0.5</priority>
   </url>
