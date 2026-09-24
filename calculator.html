@@ -1,0 +1,129 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="https://earned-strength.earnedstrength.workers.dev/calculator.html">
+<title>Protein and Calorie Calculator — Earned Strength</title>
+<meta name="description" content="Calculate your recommended daily protein and maintenance calories based on your weight, activity level, and goal (bulking, cutting, or maintenance).">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2308795116201707" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a href="index.html" class="logo">EARNED<span>STRENGTH</span></a>
+  </div>
+</header>
+
+<article class="article">
+  <div class="wrap">
+    <span class="tag">Tool</span>
+    <h1>Protein and Calorie Calculator</h1>
+    <div class="meta">Instant results</div>
+
+    <p class="intro">Enter your weight, activity level, and goal to get an estimate of how much protein and how many calories you need per day.</p>
+
+    <div class="calc-card">
+      <div class="calc-field">
+        <label for="calc-weight">Your weight (kg)</label>
+        <input type="number" id="calc-weight" class="calc-input" placeholder="e.g. 70" min="30" max="200">
+      </div>
+
+      <div class="calc-field">
+        <label for="calc-activity">Activity level</label>
+        <select id="calc-activity" class="calc-select">
+          <option value="24">Sedentary (little or no exercise)</option>
+          <option value="27">Light (you train 1-3 days a week)</option>
+          <option value="30" selected>Moderate (you train 3-5 days a week)</option>
+          <option value="33">Intense (you train 6-7 days a week)</option>
+        </select>
+      </div>
+
+      <div class="calc-field">
+        <label for="calc-goal">Your goal</label>
+        <select id="calc-goal" class="calc-select">
+          <option value="maintain">Maintenance</option>
+          <option value="bulk">Bulking (build muscle)</option>
+          <option value="cut">Cutting (lose fat)</option>
+        </select>
+      </div>
+
+      <button class="calc-button" id="calc-button">Calculate</button>
+
+      <div class="calc-results" id="calc-results">
+        <div class="calc-result-item">
+          <span class="rlabel">Recommended daily protein</span>
+          <span class="rvalue" id="result-protein">—</span>
+        </div>
+        <div class="calc-result-item">
+          <span class="rlabel">Estimated calories for your goal</span>
+          <span class="rvalue" id="result-calories">—</span>
+        </div>
+        <p class="calc-note">These numbers are a general estimate based on your weight and activity level, not an exact medical calculation. Adjust based on how your body responds over the first 2-3 weeks. For a more precise calculation, a nutritionist can also factor in your age, height, and body composition.</p>
+      </div>
+    </div>
+
+    <h2>How it's calculated</h2>
+    <div class="risk">
+      <span class="num">•</span>
+      <div>
+        <h3>Protein</h3>
+        <p>We use 1.8 g per kg of body weight — a midpoint within the 1.6-2.2 g/kg range recommended for strength trainees. More detail in the <a href="daily-protein.html">complete protein guide</a>.</p>
+      </div>
+    </div>
+    <div class="risk">
+      <span class="num">•</span>
+      <div>
+        <h3>Maintenance calories</h3>
+        <p>Estimated by multiplying your weight by a factor based on your activity level (between 24 and 33 kcal/kg). For bulking, 15% is added; for cutting, 20% is subtracted. More context in <a href="bulking-cutting.html">bulking vs cutting</a>.</p>
+      </div>
+    </div>
+
+    <p class="muted">This calculator provides a general estimate and does not replace the advice of a nutritionist, especially if you have any medical condition.</p>
+  </div>
+</article>
+
+<footer class="site">
+  <div class="wrap">
+    <div class="footer-links">
+      <a href="about.html">About</a>
+      <a href="author.html">About the author</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="contact.html">Contact</a>
+    </div>
+    <p>Earned Strength — informational content about training and health.<br>
+    This does not replace the advice of a doctor or certified trainer.</p>
+  </div>
+</footer>
+
+<script src="script.js" defer></script>
+<script>
+  document.getElementById('calc-button').addEventListener('click', function () {
+    var weight = parseFloat(document.getElementById('calc-weight').value);
+    if (!weight || weight <= 0) {
+      alert('Please enter a valid weight.');
+      return;
+    }
+    var activityFactor = parseFloat(document.getElementById('calc-activity').value);
+    var goal = document.getElementById('calc-goal').value;
+
+    var protein = Math.round(weight * 1.8);
+    var maintenance = Math.round(weight * activityFactor);
+    var calories = maintenance;
+    if (goal === 'bulk') {
+      calories = Math.round(maintenance * 1.15);
+    } else if (goal === 'cut') {
+      calories = Math.round(maintenance * 0.8);
+    }
+
+    document.getElementById('result-protein').textContent = protein + ' g';
+    document.getElementById('result-calories').textContent = calories + ' kcal';
+    document.getElementById('calc-results').classList.add('show');
+  });
+</script>
+</body>
+</html>
