@@ -1,4 +1,4 @@
 ﻿User-agent: *
 Allow: /
 
-Sitemap: https://earned-strength.earnedstrength.workers.dev/sitemap.xml
+Sitemap: https://earnedstrength.online/sitemap.xml
