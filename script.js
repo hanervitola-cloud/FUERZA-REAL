@@ -1,3 +1,7 @@
+if (/\.github\.io$|\.workers\.dev$/.test(location.hostname)) {
+  location.replace('https://earnedstrength.online' + location.pathname.replace(/^\/FUERZA-REAL/i, '') + location.search + location.hash);
+}
+
 document.addEventListener('DOMContentLoaded', function () {
 
   document.body.classList.add('page-loaded');
