@@ -57,22 +57,4 @@ document.addEventListener('DOMContentLoaded', function () {
     document.body.appendChild(calcBtn);
   }
 
-  // Cookie consent banner
-  try {
-    if (!localStorage.getItem('cookie_consent')) {
-      const banner = document.createElement('div');
-      banner.id = 'cookie-banner';
-      banner.innerHTML = '<p>This site uses cookies from Google AdSense to serve ads. By continuing, you accept their use. <a href="/privacy">Learn more</a></p><button id="cookie-accept">Got it</button>';
-      banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#1e2327;color:#ccc;font-family:Inter,sans-serif;font-size:13px;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;z-index:9999;border-top:1px solid #2a2f35;';
-      banner.querySelector('a').style.cssText = 'color:#C8443B;';
-      const btn = banner.querySelector('#cookie-accept');
-      btn.style.cssText = 'background:#C8443B;color:#fff;border:none;padding:8px 18px;font-size:13px;font-family:Inter,sans-serif;cursor:pointer;flex-shrink:0;';
-      document.body.appendChild(banner);
-      btn.addEventListener('click', function () {
-        try { localStorage.setItem('cookie_consent', '1'); } catch(e) {}
-        banner.remove();
-      });
-    }
-  } catch(e) {}
-
 });
