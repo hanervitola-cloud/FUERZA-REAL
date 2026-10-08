@@ -1,5 +1,7 @@
-if (/\.github\.io$|\.workers\.dev$/.test(location.hostname)) {
-  location.replace('https://earnedstrength.online' + location.pathname.replace(/^\/FUERZA-REAL/i, '') + location.search + location.hash);
+if (/\.github\.io$|\.workers\.dev$/.test(location.hostname) ||
+    (location.hostname === 'earnedstrength.online' && location.protocol === 'http:')) {
+  var esPath = location.pathname.replace(/^\/FUERZA-REAL/i, '').replace(/\.html$/, '').replace(/\/index$/, '/');
+  location.replace('https://earnedstrength.online' + (esPath || '/') + location.search + location.hash);
 }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -47,9 +49,9 @@ document.addEventListener('DOMContentLoaded', function () {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
-  if (!window.location.pathname.endsWith('calculator.html')) {
+  if (!/\/calculator(\.html)?$/.test(window.location.pathname)) {
     const calcBtn = document.createElement('a');
-    calcBtn.href = 'calculator.html';
+    calcBtn.href = '/calculator';
     calcBtn.className = 'calc-float-btn';
     calcBtn.innerHTML = '🧮 <span>Calculator</span>';
     document.body.appendChild(calcBtn);
@@ -60,7 +62,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!localStorage.getItem('cookie_consent')) {
       const banner = document.createElement('div');
       banner.id = 'cookie-banner';
-      banner.innerHTML = '<p>This site uses cookies from Google AdSense to serve ads. By continuing, you accept their use. <a href="/privacy.html">Learn more</a></p><button id="cookie-accept">Got it</button>';
+      banner.innerHTML = '<p>This site uses cookies from Google AdSense to serve ads. By continuing, you accept their use. <a href="/privacy">Learn more</a></p><button id="cookie-accept">Got it</button>';
       banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#1e2327;color:#ccc;font-family:Inter,sans-serif;font-size:13px;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;z-index:9999;border-top:1px solid #2a2f35;';
       banner.querySelector('a').style.cssText = 'color:#C8443B;';
       const btn = banner.querySelector('#cookie-accept');
