@@ -590,6 +590,10 @@ table.protein-table tr:hover td{ background:rgba(91,133,189,0.06); }
   .hero-full-text{ padding-bottom:36px; }
 }
 
+.hero-full-img.thumb, .real-img.thumb{ object-position:center; }
+.hero-full-img.thumb-vertical, .real-img.thumb-vertical{ object-position:center 45%; }
+.hero-full-img.thumb-vertical-low, .real-img.thumb-vertical-low{ object-position:center 74%; }
+
 .article-hero-full{
   height:75vh;
   min-height:460px;
