@@ -32,4 +32,20 @@ document.addEventListener('DOMContentLoaded', function () {
     document.body.appendChild(calcBtn);
   }
 
+  const article = document.querySelector('article.article');
+  if (article && document.querySelector('.article-hero-full')) {
+    const bar = document.createElement('div');
+    bar.className = 'read-progress';
+    document.body.appendChild(bar);
+    const update = function () {
+      const rect = article.getBoundingClientRect();
+      const total = rect.height - window.innerHeight;
+      const done = total > 0 ? Math.min(1, Math.max(0, -rect.top / total)) : 1;
+      bar.style.transform = 'scaleX(' + done + ')';
+    };
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+  }
+
 });
