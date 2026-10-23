@@ -141,6 +141,53 @@ nav.site a:hover{ color:var(--text); }
   margin-left:auto;
   margin-right:auto;
 }
+.check-list label{
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+  padding:12px 0;
+  border-bottom:1px solid var(--border);
+  cursor:pointer;
+  color:var(--text);
+  font-size:0.95rem;
+  line-height:1.5;
+}
+.check-list label:last-child{ border-bottom:none; margin-bottom:16px; }
+.check-list input{ accent-color:var(--red); width:18px; height:18px; margin-top:3px; flex-shrink:0; }
+
+.level-picker{ padding:56px 0; border-bottom:1px solid var(--border); }
+.level-intro{ color:var(--muted); margin:8px 0 20px; }
+.level-buttons{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; }
+.level-btn{
+  font-family:var(--mono);
+  font-size:0.72rem;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  background:transparent;
+  color:var(--text);
+  border:1px solid var(--border);
+  padding:10px 16px;
+  border-radius:4px;
+  cursor:pointer;
+}
+.level-btn:hover{ border-color:var(--red); }
+.level-btn.active{ background:var(--red); border-color:var(--red); color:var(--bg); }
+.level-panel{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:20px 24px;
+  margin-bottom:12px;
+}
+.level-panel h3{ font-family:var(--display); font-size:1.5rem; letter-spacing:0.01em; margin-bottom:8px; }
+.level-panel ul{ list-style:none; }
+.level-panel li{ padding:9px 0; border-bottom:1px solid var(--border); }
+.level-panel li:last-child{ border-bottom:none; }
+.level-panel a{ color:var(--text); }
+.level-panel a:hover{ color:var(--red); }
+.level-picker.js-levels .level-panel{ display:none; }
+.level-picker.js-levels .level-panel.active{ display:block; }
+
 .calc-verdict{
   margin-top:16px;
   padding:14px 16px;
@@ -888,7 +935,7 @@ table.protein-table tr:hover td{ background:rgba(91,133,189,0.06); }
 .feed{
   padding:52px 0 80px;
 }
-.feed h2.section-title{
+.feed h2.section-title, .level-picker h2.section-title{
   font-family:var(--display);
   font-size:1.6rem;
   letter-spacing:0.02em;

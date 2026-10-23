@@ -6,6 +6,7 @@
 <link rel="canonical" href="https://earnedstrength.online/">
 <title>Earned Strength — Natural Training, No Shortcuts</title>
 <meta name="description" content="Evidence-based fitness content on natural training, nutrition, and muscle growth. No shortcuts, no myths.">
+<meta name="author" content="Haner Vitola">
 <link rel="stylesheet" href="styles.css">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2308795116201707" crossorigin="anonymous"></script>
@@ -103,6 +104,62 @@
     <div class="stat">
       <strong>2026</strong>
       <span>Updated content</span>
+    </div>
+  </div>
+</section>
+
+<section class="level-picker" id="level-picker">
+  <div class="wrap">
+    <h2 class="section-title">Where are you starting from?</h2>
+    <p class="level-intro">Pick your level and you'll get the articles that will help you most right now.</p>
+    <div class="level-buttons">
+      <button type="button" class="level-btn" data-level="beginner">Beginner</button>
+      <button type="button" class="level-btn" data-level="intermediate">Intermediate</button>
+      <button type="button" class="level-btn" data-level="advanced">Advanced</button>
+      <button type="button" class="level-btn" data-level="comeback">Coming back</button>
+    </div>
+
+    <div class="level-panel" data-level="beginner">
+      <h3>Beginner — your first year</h3>
+      <ul>
+        <li><a href="/beginner-routine">Beginner Routine: Your First 3 Months</a></li>
+        <li><a href="/gym-myths">8 Gym Myths That Are Holding You Back</a></li>
+        <li><a href="/daily-protein">How Much Protein You Actually Need</a></li>
+        <li><a href="/after-workout-muscles">What Happens Inside Your Muscles After a Workout</a></li>
+        <li><a href="/lose-weight">How to Actually Lose Weight (No Extreme Diets)</a></li>
+        <li><a href="/discipline-motivation">Why Motivation Isn't Enough (But Discipline Is)</a></li>
+      </ul>
+    </div>
+
+    <div class="level-panel" data-level="intermediate">
+      <h3>Intermediate — 1 to 3 years</h3>
+      <ul>
+        <li><a href="/hypertrophy-strength">Hypertrophy vs Strength: Differences and How to Train Each</a></li>
+        <li><a href="/bulking-cutting">Bulking vs Cutting: How to Know Which Phase You're In</a></li>
+        <li><a href="/high-protein-foods">High-Protein Foods: Which Ones Are Actually Worth It</a></li>
+        <li><a href="/creatine-guide">Creatine: The Complete Guide</a></li>
+        <li><a href="/protein-powder">Is Protein Powder Bad for You?</a></li>
+      </ul>
+    </div>
+
+    <div class="level-panel" data-level="advanced">
+      <h3>Advanced — 3+ years</h3>
+      <ul>
+        <li><a href="/overtraining-signs">Signs of Overtraining: When Your Body Says Stop</a></li>
+        <li><a href="/sleep-recovery">Sleep and Recovery: Why It Matters as Much as Training</a></li>
+        <li><a href="/steroids-article">Why Using Steroids Isn't Worth It</a></li>
+        <li><a href="/social-media-comparison">Why Comparing Yourself on Social Media Is Holding You Back</a></li>
+      </ul>
+    </div>
+
+    <div class="level-panel" data-level="comeback">
+      <h3>Coming back after a break</h3>
+      <ul>
+        <li><a href="/stop-training-muscles">What Happens to Your Muscles When You Stop Training</a></li>
+        <li><a href="/discipline-motivation">How to Come Back After a Break (Discipline vs Motivation)</a></li>
+        <li><a href="/beginner-routine">A Simple Routine to Restart With</a></li>
+        <li><a href="/daily-protein">How Much Protein You Actually Need</a></li>
+      </ul>
     </div>
   </div>
 </section>
@@ -249,8 +306,8 @@
       <img src="redes-comparacion-foto.jpg" alt="Silhouette of a person alone looking at the horizon" class="card-img real-img">
       <span class="tag">Mindset</span>
       <h3>Why Comparing Yourself on Social Media Is Holding You Back</h3>
-      <p>What's really behind those "perfect" photos, why it stalls your real progress, and how to build motivation that actually lasts.</p>
-      <div class="meta">3 min read</div>
+      <p>What the research says about fitness content and body image, a quick self-check, and a 7-day plan to reset your feed.</p>
+      <div class="meta">6 min read</div>
     </a>
 
     <a href="/discipline-motivation" class="card">
@@ -297,5 +354,19 @@
 </footer>
 
 <script src="script.js" defer></script>
+<script>
+  (function () {
+    var picker = document.getElementById('level-picker');
+    var buttons = picker.querySelectorAll('.level-btn');
+    var panels = picker.querySelectorAll('.level-panel');
+    function select(level) {
+      buttons.forEach(function (b) { b.classList.toggle('active', b.dataset.level === level); b.setAttribute('aria-pressed', b.dataset.level === level); });
+      panels.forEach(function (p) { p.classList.toggle('active', p.dataset.level === level); });
+    }
+    buttons.forEach(function (b) { b.addEventListener('click', function () { select(b.dataset.level); }); });
+    picker.classList.add('js-levels');
+    select('beginner');
+  })();
+</script>
 </body>
 </html>
