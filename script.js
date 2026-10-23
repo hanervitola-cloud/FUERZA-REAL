@@ -6,31 +6,6 @@ if (/\.github\.io$|\.workers\.dev$/.test(location.hostname) ||
 
 document.addEventListener('DOMContentLoaded', function () {
 
-  document.body.classList.add('page-loaded');
-
-  const revealSelectors = '.card, .risk, .callout, .day-block, .table-wrap, .video-embed, .curve-block, article h2, .cover-img, .hero-img, .statement-img, .hero-full-img';
-  const revealEls = document.querySelectorAll(revealSelectors);
-
-  revealEls.forEach(function (el, i) {
-    el.classList.add('js-reveal');
-    el.style.transitionDelay = (i % 4) * 90 + 'ms';
-  });
-
-  if ('IntersectionObserver' in window) {
-    const observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('in-view');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-
-    revealEls.forEach(function (el) { observer.observe(el); });
-  } else {
-    revealEls.forEach(function (el) { el.classList.add('in-view'); });
-  }
-
   const backToTop = document.createElement('button');
   backToTop.className = 'back-to-top';
   backToTop.setAttribute('aria-label', 'Back to top');
