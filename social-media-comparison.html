@@ -132,7 +132,7 @@
     </div>
 
     <h2>Quick self-check: how is social media affecting you?</h2>
-    <p>Check every statement that sounds like you. Nothing you select is saved or sent anywhere.</p>
+    <p>Six quick statements — answer honestly. Nothing you answer is saved or sent anywhere.</p>
 
     <div class="calc-card" id="sm-check">
       <div class="check-list">
@@ -183,7 +183,7 @@
       </div>
     </div>
 
-    <h2>A 7-day feed reset</h2>
+    <h2 id="feed-reset">A 7-day feed reset</h2>
     <p>If the self-check gave you two or more, try this for one week. It takes a few minutes a day.</p>
 
     <div class="day-block">
@@ -260,18 +260,101 @@
 <script src="script.js" defer></script>
 <script>
   (function () {
-    document.getElementById('sm-button').addEventListener('click', function () {
-      var count = document.querySelectorAll('.sm-item:checked').length;
-      var verdict = document.getElementById('sm-verdict');
-      document.getElementById('sm-results').classList.add('show');
-      if (count <= 1) {
-        verdict.textContent = 'You checked ' + count + ' of 6. Your relationship with fitness content looks healthy — keep comparing yourself only to your past self.';
-      } else if (count <= 3) {
-        verdict.textContent = 'You checked ' + count + ' of 6. Some comparison is creeping in. Try the 7-day feed reset below and focus on numbers you control.';
-      } else {
-        verdict.textContent = 'You checked ' + count + ' of 6. Social media is probably holding you back. Start the 7-day feed reset today, consider a short break from fitness content, and if it\'s affecting your mood, talk to someone you trust.';
-      }
+    var box = document.getElementById('sm-check');
+    var labels = box.querySelectorAll('.check-list label');
+    var questions = [];
+    for (var i = 0; i < labels.length; i++) questions.push(labels[i].textContent.trim());
+    var total = questions.length;
+    var CIRC = 326.73;
+    var LEVELS = [
+      { max: 1, color: '#5B85BD', badge: 'Healthy relationship', advice: 'Your relationship with fitness content looks healthy. Keep comparing yourself only to your past self.' },
+      { max: 3, color: '#D9A441', badge: 'Comparison creeping in', advice: 'Some comparison is creeping in. Try the 7-day feed reset below and focus on numbers you control.' },
+      { max: 99, color: '#C8443B', badge: "It's holding you back", advice: "Social media is probably holding you back. Start the 7-day feed reset today, consider a short break from fitness content, and if it's affecting your mood, talk to someone you trust." }
+    ];
+    var ICON_NO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+    var ICON_YES = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
+    box.classList.add('sm-js');
+    var quiz = document.createElement('div');
+    quiz.className = 'quiz';
+    quiz.innerHTML =
+      '<div class="quiz-top"><span class="quiz-label">Question <b class="quiz-n">1</b> / ' + total + '</span><div class="quiz-bar"><span class="quiz-fill"></span></div></div>' +
+      '<div class="quiz-stage"><div class="quiz-card"><span class="quiz-mark" aria-hidden="true">&ldquo;</span><p class="quiz-q" aria-live="polite"></p></div></div>' +
+      '<div class="quiz-actions"><button type="button" class="quiz-btn quiz-no" data-a="0">' + ICON_NO + 'Not me</button><button type="button" class="quiz-btn quiz-yes" data-a="1">' + ICON_YES + 'That\'s me</button></div>';
+    var result = document.createElement('div');
+    result.className = 'quiz-result';
+    result.hidden = true;
+    result.innerHTML =
+      '<div class="quiz-ring"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="ring-bg" cx="60" cy="60" r="52"/><circle class="ring-fg" cx="60" cy="60" r="52"/></svg><div class="quiz-score"><b>0</b><span>/ ' + total + '</span></div></div>' +
+      '<span class="quiz-badge"></span><p class="quiz-advice"></p>' +
+      '<div class="quiz-result-actions"><a class="quiz-btn quiz-yes" href="#feed-reset">Start the 7-day reset</a><button type="button" class="quiz-btn quiz-no quiz-retry">Retake</button></div>';
+    box.appendChild(quiz);
+    box.appendChild(result);
+
+    var card = quiz.querySelector('.quiz-card');
+    var qText = quiz.querySelector('.quiz-q');
+    var qN = quiz.querySelector('.quiz-n');
+    var fill = quiz.querySelector('.quiz-fill');
+    var buttons = quiz.querySelectorAll('.quiz-actions .quiz-btn');
+    var index = 0, yes = 0, busy = false;
+
+    function show() {
+      qText.textContent = questions[index];
+      qN.textContent = index + 1;
+      fill.style.width = (index / total * 100) + '%';
+      card.classList.remove('out-yes', 'out-no', 'in');
+      void card.offsetWidth;
+      card.classList.add('in');
+    }
+    function finish() {
+      fill.style.width = '100%';
+      var level = LEVELS[0];
+      for (var i = 0; i < LEVELS.length; i++) { if (yes <= LEVELS[i].max) { level = LEVELS[i]; break; } }
+      setTimeout(function () {
+        quiz.hidden = true;
+        result.hidden = false;
+        result.style.setProperty('--quiz-color', level.color);
+        var badge = result.querySelector('.quiz-badge');
+        badge.textContent = level.badge;
+        badge.style.color = level.color;
+        badge.style.borderColor = level.color;
+        result.querySelector('.quiz-advice').textContent = level.advice;
+        var ring = result.querySelector('.ring-fg');
+        var score = result.querySelector('.quiz-score b');
+        ring.style.strokeDashoffset = CIRC;
+        score.textContent = '0';
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () { ring.style.strokeDashoffset = CIRC * (1 - yes / total); });
+        });
+        var n = 0;
+        var timer = setInterval(function () {
+          if (n >= yes) { clearInterval(timer); return; }
+          n++; score.textContent = n;
+        }, 140);
+      }, 250);
+    }
+    function answer(a) {
+      if (busy) return;
+      busy = true;
+      if (a) yes++;
+      card.classList.remove('in');
+      card.classList.add(a ? 'out-yes' : 'out-no');
+      setTimeout(function () {
+        busy = false;
+        index++;
+        if (index < total) show(); else finish();
+      }, 280);
+    }
+    for (var b = 0; b < buttons.length; b++) {
+      buttons[b].addEventListener('click', function () { answer(this.getAttribute('data-a') === '1'); });
+    }
+    result.querySelector('.quiz-retry').addEventListener('click', function () {
+      index = 0; yes = 0;
+      result.hidden = true;
+      quiz.hidden = false;
+      show();
     });
+    show();
   })();
 </script>
 </body>

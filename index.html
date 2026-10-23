@@ -110,56 +110,57 @@
 
 <section class="level-picker" id="level-picker">
   <div class="wrap">
-    <h2 class="section-title">Where are you starting from?</h2>
-    <p class="level-intro">Pick your level and you'll get the articles that will help you most right now.</p>
-    <div class="level-buttons">
-      <button type="button" class="level-btn" data-level="beginner">Beginner</button>
-      <button type="button" class="level-btn" data-level="intermediate">Intermediate</button>
-      <button type="button" class="level-btn" data-level="advanced">Advanced</button>
-      <button type="button" class="level-btn" data-level="comeback">Coming back</button>
+    <span class="lp-eyebrow">Find your path</span>
+    <h2 class="lp-title">Where are you starting from?</h2>
+    <p class="level-intro">Pick your level and get a reading path built for where you are right now.</p>
+    <div class="lp-cards">
+      <button type="button" class="lp-card" data-level="beginner"><span class="lp-icon"><svg class="lp-bars" viewBox="0 0 36 28" aria-hidden="true"><rect class="on" x="2" y="16" width="8" height="10" rx="2"/><rect x="14" y="9" width="8" height="17" rx="2"/><rect x="26" y="2" width="8" height="24" rx="2"/></svg></span><span class="lp-name">Beginner</span><span class="lp-sub">First year</span></button>
+      <button type="button" class="lp-card" data-level="intermediate"><span class="lp-icon"><svg class="lp-bars" viewBox="0 0 36 28" aria-hidden="true"><rect class="on" x="2" y="16" width="8" height="10" rx="2"/><rect class="on" x="14" y="9" width="8" height="17" rx="2"/><rect x="26" y="2" width="8" height="24" rx="2"/></svg></span><span class="lp-name">Intermediate</span><span class="lp-sub">1 to 3 years</span></button>
+      <button type="button" class="lp-card" data-level="advanced"><span class="lp-icon"><svg class="lp-bars" viewBox="0 0 36 28" aria-hidden="true"><rect class="on" x="2" y="16" width="8" height="10" rx="2"/><rect class="on" x="14" y="9" width="8" height="17" rx="2"/><rect class="on" x="26" y="2" width="8" height="24" rx="2"/></svg></span><span class="lp-name">Advanced</span><span class="lp-sub">3+ years</span></button>
+      <button type="button" class="lp-card" data-level="comeback"><span class="lp-icon"><svg class="lp-loop" viewBox="0 0 28 28" aria-hidden="true"><path d="M22.5 14a8.5 8.5 0 1 1-2.5-6"/><path d="M21 3.5v5h-5"/></svg></span><span class="lp-name">Coming back</span><span class="lp-sub">After a break</span></button>
     </div>
 
-    <div class="level-panel" data-level="beginner">
-      <h3>Beginner — your first year</h3>
-      <ul>
-        <li><a href="/beginner-routine">Beginner Routine: Your First 3 Months</a></li>
-        <li><a href="/gym-myths">8 Gym Myths That Are Holding You Back</a></li>
-        <li><a href="/daily-protein">How Much Protein You Actually Need</a></li>
-        <li><a href="/after-workout-muscles">What Happens Inside Your Muscles After a Workout</a></li>
-        <li><a href="/lose-weight">How to Actually Lose Weight (No Extreme Diets)</a></li>
-        <li><a href="/discipline-motivation">Why Motivation Isn't Enough (But Discipline Is)</a></li>
-      </ul>
+    <div class="lp-panel" data-level="beginner">
+      <div class="lp-panel-head"><h3>Your beginner path</h3><span class="lp-count">First year &middot; 6 articles</span></div>
+      <ol class="lp-path">
+        <li><a href="/beginner-routine"><span class="lp-step">01</span><span class="lp-text"><strong>Beginner Routine: Your First 3 Months</strong><em>Start here: what to train, how many days and how many sets</em></span><span class="lp-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li><a href="/gym-myths"><span class="lp-step">02</span><span class="lp-text"><strong>8 Gym Myths That Are Holding You Back</strong><em>Skip the mistakes that waste most people's first year</em></span><span class="lp-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li><a href="/daily-protein"><span class="lp-step">03</span><span class="lp-text"><strong>How Much Protein You Actually Need</strong><em>The real number for your weight, no powder required</em></span><span class="lp-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li><a href="/after-workout-muscles"><span class="lp-step">04</span><span class="lp-text"><strong>What Happens Inside Your Muscles After a Workout</strong><em>Why recovery is where you actually grow</em></span><span class="lp-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li><a href="/lose-weight"><span class="lp-step">05</span><span class="lp-text"><strong>How to Actually Lose Weight</strong><em>If fat loss is your goal, the sustainable way to do it</em></span><span class="lp-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li><a href="/discipline-motivation"><span class="lp-step">06</span><span class="lp-text"><strong>Why Motivation Isn't Enough</strong><em>How to keep showing up when the hype fades</em></span><span class="lp-arrow" aria-hidden="true">&rarr;</span></a></li>
+      </ol>
     </div>
 
-    <div class="level-panel" data-level="intermediate">
-      <h3>Intermediate — 1 to 3 years</h3>
-      <ul>
-        <li><a href="/hypertrophy-strength">Hypertrophy vs Strength: Differences and How to Train Each</a></li>
-        <li><a href="/bulking-cutting">Bulking vs Cutting: How to Know Which Phase You're In</a></li>
-        <li><a href="/high-protein-foods">High-Protein Foods: Which Ones Are Actually Worth It</a></li>
-        <li><a href="/creatine-guide">Creatine: The Complete Guide</a></li>
-        <li><a href="/protein-powder">Is Protein Powder Bad for You?</a></li>
-      </ul>
+    <div class="lp-panel" data-level="intermediate">
+      <div class="lp-panel-head"><h3>Your intermediate path</h3><span class="lp-count">1 to 3 years &middot; 5 articles</span></div>
+      <ol class="lp-path">
+        <li><a href="/hypertrophy-strength"><span class="lp-step">01</span><span class="lp-text"><strong>Hypertrophy vs Strength</strong><em>Rep ranges, volume and rest for your exact goal</em></span><span class="lp-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li><a href="/bulking-cutting"><span class="lp-step">02</span><span class="lp-text"><strong>Bulking vs Cutting</strong><em>Bulk, cut or recomp, and how fast to go</em></span><span class="lp-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li><a href="/high-protein-foods"><span class="lp-step">03</span><span class="lp-text"><strong>High-Protein Foods</strong><em>Which foods are worth it, plus a free protein checker</em></span><span class="lp-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li><a href="/creatine-guide"><span class="lp-step">04</span><span class="lp-text"><strong>Creatine: The Complete Guide</strong><em>The one supplement with serious evidence behind it</em></span><span class="lp-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li><a href="/protein-powder"><span class="lp-step">05</span><span class="lp-text"><strong>Is Protein Powder Bad for You?</strong><em>When it helps and how to pick a good one</em></span><span class="lp-arrow" aria-hidden="true">&rarr;</span></a></li>
+      </ol>
     </div>
 
-    <div class="level-panel" data-level="advanced">
-      <h3>Advanced — 3+ years</h3>
-      <ul>
-        <li><a href="/overtraining-signs">Signs of Overtraining: When Your Body Says Stop</a></li>
-        <li><a href="/sleep-recovery">Sleep and Recovery: Why It Matters as Much as Training</a></li>
-        <li><a href="/steroids-article">Why Using Steroids Isn't Worth It</a></li>
-        <li><a href="/social-media-comparison">Why Comparing Yourself on Social Media Is Holding You Back</a></li>
-      </ul>
+    <div class="lp-panel" data-level="advanced">
+      <div class="lp-panel-head"><h3>Your advanced path</h3><span class="lp-count">3+ years &middot; 4 articles</span></div>
+      <ol class="lp-path">
+        <li><a href="/overtraining-signs"><span class="lp-step">01</span><span class="lp-text"><strong>Signs of Overtraining</strong><em>Spot accumulated fatigue before it stalls you</em></span><span class="lp-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li><a href="/sleep-recovery"><span class="lp-step">02</span><span class="lp-text"><strong>Sleep and Recovery</strong><em>The recovery tool most lifters ignore</em></span><span class="lp-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li><a href="/steroids-article"><span class="lp-step">03</span><span class="lp-text"><strong>Why Using Steroids Isn't Worth It</strong><em>The real cost, right when progress slows down</em></span><span class="lp-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li><a href="/social-media-comparison"><span class="lp-step">04</span><span class="lp-text"><strong>Stop Comparing Yourself on Social Media</strong><em>Protect your motivation from fake standards</em></span><span class="lp-arrow" aria-hidden="true">&rarr;</span></a></li>
+      </ol>
     </div>
 
-    <div class="level-panel" data-level="comeback">
-      <h3>Coming back after a break</h3>
-      <ul>
-        <li><a href="/stop-training-muscles">What Happens to Your Muscles When You Stop Training</a></li>
-        <li><a href="/discipline-motivation">How to Come Back After a Break (Discipline vs Motivation)</a></li>
-        <li><a href="/beginner-routine">A Simple Routine to Restart With</a></li>
-        <li><a href="/daily-protein">How Much Protein You Actually Need</a></li>
-      </ul>
+    <div class="lp-panel" data-level="comeback">
+      <div class="lp-panel-head"><h3>Your comeback path</h3><span class="lp-count">After a break &middot; 4 articles</span></div>
+      <ol class="lp-path">
+        <li><a href="/stop-training-muscles"><span class="lp-step">01</span><span class="lp-text"><strong>What Happens When You Stop Training</strong><em>What you really lost, and what you didn't</em></span><span class="lp-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li><a href="/discipline-motivation"><span class="lp-step">02</span><span class="lp-text"><strong>How to Come Back After a Break</strong><em>A step-by-step return plan</em></span><span class="lp-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li><a href="/beginner-routine"><span class="lp-step">03</span><span class="lp-text"><strong>A Simple Routine to Restart With</strong><em>Rebuild with lighter, simpler sessions</em></span><span class="lp-arrow" aria-hidden="true">&rarr;</span></a></li>
+        <li><a href="/daily-protein"><span class="lp-step">04</span><span class="lp-text"><strong>How Much Protein You Actually Need</strong><em>Protect your muscle while you rebuild</em></span><span class="lp-arrow" aria-hidden="true">&rarr;</span></a></li>
+      </ol>
     </div>
   </div>
 </section>
@@ -357,13 +358,20 @@
 <script>
   (function () {
     var picker = document.getElementById('level-picker');
-    var buttons = picker.querySelectorAll('.level-btn');
-    var panels = picker.querySelectorAll('.level-panel');
+    var cards = picker.querySelectorAll('.lp-card');
+    var panels = picker.querySelectorAll('.lp-panel');
     function select(level) {
-      buttons.forEach(function (b) { b.classList.toggle('active', b.dataset.level === level); b.setAttribute('aria-pressed', b.dataset.level === level); });
-      panels.forEach(function (p) { p.classList.toggle('active', p.dataset.level === level); });
+      cards.forEach(function (b) {
+        var on = b.dataset.level === level;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', on);
+      });
+      panels.forEach(function (p) {
+        p.classList.remove('active');
+        if (p.dataset.level === level) { void p.offsetWidth; p.classList.add('active'); }
+      });
     }
-    buttons.forEach(function (b) { b.addEventListener('click', function () { select(b.dataset.level); }); });
+    cards.forEach(function (b) { b.addEventListener('click', function () { select(b.dataset.level); }); });
     picker.classList.add('js-levels');
     select('beginner');
   })();

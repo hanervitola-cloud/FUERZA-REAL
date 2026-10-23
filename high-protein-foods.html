@@ -162,6 +162,15 @@
     <p>Take any nutrition label, enter the protein and calories for the same serving, and see whether it's really a protein food.</p>
 
     <div class="calc-card" id="protein-checker">
+      <div class="pc-chips">
+        <span class="pc-chips-label">Try one:</span>
+        <button type="button" class="pc-chip" data-p="31" data-k="165">Chicken breast</button>
+        <button type="button" class="pc-chip" data-p="10" data-k="59">Greek yogurt</button>
+        <button type="button" class="pc-chip" data-p="13" data-k="143">Eggs</button>
+        <button type="button" class="pc-chip" data-p="20" data-k="250">Protein bar</button>
+        <button type="button" class="pc-chip" data-p="7.5" data-k="190">Peanut butter</button>
+        <button type="button" class="pc-chip" data-p="21" data-k="579">Almonds</button>
+      </div>
       <div class="calc-field">
         <label for="pc-protein">Protein per serving (g)</label>
         <input type="number" id="pc-protein" class="calc-input" placeholder="e.g. 20" min="0" step="0.1" inputmode="decimal">
@@ -173,6 +182,17 @@
       <button class="calc-button" id="pc-button" type="button">Check this food</button>
 
       <div class="calc-results" id="pc-results" aria-live="polite">
+        <div class="pc-gauge">
+          <svg viewBox="0 0 220 124" aria-hidden="true">
+            <path class="pc-arc-bg" d="M 20 110 A 90 90 0 0 1 200 110"/>
+            <path class="pc-arc" id="pc-arc" d="M 20 110 A 90 90 0 0 1 200 110"/>
+            <line class="pc-tick" x1="35.6" y1="80.6" x2="17" y2="73.2"/>
+            <line class="pc-tick" x1="45.3" y1="63" x2="29.1" y2="51.2"/>
+            <line class="pc-tick" x1="85.3" y1="33.9" x2="79.1" y2="14.9"/>
+          </svg>
+          <div class="pc-gauge-center"><b id="pc-big">0%</b><span>of calories from protein</span></div>
+        </div>
+        <div class="pc-tier"><span id="pc-tier"></span></div>
         <div class="calc-result-item">
           <span class="rlabel">Calories from protein</span>
           <span class="rvalue" id="pc-percent">—</span>
@@ -182,7 +202,7 @@
           <span class="rvalue" id="pc-density">—</span>
         </div>
         <p class="calc-verdict" id="pc-verdict"></p>
-        <p class="calc-note">Rule of thumb based on the EU labeling thresholds (12% of calories for "source of protein", 20% for "high protein"). It measures protein density only, not how healthy a food is overall.</p>
+        <p class="calc-note">The marks on the meter show 12% ("source of protein" under EU rules), 20% ("high protein" under EU rules) and 40% (excellent). It measures protein density only, not how healthy a food is overall.</p>
       </div>
     </div>
 
@@ -275,40 +295,78 @@
   (function () {
     var button = document.getElementById('pc-button');
     var results = document.getElementById('pc-results');
+    var arc = document.getElementById('pc-arc');
+    var big = document.getElementById('pc-big');
+    var tier = document.getElementById('pc-tier');
+    var proteinInput = document.getElementById('pc-protein');
+    var caloriesInput = document.getElementById('pc-calories');
+    var chips = document.querySelectorAll('.pc-chip');
+    var ARC = 282.74;
+    var TIERS = [
+      { test: function (pct, d) { return d >= 10; }, color: '#4FAE7C', label: 'Excellent', text: 'Excellent protein source: most of its calories come from protein.' },
+      { test: function (pct) { return pct >= 20; }, color: '#5B85BD', label: 'High protein', text: 'Good: it would qualify as "high protein" under EU rules, but leaner sources give you more protein per calorie.' },
+      { test: function (pct) { return pct >= 12; }, color: '#D9A441', label: 'Source of protein', text: 'A "source of protein", but protein is a bonus here, not the main event.' },
+      { test: function () { return true; }, color: '#C8443B', label: 'Not a protein food', text: 'Not really a protein food: most of its calories come from carbs or fat.' }
+    ];
+    var counter;
+    function setGauge(percent, color) {
+      results.style.setProperty('--pc-color', color);
+      arc.style.strokeDashoffset = ARC;
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { arc.style.strokeDashoffset = ARC * (1 - percent / 100); });
+      });
+      clearInterval(counter);
+      var target = Math.round(percent), n = 0, step = Math.max(1, Math.round(target / 25));
+      big.textContent = '0%';
+      counter = setInterval(function () {
+        n = Math.min(target, n + step);
+        big.textContent = n + '%';
+        if (n >= target) clearInterval(counter);
+      }, 30);
+    }
+    function reset(message) {
+      document.getElementById('pc-percent').textContent = '—';
+      document.getElementById('pc-density').textContent = '—';
+      document.getElementById('pc-verdict').textContent = message;
+      tier.textContent = '';
+      tier.style.display = 'none';
+      clearInterval(counter);
+      big.textContent = '—';
+      arc.style.strokeDashoffset = ARC;
+    }
     function check() {
-      var protein = parseFloat(document.getElementById('pc-protein').value);
-      var calories = parseFloat(document.getElementById('pc-calories').value);
-      var verdict = document.getElementById('pc-verdict');
+      var protein = parseFloat(proteinInput.value);
+      var calories = parseFloat(caloriesInput.value);
       results.classList.add('show');
-      if (!(protein >= 0) || !(calories > 0)) {
-        document.getElementById('pc-percent').textContent = '—';
-        document.getElementById('pc-density').textContent = '—';
-        verdict.textContent = 'Enter the protein (g) and calories (kcal) for the same serving.';
-        return;
-      }
-      if (protein * 4 > calories * 1.1) {
-        document.getElementById('pc-percent').textContent = '—';
-        document.getElementById('pc-density').textContent = '—';
-        verdict.textContent = 'Check the numbers: the protein alone has more calories than the whole serving. Make sure both values are for the same serving size.';
-        return;
-      }
+      if (!(protein >= 0) || !(calories > 0)) { reset('Enter the protein (g) and calories (kcal) for the same serving.'); return; }
+      if (protein * 4 > calories * 1.1) { reset('Check the numbers: the protein alone has more calories than the whole serving. Make sure both values are for the same serving size.'); return; }
       var percent = Math.min(100, protein * 4 / calories * 100);
       var density = protein / calories * 100;
+      var t = TIERS[TIERS.length - 1];
+      for (var i = 0; i < TIERS.length; i++) { if (TIERS[i].test(percent, density)) { t = TIERS[i]; break; } }
       document.getElementById('pc-percent').textContent = Math.round(percent) + '%';
       document.getElementById('pc-density').textContent = density.toFixed(1) + ' g';
-      if (density >= 10) {
-        verdict.textContent = 'Excellent protein source: most of its calories come from protein.';
-      } else if (percent >= 20) {
-        verdict.textContent = 'Good: it would qualify as "high protein" under EU rules, but leaner sources give you more protein per calorie.';
-      } else if (percent >= 12) {
-        verdict.textContent = 'A "source of protein", but protein is a bonus here, not the main event.';
-      } else {
-        verdict.textContent = 'Not really a protein food: most of its calories come from carbs or fat.';
-      }
+      document.getElementById('pc-verdict').textContent = t.text;
+      tier.textContent = t.label;
+      tier.style.display = 'inline-block';
+      tier.style.color = t.color;
+      tier.style.borderColor = t.color;
+      setGauge(percent, t.color);
     }
-    button.addEventListener('click', check);
-    ['pc-protein', 'pc-calories'].forEach(function (id) {
-      document.getElementById(id).addEventListener('keydown', function (e) { if (e.key === 'Enter') check(); });
+    button.addEventListener('click', function () {
+      chips.forEach(function (c) { c.classList.remove('active'); });
+      check();
+    });
+    chips.forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        chips.forEach(function (c) { c.classList.toggle('active', c === chip); });
+        proteinInput.value = chip.getAttribute('data-p');
+        caloriesInput.value = chip.getAttribute('data-k');
+        check();
+      });
+    });
+    [proteinInput, caloriesInput].forEach(function (input) {
+      input.addEventListener('keydown', function (e) { if (e.key === 'Enter') check(); });
     });
   })();
 </script>
