@@ -1898,3 +1898,22 @@ nav.site .mega a:hover{ color:var(--text); }
   .mega{ left:12px; right:12px; width:auto; top:calc(100% + 8px); grid-template-columns:1fr 1fr; gap:16px; padding:18px; max-height:70vh; overflow:auto; }
 }
 @media (prefers-reduced-motion: reduce){ .mega, .nav-chev{ transition:none; } }
+/* ---------- Polish (Oct 23) ---------- */
+/* Article titles use the display font, like every other heading */
+.hero-full-text h1{ font-family:var(--display); font-weight:400; letter-spacing:0.01em; }
+.article-hero-full .hero-full-text h1{ max-width:22ch; }
+
+/* Stock photos share one black-and-white grade so they read as a set next to the illustrated video thumbnails */
+.real-img.photo, .real-img.photo:hover,
+.article-hero-full .hero-full-img.photo,
+.hero-full.article-hero-full:hover .hero-full-img.photo{
+  filter:grayscale(1) contrast(1.12) brightness(0.78);
+}
+
+/* Homepage chart, now below the article feed */
+.home-curve{ padding:0 0 84px; }
+.home-curve .curve-block{ margin-top:6px; }
+.home-curve .level-intro a{ color:var(--text); text-decoration:underline; text-decoration-color:var(--red); text-underline-offset:3px; }
+
+/* Floating calculator button: articles only, and only where there is room beside the text column */
+@media (max-width:1199px){ .calc-float-btn{ display:none; } }

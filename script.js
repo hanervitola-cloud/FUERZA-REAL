@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
-  if (!/\/calculator(\.html)?$/.test(window.location.pathname)) {
+  if (document.querySelector('.article-hero-full')) {
     const calcBtn = document.createElement('a');
     calcBtn.href = '/calculator';
     calcBtn.className = 'calc-float-btn';
