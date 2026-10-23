@@ -1917,3 +1917,6 @@ nav.site .mega a:hover{ color:var(--text); }
 
 /* Floating calculator button: articles only, and only where there is room beside the text column */
 @media (max-width:1199px){ .calc-float-btn{ display:none; } }
+
+/* AdSense auto ads: when Google places one inside a grid, give it the whole row instead of a single card slot */
+:is(.feed-grid, .related-grid, .lp-cards, .hh-grid, .stats-bar .wrap, .footer-grid) > .google-auto-placed{ grid-column:1 / -1; }
