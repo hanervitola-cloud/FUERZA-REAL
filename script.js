@@ -32,6 +32,21 @@ document.addEventListener('DOMContentLoaded', function () {
     document.body.appendChild(calcBtn);
   }
 
+  const drop = document.querySelector('.nav-drop');
+  if (drop) {
+    const toggle = drop.querySelector('.nav-drop-toggle');
+    const touch = window.matchMedia('(hover: none)');
+    const close = function () { drop.classList.remove('open'); toggle.setAttribute('aria-expanded', 'false'); };
+    toggle.addEventListener('click', function (e) {
+      if (touch.matches || window.innerWidth <= 700) {
+        e.preventDefault();
+        toggle.setAttribute('aria-expanded', drop.classList.toggle('open'));
+      }
+    });
+    document.addEventListener('click', function (e) { if (!drop.contains(e.target)) close(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+  }
+
   const article = document.querySelector('article.article');
   if (article && document.querySelector('.article-hero-full')) {
     const bar = document.createElement('div');

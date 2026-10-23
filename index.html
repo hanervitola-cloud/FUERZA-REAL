@@ -7,6 +7,9 @@
 <title>Earned Strength — Natural Training, No Shortcuts</title>
 <meta name="description" content="Evidence-based fitness content on natural training, nutrition, and muscle growth. No shortcuts, no myths.">
 <meta name="author" content="Haner Vitola">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap">
 <link rel="stylesheet" href="styles.css">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2308795116201707" crossorigin="anonymous"></script>
@@ -17,7 +20,16 @@
   <div class="wrap">
     <a href="/" class="logo">EARNED<span>STRENGTH</span></a>
     <nav class="site" aria-label="Main">
-      <a href="/#articles">Articles</a>
+      <div class="nav-drop">
+        <a href="/#articles" class="nav-drop-toggle" aria-haspopup="true" aria-expanded="false">Articles<svg class="nav-chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3"/></svg></a>
+        <div class="mega">
+          <div class="mega-col"><span class="mega-title">Training</span><a href="/beginner-routine">Beginner routine</a><a href="/hypertrophy-strength">Hypertrophy vs strength</a><a href="/gym-myths">8 gym myths</a><a href="/stop-training-muscles">When you stop training</a></div>
+          <div class="mega-col"><span class="mega-title">Nutrition</span><a href="/daily-protein">How much protein you need</a><a href="/high-protein-foods">High-protein foods</a><a href="/bulking-cutting">Bulking vs cutting</a><a href="/lose-weight">Losing weight</a></div>
+          <div class="mega-col"><span class="mega-title">Supplements &amp; health</span><a href="/creatine-guide">Creatine guide</a><a href="/protein-powder">Protein powder</a><a href="/steroids-article">Why steroids aren't worth it</a></div>
+          <div class="mega-col"><span class="mega-title">Recovery</span><a href="/after-workout-muscles">After a workout</a><a href="/sleep-recovery">Sleep and recovery</a><a href="/overtraining-signs">Signs of overtraining</a></div>
+          <div class="mega-col"><span class="mega-title">Mindset</span><a href="/discipline-motivation">Discipline vs motivation</a><a href="/social-media-comparison">Social media comparison</a></div>
+        </div>
+      </div>
       <a href="/calculator">Calculator</a>
       <a href="/about">About</a>
       <a href="/contact">Contact</a>
@@ -39,7 +51,7 @@
     </div>
     <div class="hh-visual">
       <a class="hh-thumb hh-t1" href="/after-workout-muscles">
-        <img src="https://i.ytimg.com/vi/oLVFBchiFKA/maxresdefault.jpg" alt="Earned Strength video thumbnail: what happens inside your muscles after a workout">
+        <img fetchpriority="high" src="https://i.ytimg.com/vi/oLVFBchiFKA/maxresdefault.jpg" alt="Earned Strength video thumbnail: what happens inside your muscles after a workout">
         <span class="hh-tag">Most watched</span>
       </a>
       <a class="hh-thumb hh-t2" href="/stop-training-muscles">
@@ -187,7 +199,7 @@
 </section>
 
 <section class="statement">
-  <img src="gym-training.jpg" alt="Gym training" class="statement-img">
+  <img src="gym-training.jpg" alt="Gym training" class="statement-img" loading="lazy" decoding="async">
   <div class="statement-text">
     <p>Real progress isn't measured in shortcuts.<br>It's measured in <span class="accent-dot">consistency</span>.</p>
   </div>
@@ -199,19 +211,19 @@
 
     <div class="feed-grid">
 
-    <a href="/steroids-article" class="card featured-card">
-      <span class="featured-badge">Most read</span>
+    <a href="/after-workout-muscles" class="card featured-card">
+      <span class="featured-badge">Most watched</span>
       <span class="card-video"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>Video</span>
-      <img src="https://i.ytimg.com/vi/c2rZHOzhl3c/sddefault.jpg" alt="Earned Strength illustration of a muscular character under a spotlight with the word 'Steroids'" class="card-img real-img thumb" loading="lazy">
-      <span class="tag">Health</span>
-      <h3>Why Using Steroids Isn't Worth It</h3>
-      <p>The real risks, what happens to your body after you stop a cycle, and why the natural path is still the best long-term investment.</p>
-      <div class="meta">5 min read</div>
+      <img src="https://i.ytimg.com/vi/oLVFBchiFKA/sddefault.jpg" alt="Earned Strength illustration of a muscular character sleeping, with the text 'Your muscles at 2 AM'" class="card-img real-img thumb" loading="lazy">
+      <span class="tag">Recovery</span>
+      <h3>What Happens Inside Your Muscles After a Workout (Hour by Hour)</h3>
+      <p>The full recovery timeline — protein synthesis, glycogen and soreness — explained with research, plus what to do in the hours and days after training.</p>
+      <div class="meta">7 min read</div>
     </a>
 
     <a href="/gym-myths" class="card wide-card">
       <span class="card-video"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>Video</span>
-      <img src="https://i.ytimg.com/vi/MP6o4UZB7Fk/maxresdefault.jpg" alt="Earned Strength illustration showing eight common gym myths as icons" class="card-img real-img thumb" loading="lazy">
+      <img src="https://i.ytimg.com/vi/MP6o4UZB7Fk/sddefault.jpg" alt="Earned Strength illustration showing eight common gym myths as icons" class="card-img real-img thumb" loading="lazy">
       <span class="tag">Myths</span>
       <h3>8 Gym Myths That Are Holding You Back</h3>
       <p>"No pain, no gain," "deadlifts hurt your back," and other beliefs explained in depth, with the science behind each one.</p>
@@ -223,7 +235,7 @@
 </section>
 
 <section class="statement statement-alt">
-  <img src="rutina-pesas.jpg" alt="Person lifting weights at the gym" class="statement-img">
+  <img src="rutina-pesas.jpg" alt="Person lifting weights at the gym" class="statement-img" loading="lazy" decoding="async">
   <div class="statement-text">
     <p>No <span class="accent-dot">shortcut</span><br>beats time.</p>
   </div>
@@ -232,19 +244,19 @@
 <section class="feed feed-continued">
   <div class="wrap wrap-wide">
     <div class="feed-grid">
-
-    <a href="/after-workout-muscles" class="card">
+    <a href="/steroids-article" class="card">
       <span class="card-video"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>Video</span>
-      <img src="https://i.ytimg.com/vi/oLVFBchiFKA/maxresdefault.jpg" alt="Earned Strength illustration of a muscular character sleeping, with the text 'Your muscles at 2 AM'" class="card-img real-img thumb" loading="lazy">
-      <span class="tag">Recovery</span>
-      <h3>What Happens Inside Your Muscles After a Workout (Hour by Hour)</h3>
-      <p>The full recovery timeline — protein synthesis, glycogen and soreness — explained with research, plus what to do in the hours and days after training.</p>
-      <div class="meta">7 min read</div>
+      <img src="https://i.ytimg.com/vi/c2rZHOzhl3c/sddefault.jpg" alt="Earned Strength illustration of a muscular character under a spotlight with the word 'Steroids'" class="card-img real-img thumb" loading="lazy">
+      <span class="tag">Health</span>
+      <h3>Why Using Steroids Isn't Worth It</h3>
+      <p>The real risks, what happens to your body after you stop a cycle, and why the natural path is still the best long-term investment.</p>
+      <div class="meta">5 min read</div>
     </a>
+
 
     <a href="/stop-training-muscles" class="card">
       <span class="card-video"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>Video</span>
-      <img src="https://i.ytimg.com/vi/3CfapTScHrk/maxresdefault.jpg" alt="Earned Strength illustration comparing the same character with and without the gym, asking 'How fast?'" class="card-img real-img thumb" loading="lazy">
+      <img src="https://i.ytimg.com/vi/3CfapTScHrk/sddefault.jpg" alt="Earned Strength illustration comparing the same character with and without the gym, asking 'How fast?'" class="card-img real-img thumb" loading="lazy">
       <span class="tag">Training</span>
       <h3>What Happens to Your Muscles When You Stop Training</h3>
       <p>Why a few weeks off costs less than you think, how injuries change things, how little training keeps your gains, and why muscle comes back faster.</p>
@@ -279,7 +291,7 @@
     </a>
 
     <a href="/beginner-routine" class="card">
-      <img src="rutina-pesas.jpg" alt="Person lifting weights at the gym" class="card-img real-img">
+      <img src="rutina-pesas.jpg" alt="Person lifting weights at the gym" class="card-img real-img" loading="lazy" decoding="async">
       <span class="tag">Training</span>
       <h3>Beginner Routine: Your First 3 Months</h3>
       <p>Which exercises to prioritize when you're starting out, how many days to train, and the most common mistakes in year one.</p>
@@ -288,7 +300,7 @@
 
     <a href="/creatine-guide" class="card">
       <span class="card-video"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>Video</span>
-      <img src="https://i.ytimg.com/vi/b267VCsazdo/maxresdefault.jpg" alt="Earned Strength illustration with the text 'Never take creatine like this'" class="card-img real-img thumb" loading="lazy">
+      <img src="https://i.ytimg.com/vi/b267VCsazdo/sddefault.jpg" alt="Earned Strength illustration with the text 'Never take creatine like this'" class="card-img real-img thumb" loading="lazy">
       <span class="tag">Supplements</span>
       <h3>Creatine: The Complete Guide (What It Is and How to Take It)</h3>
       <p>The most studied supplement in fitness, explained without myths: dosage, timing, and what to really expect.</p>
@@ -297,7 +309,7 @@
 
     <a href="/sleep-recovery" class="card">
       <span class="card-video"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>Video</span>
-      <img src="sueno-foto.jpg" alt="Person sleeping, nighttime rest" class="card-img real-img">
+      <img src="sueno-foto.jpg" alt="Person sleeping, nighttime rest" class="card-img real-img" loading="lazy" decoding="async">
       <span class="tag">Recovery</span>
       <h3>Sleep and Rest: Why It Matters as Much as Training</h3>
       <p>What the research says about sleep and muscle, how many hours you need, why your phone keeps you up, and what to do after a bad night.</p>
@@ -305,7 +317,7 @@
     </a>
 
     <a href="/bulking-cutting" class="card">
-      <img src="volumen-definicion-foto.jpg" alt="Athlete training with intensity" class="card-img real-img">
+      <img src="volumen-definicion-foto.jpg" alt="Athlete training with intensity" class="card-img real-img" loading="lazy" decoding="async">
       <span class="tag">Nutrition</span>
       <h3>Bulking vs Cutting: How to Know Which Phase You're In</h3>
       <p>Bulk, cut or recomp: how to choose, how fast to gain or lose according to research, and how to avoid the most common mistakes.</p>
@@ -313,7 +325,7 @@
     </a>
 
     <a href="/overtraining-signs" class="card">
-      <img src="sobreentrenamiento-foto.jpg" alt="Gym machine, intense training" class="card-img real-img">
+      <img src="sobreentrenamiento-foto.jpg" alt="Gym machine, intense training" class="card-img real-img" loading="lazy" decoding="async">
       <span class="tag">Recovery</span>
       <h3>Signs of Overtraining: When Your Body Says Stop</h3>
       <p>The real signs of accumulated fatigue, why training every set to failure backfires, when soreness isn't normal, and how to recover.</p>
@@ -321,7 +333,7 @@
     </a>
 
     <a href="/social-media-comparison" class="card">
-      <img src="redes-comparacion-foto.jpg" alt="Silhouette of a person alone looking at the horizon" class="card-img real-img">
+      <img src="redes-comparacion-foto.jpg" alt="Silhouette of a person alone looking at the horizon" class="card-img real-img" loading="lazy" decoding="async">
       <span class="tag">Mindset</span>
       <h3>Why Comparing Yourself on Social Media Is Holding You Back</h3>
       <p>What the research says about fitness content and body image, a quick self-check, and a 7-day plan to reset your feed.</p>
@@ -330,7 +342,7 @@
 
     <a href="/discipline-motivation" class="card">
       <span class="card-video"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>Video</span>
-      <img src="disciplina-foto.jpg" alt="Nightstand with a book and glasses, a routine and discipline setting" class="card-img real-img">
+      <img src="disciplina-foto.jpg" alt="Nightstand with a book and glasses, a routine and discipline setting" class="card-img real-img" loading="lazy" decoding="async">
       <span class="tag">Mindset</span>
       <h3>Why Motivation Isn't Enough (But Discipline Is)</h3>
       <p>What the science says about habits and mood, how to build real discipline, and how to come back after you've had to stop.</p>
@@ -338,7 +350,7 @@
     </a>
 
     <a href="/hypertrophy-strength" class="card">
-      <img src="hipertrofia-fuerza-foto.jpg" alt="Muscular back flexing biceps, hypertrophy training" class="card-img real-img">
+      <img src="hipertrofia-fuerza-foto.jpg" alt="Muscular back flexing biceps, hypertrophy training" class="card-img real-img" loading="lazy" decoding="async">
       <span class="tag">Training</span>
       <h3>Hypertrophy vs Strength: Differences and How to Train Each</h3>
       <p>Evidence-backed rep ranges, volume, and rest, plus the 3-day split I use to train for size and the mistakes I made first.</p>
@@ -346,7 +358,7 @@
     </a>
 
     <a href="/lose-weight" class="card">
-      <img src="bajar-de-peso-foto.jpg" alt="Person measuring their waist with a tape measure, tracking their progress" class="card-img real-img">
+      <img src="bajar-de-peso-foto.jpg" alt="Person measuring their waist with a tape measure, tracking their progress" class="card-img real-img" loading="lazy" decoding="async">
       <span class="tag">Nutrition</span>
       <h3>How to Actually Lose Weight (No Extreme Diets)</h3>
       <p>An honest, sustainable guide: how a calorie deficit works, what to expect, and why you don't need to suffer to get there.</p>
