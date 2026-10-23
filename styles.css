@@ -1920,3 +1920,10 @@ nav.site .mega a:hover{ color:var(--text); }
 
 /* AdSense auto ads: when Google places one inside a grid, give it the whole row instead of a single card slot */
 :is(.feed-grid, .related-grid, .lp-cards, .hh-grid, .stats-bar .wrap, .footer-grid) > .google-auto-placed{ grid-column:1 / -1; }
+
+/* Source links (DOI / official pages) */
+.sources-section .src-link{ color:var(--text); text-decoration:underline; text-decoration-color:rgba(200,68,59,0.6); text-underline-offset:3px; overflow-wrap:anywhere; margin-left:2px; }
+.sources-section .src-link:hover{ color:var(--red); }
+
+/* Byline dates stay on one line each */
+.author-line .al-nowrap{ white-space:nowrap; }
