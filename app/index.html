@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0E1012">
+<title>Earned Strength</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<!-- Opening animation: logo, wordmark, tagline, then the whole thing lifts away -->
+<div class="splash" id="splash" aria-hidden="true">
+  <div class="splash-glow"></div>
+  <div class="splash-mark">
+    <svg class="splash-ring" viewBox="0 0 120 120"><circle cx="60" cy="60" r="56"/></svg>
+    <svg class="splash-logo" viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="#16181B" stroke="#C8443B" stroke-width="5"/><polygon points="60,22 93,41 93,79 60,98 27,79 27,41" fill="none" stroke="#C8443B" stroke-width="3"/><text x="60" y="74" text-anchor="middle" font-family="Bebas Neue, Arial Black, sans-serif" font-size="40" fill="#F4EEE4">ES</text>
+    </svg>
+  </div>
+  <div class="splash-word"><span>EARNED</span><b>STRENGTH</b></div>
+  <div class="splash-tag">No myths. No shortcuts.</div>
+</div>
+
+<div class="shell" id="shell">
+  <main id="main"></main>
+  <nav class="tabs" id="tabs" aria-label="Main"></nav>
+</div>
+
+<div class="onboard" id="onboard" hidden></div>
+<div class="workout" id="workout" hidden></div>
+<div class="builder" id="builder" hidden></div>
+
+<div class="scrim" id="scrim" hidden></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" hidden></section>
+<button class="rest-pill" id="restPill" type="button" hidden></button>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
