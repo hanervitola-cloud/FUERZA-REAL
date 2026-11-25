@@ -908,3 +908,44 @@ main{padding-bottom:calc(var(--tabs-h) + var(--safe-b) + 40px)}
 .lv-row i{font-style:normal;text-align:center;font-weight:700;font-size:14px;color:#6FD8EA}
 .lv-head b{font-size:11.5px;color:var(--muted);text-align:center;font-weight:600}
 .levels .muted{padding:0 8px}
+
+/* ---------- Review fixes (round 12) ---------- */
+/* Room under the floating tab bar on every screen */
+main{padding-bottom:calc(var(--tabs-h) + var(--safe-b) + 72px)}
+/* Feels like an app, not a web page */
+button,.card-tap,.chip,.tab,.lib-item{-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+/* Workout sets: empty box until done, red when done, last time easier to read */
+.check{background:transparent;border:1.5px solid rgba(255,255,255,.22)}
+.set:not(.done) .check svg{opacity:0}
+.set.done{background:rgba(214,70,58,.12)}
+.set.done .check{background:linear-gradient(180deg,#E65A50,#B9362E);border-color:transparent}
+.set.done .check svg{stroke:#fff;opacity:1}
+.prev{color:#b4b4ba}
+.set.head{color:var(--muted)}
+/* Fighter buttons stay on one line */
+.combat-hero .split .btn{white-space:nowrap;font-size:14px;padding-left:10px;padding-right:10px}
+/* Exercise sheet: tempo, main vs helper muscles */
+.tempo{display:flex;align-items:center;gap:8px;margin:10px 2px 0;font-size:13px;color:var(--muted)}
+.tempo svg{width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2;flex:0 0 auto}
+.muscles .badge.main{color:#fff;border-color:#E5534A;background:rgba(229,83,74,.16)}
+.muscles .badge.help{color:#FFC08A;border-color:#F08A3C;background:rgba(240,138,60,.12)}
+.mmap .mm.mid>*,.bmap .bm-g.mid>*{fill:#E07A35}
+.mm-legend{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:12px;color:var(--muted)}
+.mm-legend i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.mm-legend .lg-main{background:#E5534A}.mm-legend .lg-help{background:#F08A3C;margin-left:8px}
+/* Lessons practiced */
+.lesson-done svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.6}
+.lesson-done.on{background:rgba(214,70,58,.18);border-color:rgba(232,110,98,.45);color:#fff}
+.ls-done{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(180deg,#E65A50,#B9362E);flex:0 0 auto}
+.ls-done svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:3}
+/* Coach: header stays on top, topic buttons above the input */
+.coach-top{position:sticky;top:0;z-index:6;margin:calc(-14px - var(--safe-t)) -16px 0;padding:calc(12px + var(--safe-t)) 16px 10px;background:rgba(0,0,0,.6);-webkit-backdrop-filter:saturate(180%) blur(24px);backdrop-filter:saturate(180%) blur(24px);border-bottom:.5px solid rgba(255,255,255,.08)}
+.chat{padding-bottom:120px}
+.chat-quick{position:fixed;left:0;right:0;bottom:calc(var(--tabs-h) + var(--safe-b) + 78px);z-index:21;max-width:480px;margin:0 auto;display:flex;gap:8px;overflow-x:auto;padding:0 16px;scrollbar-width:none}
+.chat-quick::-webkit-scrollbar{display:none}
+.chat-quick .chip{flex:0 0 auto;background:rgba(40,40,46,.7)}
+.msg p b{color:#fff}
+/* First screen health note */
+.ob-note{margin-top:14px;font-size:12px;line-height:1.45;color:var(--faint)}
+.msg-acts .chip{display:inline-flex;align-items:center;gap:4px}
+.msg-acts .chip svg{margin-right:0}

@@ -9,7 +9,7 @@ import { exFigure, lessonFigure } from './figures.js';
 import { bodySvg } from './bodymap.js';
 import { MOVES } from './moves.js';
 import { QUOTES, personalQuotes } from './quotes.js';
-import { coachReply, SUGGEST } from './coach.js';
+import { coachReply, SUGGEST, QUICK } from './coach.js';
 
 const KEY = 'es-app-v1';
 const DAY = 864e5;
@@ -159,17 +159,21 @@ function suggestFor(ex) {
   if (def.bw) return { kind: 'reps', r: Math.max(...prev.map((s) => s.r)) + (def.timed ? 5 : 1) };
   const w = Math.max(...prev.map((s) => s.w));
   if (!w) return null;
-  if (prev.filter((s) => s.w === w).every((s) => s.r >= top)) {
-    const inc = unit() === 'lb' ? 5 / LB : def.perHand ? 2 : 2.5;
-    return { kind: 'up', w: w + inc, d: inc, lo };
+  const atW = prev.filter((s) => s.w === w);
+  if (atW.every((s) => s.r >= top)) {
+    // Steps that exist on real bars, machines and dumbbells: 2.5 kg (2 kg per dumbbell) or 5 lb.
+    const step = unit() === 'lb' ? 5 / LB : def.perHand ? 2 : 2.5;
+    const next = Math.round((w + step) / step) * step;
+    return { kind: 'up', w: next > w ? next : w + step, d: step, lo };
   }
-  return { kind: 'same', w, lo };
+  return { kind: 'same', w, lo, top, some: atW.some((s) => s.r >= top) };
 }
 function suggLine(ex) {
   const sg = suggestFor(ex), def = EXERCISES[ex.id];
   if (!sg) return '';
   const txt = sg.kind === 'reps' ? t('suggReps', { r: `${sg.r} ${t(def.timed ? 'seconds' : 'reps')}` })
-    : sg.kind === 'up' ? t('suggUp', { w: fmtW(sg.w), u: unit(), d: fmtW(sg.d) }) : t('suggSame', { w: fmtW(sg.w), u: unit() });
+    : sg.kind === 'up' ? t('suggUp', { w: fmtW(sg.w), u: unit(), d: fmtW(sg.d) })
+    : t(sg.some ? 'suggSameTop' : 'suggSame', { w: fmtW(sg.w), u: unit(), r: sg.top });
   return `<p class="sugg ${sg.kind}">${I.up}${txt}</p>`;
 }
 function lastSets(id) {
@@ -310,7 +314,8 @@ function renderOnboard() {
         <li>${I.train}<span><b>${t('obP1')}</b><br><span class="muted small">${t('obP1t')}</span></span></li>
         <li>${I.rank}<span><b>${t('obP2')}</b><br><span class="muted small">${t('obP2t')}</span></span></li>
         <li>${I.learn}<span><b>${t('obP3')}</b><br><span class="muted small">${t('obP3t')}</span></span></li>
-      </ul>`,
+      </ul>
+      <p class="ob-note">${t('healthNote')}</p>`,
     name: `<h1>${t('obNameTitle')}</h1><p>${t('obNameText')}</p>
       <div class="field"><label for="obName">${t('name')}</label><input id="obName" autocomplete="given-name" maxlength="24" value="${esc(d.name)}" placeholder="${t('yourName')}"></div>`,
     sex: `<h1>${t('obSexTitle')}</h1><p>${t('obSexText')}</p><div class="opts">${opt('sex', 'm', t('sexM'))}${opt('sex', 'f', t('sexF'))}${opt('sex', 'x', t('sexX'), t('sexXNote'))}</div>`,
@@ -595,6 +600,7 @@ const VIEWS = {
       <div class="ia-actions">
         ${hasFlex(r) ? `<button class="btn btn-sm" data-act="ia-flex" aria-pressed="false">${t('flexBtn')}</button>` : ''}
         <button class="btn btn-sm" data-act="ia-demo">${t('tryAnim')}</button>
+        <button class="btn btn-sm btn-primary" data-act="share-rank">${I.share}${t('share')}</button>
       </div>
       ${AVATAR_READY ? '' : `<p class="muted small" style="text-align:center">${t('placeholderNote')}</p>`}
       <section class="card">
@@ -603,7 +609,6 @@ const VIEWS = {
         <p class="muted small" style="margin-top:10px">${next ? t('pointsTo', { n: next.at - sc.total, rank: esc(next.name) }) : t('reachedTop')}</p>
       </section>
       <section class="card"><span class="eyebrow">${t('progress')}</span>${scoreChart()}</section>
-      <button class="btn btn-block" data-act="share-rank">${I.share}${t('shareRank')}</button>
       <div class="split">
         <div class="card"><span class="eyebrow">${t('strength')}</span><b>${sc.strength}</b><span class="muted small">${t('strengthSub')}</span></div>
         <div class="card"><span class="eyebrow">${t('consistency')}</span><b>${sc.consistency}</b><span class="muted small">${t('weeksHit', { n: sc.goalWeeks })}</span></div>
@@ -660,6 +665,7 @@ const VIEWS = {
       <span class="coach-av"><img src="${avatarSrc(r)}" alt=""><i></i></span><div class="grow"><h1 class="h2">${t('coachTitle')}</h1><p class="muted small">${t('coachOnline')}</p></div>
       ${(S.chat || []).length ? `<button class="link small" data-act="coach-clear">${t('coachClear')}</button>` : ''}</header>
       <div class="chat" id="chat">${chatHtml()}</div>
+      <div class="chat-quick">${QUICK.map((q) => `<button class="chip" data-act="coach-ask" data-v="${esc(q[getLang() === 'es' ? 3 : 2])}">${esc(q[getLang() === 'es' ? 1 : 0])}</button>`).join('')}</div>
       <form class="chat-bar" id="chatForm" autocomplete="off"><input id="chatIn" type="text" enterkeyhint="send" maxlength="300" placeholder="${t('coachPlaceholder')}" aria-label="${t('coachPlaceholder')}"><button class="chat-send" type="submit" aria-label="${t('coachSend')}">${I.send}</button></form>`;
   },
 
@@ -726,7 +732,9 @@ function showExercise(id) {
     <span class="eyebrow">${t('howTo')}</span>
     <h2 style="margin-top:6px">${esc(x.name)}</h2>
     ${demoBox('ex', id, x.steps.length)}
-    <div class="ex-muscles">${muscleMap(exMuscleState(id), 'mmap-ex')}<div><span class="eyebrow">${t('worksTitle')}</span><div class="muscles">${e.muscles.map((m, i) => `<span class="badge" ${i ? '' : 'style="color:var(--text);border-color:var(--red)"'}>${esc(muscleName(m))}</span>`).join('')}</div></div></div>
+    ${e.timed ? '' : `<p class="tempo">${I.timer}<span>${t('tempoLine')}</span></p>`}
+    <div class="ex-muscles">${muscleMap(exMuscleState(id), 'mmap-ex')}<div><span class="eyebrow">${t('worksTitle')}</span><div class="muscles">${e.muscles.map((m, i) => `<span class="badge ${i ? 'help' : 'main'}">${esc(muscleName(m))}</span>`).join('')}</div>
+      <p class="mm-legend"><i class="lg-main"></i>${t('worksMain')} <i class="lg-help"></i>${t('worksHelp')}</p></div></div>
     <h3>${t('stepByStep')}</h3><ol class="steps-list" id="demoSteps">${x.steps.map((s, i) => `<li data-act="demo-step" data-v="${i}">${esc(s)}</li>`).join('')}</ol>
     <h3>${t('mistakes')}</h3><ul>${x.mistakes.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>
     <div class="tip"><b>${t('tip')}</b> ${esc(x.tip)}</div>
@@ -910,7 +918,7 @@ woEl.addEventListener('click', (e) => {
       if (!(num(s.r) > 0) || (!def.bw && !(num(s.w) > 0))) { toast(t(def.bw ? 'enterReps' : 'enterBoth')); return; }
     }
     s.done = !s.done;
-    if (s.done) vibrate(18);
+    if (s.done) vibrate(40);
     row.classList.toggle('done', s.done);
     b.setAttribute('aria-pressed', s.done);
     // Suggest the same weight and reps for the next set, like most loggers do.
@@ -1540,6 +1548,7 @@ function showLesson(id) {
     <div class="tip"><b>${t('tip')}</b> ${esc(x.tip)}</div>
     <a class="btn btn-block vid-btn" href="${ytLink(`${x.name} ${t(l.kind + 'Title')} ${t('ytTechnique')}`)}" target="_blank" rel="noopener">${I.yt}${t('watchVideos')}</a>
     ${l.drill ? `<button class="btn btn-primary btn-block" style="margin-top:16px" data-act="fight" data-v="shadow" data-set="${sp.set || 'basic'}">${I.gloves}${t('practice')}</button>` : ''}
+    <button class="btn btn-block lesson-done ${S.lessonsDone && S.lessonsDone[l.id] ? 'on' : ''}" style="margin-top:12px" data-act="lesson-done" data-v="${l.id}">${I.check}<span>${t(S.lessonsDone && S.lessonsDone[l.id] ? 'lessonDoneOn' : 'lessonDoneBtn')}</span></button>
     ${l.kind === 'cali' && MOVE_ALIAS[l.id] ? `<button class="btn btn-primary btn-block" style="margin-top:16px" data-act="builder" data-v="${MOVE_ALIAS[l.id]}">${I.train}${t('caliTrain')}</button>` : ''}`);
 }
 
@@ -1750,9 +1759,12 @@ function demoBox(kind, id, nSteps = 3) {
   demoCur = { kind, id, m, n: nSteps, photo: !!m };
   const art = m ? photoHtml(m, first) : demoSvg(kind, id, first);
   if (!art) return '';
+  // Two pictures: the buttons say Start and End, so none of them looks broken.
+  const stepChips = m
+    ? [[0, t('stepStart')], [nSteps - 1, t('stepEnd')]].map(([i, l]) => `<button class="chip" data-act="demo-step" data-v="${i}" aria-pressed="${REDUCED && i === nSteps - 1}">${l}</button>`)
+    : [...Array(nSteps).keys()].map((i) => `<button class="chip" data-act="demo-step" data-v="${i}" aria-pressed="${REDUCED && i === nSteps - 1}">${t('stepN', { n: i + 1 })}</button>`);
   const chips = [`<button class="chip" data-act="demo-play" data-v="1" aria-pressed="${!REDUCED}">${I.play}${t('demoPlay')}</button>`,
-    `<button class="chip" data-act="demo-play" data-v="2.2" aria-pressed="false">${t('demoSlow')}</button>`,
-    ...[...Array(nSteps).keys()].map((i) => `<button class="chip" data-act="demo-step" data-v="${i}" aria-pressed="${REDUCED && i === nSteps - 1}">${t('stepN', { n: i + 1 })}</button>`)];
+    `<button class="chip" data-act="demo-play" data-v="2.2" aria-pressed="false">${t('demoSlow')}</button>`, ...stepChips];
   return `<div class="demo-fig" id="demoFig">${art}</div><div class="chips demo-ctl" id="demoCtl">${chips.join('')}</div>`;
 }
 // Pictures of the character (made in Google Flow, listed in moves.js) take the drawing's place wherever they exist.
@@ -1777,11 +1789,11 @@ function heroArt(id, drawnId = id) {
     : `<div class="move-anim"><img src="${movePath(m, 1)}" alt="" class="m1"><img src="${movePath(m, 2)}" alt="" class="m2"></div>`;
 }
 function photoHtml(id, mode) {
-  const n = demoCur ? demoCur.n : 3;
-  const op = mode.step === 0 ? 0 : mode.step >= n - 1 ? 1 : 0.5;
+  // A step in the list shows the start picture for the first step and the end picture for the rest.
+  const op = mode.step === 0 ? 0 : 1;
   const dur = `animation-duration:${(mode.speed || 1) * 3.2}s`;
   // The two pictures cross-fade: when the end shows, the start fades out (they have no background).
-  const first = mode.step == null ? `class="m1" style="${dur}"` : `class="m1 still" style="opacity:${op === 0.5 ? 0.45 : 1 - op}"`;
+  const first = mode.step == null ? `class="m1" style="${dur}"` : `class="m1 still" style="opacity:${1 - op}"`;
   const second = mode.step == null ? `class="m2" style="${dur}"` : `class="m2 still" style="opacity:${op}"`;
   // .play: the person asked to see it move, so it plays even when the phone asks for less motion.
   return `<div class="move-anim${mode.step == null ? ' play' : ''}"><img src="${movePath(id, 1)}" alt="" ${first}><img src="${movePath(id, 2)}" alt="" ${second}></div>`;
@@ -1791,7 +1803,8 @@ function demoShow(mode, btn) {
   if (!box || !demoCur) return;
   box.innerHTML = demoCur.photo ? photoHtml(demoCur.m, mode) : demoSvg(demoCur.kind, demoCur.id, mode.step != null ? { ...mode, n: demoCur.n } : mode);
   document.querySelectorAll('#demoCtl .chip').forEach((c) => c.setAttribute('aria-pressed', 'false'));
-  const chip = mode.step != null ? $(`#demoCtl [data-act="demo-step"][data-v="${mode.step}"]`) : btn;
+  const sv = mode.step == null ? null : demoCur.photo ? (mode.step === 0 ? 0 : demoCur.n - 1) : mode.step;
+  const chip = sv != null ? $(`#demoCtl [data-act="demo-step"][data-v="${sv}"]`) : btn;
   if (chip) chip.setAttribute('aria-pressed', 'true');
   document.querySelectorAll('#demoSteps li').forEach((li, i) => li.classList.toggle('on', i === mode.step));
 }
@@ -1813,10 +1826,10 @@ function sportDetail(k) {
     <section class="card"><div class="nums">${['1', '2', '3', '4', '5', '6'].map((n) => `<div><b>${n}</b><span>${esc(punchName(n))}</span></div>`).join('')}</div>
       <h3 class="mini">${t('combosTitle')}</h3><div class="combos">${combos}</div><p class="muted small" style="margin-top:10px">${t('lefty')}</p></section>`;
   } else if (sp.routine) {
-    const rows = [['push-up', '10', '30', '50'], ['inverted-row', '1', '8', '15'], ['chair-dip', '5', '15', '25'], ['plank', '30 s', '1 min', '2 min'], ['bw-squat', '20', '50', t('pistol')]];
+    const rows = [['cali-pushup', 'lvPushups', '10', '30', '50'], ['cali-pullup', 'lvPullups', '1', '8', '15'], ['cali-pullup', 'lvRows', '8', '15', '25'], ['cali-dip', 'lvDips', '3', '10', '20'], ['cali-plank', 'lvPlank', '30 s', '1 min', '2 min'], ['cali-squat', 'lvSquats', '20', '50', t('pistol')]];
     extra = `<div class="section-title"><span class="eyebrow">${t('caliLevelsTitle')}</span></div>
     <section class="card levels"><div class="lv-row lv-head"><span></span><b>${t('levelBeg')}</b><b>${t('levelMid')}</b><b>${t('levelAdv')}</b></div>
-      ${rows.map(([id, a, b, c]) => `<button class="lv-row" data-act="ex" data-v="${id}"><span>${esc(exName(id))}</span><i>${a}</i><i>${b}</i><i>${c}</i></button>`).join('')}
+      ${rows.map(([id, key, a, b, c]) => `<button class="lv-row" data-act="lesson" data-v="${id}"><span>${t(key)}</span><i>${a}</i><i>${b}</i><i>${c}</i></button>`).join('')}
       <p class="muted small" style="margin-top:10px">${t('caliLevelsNote')}</p></section>`;
   } else {
     extra = `<div class="section-title"><span class="eyebrow">${t('combosTitle')}</span></div><section class="card"><div class="combos">${combos}</div></section>`;
@@ -1827,8 +1840,8 @@ function sportDetail(k) {
       <p class="muted small">${t(k + 'Sub')}</p>
       ${actions}
     </section>
-    <div class="section-title"><span class="eyebrow">${t('lessonsTitle')}</span><span class="muted small">${t('tapToLearn')}</span></div>
-    <section class="card list-card">${lessons.map((l, i) => `<button class="lib-item" data-act="lesson" data-v="${l.id}">${moveThumb('ls', l.id) || `<span class="ln">${i + 1}</span>`}<span class="grow"><b>${esc(L(l).name)}${l.tag ? ` <em class="ptag">${esc(l.tag)}</em>` : ''}</b><small>${esc(L(l).short)}</small></span>${I.chev}</button>`).join('')}</section>
+    <div class="section-title"><span class="eyebrow">${t('lessonsTitle')}</span><span class="muted small">${t('lessonsCount', { n: lessons.filter((l) => S.lessonsDone && S.lessonsDone[l.id]).length, total: lessons.length })}</span></div>
+    <section class="card list-card">${lessons.map((l, i) => `<button class="lib-item" data-act="lesson" data-v="${l.id}">${moveThumb('ls', l.id) || `<span class="ln">${i + 1}</span>`}<span class="grow"><b>${esc(L(l).name)}${l.tag ? ` <em class="ptag">${esc(l.tag)}</em>` : ''}</b><small>${esc(L(l).short)}</small></span>${S.lessonsDone && S.lessonsDone[l.id] ? `<span class="ls-done">${I.check}</span>` : I.chev}</button>`).join('')}</section>
     ${extra}
     <section class="card safety"><b>${I.info}${t(sp.routine ? 'caliSafetyTitle' : 'safetyTitle')}</b><p class="small">${t(sp.routine ? 'caliSafety' : 'safetyText')}</p></section>`;
 }
@@ -1926,7 +1939,7 @@ function coachCtx() {
   const P = S.profile || {};
   return { ...coachData, es: getLang() === 'es', name: P.name || '', weightKg: P.bw || 0, kcal: coachKcal(), days: P.days, score: computeScore().total, nextDay: dayName(nextDay()), quote: nextQuote };
 }
-const chatText = (s) => esc(s).replace(/\n/g, '<br>');
+const chatText = (s) => esc(s).replace(/(^|\n)(Evita|Consejo|Avoid|Tip|Así se hace|How to do)([^:\n]*:)/g, '$1<b>$2$3</b>').replace(/\n/g, '<br>');
 function chatHtml() {
   const msgs = S.chat || [];
   const es = getLang() === 'es';
@@ -2265,6 +2278,15 @@ document.addEventListener('click', (e) => {
   else if (k === 'move-ex') moveEx(+b.dataset.i, +v);
   else if (k === 'bw-add') { const n = num($('#bwIn').value); if (n > 20) { logWeight(Math.round(toKg(n) * 10) / 10); render(); toast(t('saved')); } }
   else if (k === 'lesson') showLesson(v);
+  else if (k === 'lesson-done') {
+    S.lessonsDone = S.lessonsDone || {};
+    if (S.lessonsDone[v]) delete S.lessonsDone[v]; else { S.lessonsDone[v] = Date.now(); vibrate(30); }
+    save();
+    const on = !!S.lessonsDone[v];
+    b.classList.toggle('on', on);
+    b.querySelector('span').textContent = t(on ? 'lessonDoneOn' : 'lessonDoneBtn');
+    if (current === 'sports') { const y = window.scrollY; render(); window.scrollTo(0, y); }
+  }
   else if (k === 'fight') { closeSheet(); if (b.dataset.set && !fight.iv) fight.set = b.dataset.set; openFight(v); }
   else if (k === 'sport') { sportSel = v || null; render(); }
   else if (k === 'flipmap') b.closest('.flipmap').classList.toggle('back');
@@ -2379,9 +2401,10 @@ function loadDemo() {
         let r = b || a, w = 0;
         // Sample numbers that move from about 15% to 45% of each exercise's standard.
         const st = STANDARDS[id], lvl = 0.12 + 0.33 * prog + (Math.random() - 0.5) * 0.1;
+        const stp = def.perHand ? 2 : 2.5; // weights you can load on a real bar, machine or dumbbell
         if (st && st[1] !== 'ratio') r = Math.round(st[2] + (st[3] - st[2]) * lvl);
-        else if (st) w = Math.max(1.25, Math.round((bodyBase(bw) * (st[2] + (st[3] - st[2]) * lvl)) / (1 + r / 30) / 1.25) * 1.25);
-        else if (!def.bw) w = Math.round((bw * (0.12 + 0.08 * prog)) / 1.25) * 1.25;
+        else if (st) w = Math.max(stp, Math.round((bodyBase(bw) * (st[2] + (st[3] - st[2]) * lvl)) / (1 + r / 30) / stp) * stp);
+        else if (!def.bw) w = Math.max(stp, Math.round((bw * (0.12 + 0.08 * prog)) / stp) * stp);
         return { id, sets: Array.from({ length: setsFor(sets) }, (_, j) => ({ w, r: Math.max(1, r - (j === setsFor(sets) - 1 ? 1 : 0)) })) };
       }),
     };

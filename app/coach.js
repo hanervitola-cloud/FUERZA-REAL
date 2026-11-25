@@ -247,6 +247,18 @@ export function coachReply(raw, c) {
   };
 }
 
+// Topic buttons always shown above the input: [label EN, label ES, question EN, question ES].
+export const QUICK = [
+  ['Daily protein', 'Proteína diaria', 'How much protein do I need?', '¿Cuánta proteína necesito?'],
+  ['Creatine', 'Creatina', 'Is creatine safe?', '¿La creatina es segura?'],
+  ['Lose fat', 'Bajar grasa', 'How do I lose fat?', '¿Cómo bajo grasa?'],
+  ['Joint pain', 'Dolor articular', 'My joint hurts when I train', 'Me duele una articulación al entrenar'],
+  ['Pull-ups', 'Dominadas', 'How do I do pull-ups?', '¿Cómo hago dominadas?'],
+  ['Boxing guard', 'Guardia de boxeo', 'How do I stand in boxing guard?', '¿Cómo es la guardia y postura de boxeo?'],
+  ['Sets and reps', 'Series y reps', 'How many sets and reps?', '¿Cuántas series y repeticiones?'],
+  ['Motivate me', 'Motívame', 'I do not feel like training', 'No tengo ganas de entrenar'],
+];
+
 // Questions shown as chips when the chat is empty.
 export const SUGGEST = [
   ['How much protein do I need?', '¿Cuánta proteína necesito?'],
