@@ -51,6 +51,7 @@ const I = {
   bookmark: '<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>',
   bell: '<svg viewBox="0 0 24 24"><path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></svg>',
   pause: '<svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg>',
+  target: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg>',
   chat: '<svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5z"/><path d="M8.5 8.5h7M8.5 11.5h4.5"/></svg>',
   send: '<svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg>',
   gloves: '<svg viewBox="0 0 24 24"><path d="M7 10.5V8.2C7 5.3 9.2 3.5 12 3.5h1.3c2.9 0 4.9 2.1 4.9 5v3.6c0 2.4-1.5 4.2-3.8 4.7V20H8.6v-3.4C7.6 15.9 7 14.8 7 13.5z"/><path d="M7 11h3.6a1.9 1.9 0 0 1 0 3.8H8.8"/><path d="M8.6 18h5.8"/></svg>',
@@ -450,7 +451,7 @@ function render() {
     : `<button class="tab" type="button" data-act="go" data-v="${id}" ${current === id ? 'aria-current="page"' : ''}>${icon}<span>${t(label)}</span></button>`).join('');
   $('#main').innerHTML = `<div class="view">${VIEWS[current]()}</div>`;
   window.scrollTo(0, 0);
-  if (current === 'rank') mountAvatar();
+  if (current === 'rank') { mountAvatar(); const cur = $('#rankLadder .cur'); if (cur) cur.parentElement.scrollLeft = Math.max(0, cur.offsetLeft - 70); }
 }
 
 function greeting() {
@@ -501,7 +502,6 @@ const VIEWS = {
         <div class="h2" style="margin-top:6px">${esc(dayName(d))}</div>
         <p class="muted small">${esc(dayFocus(d))} · ${t('aboutMin', { n: d.items.length * 9 })}</p></div>
         ${muscleMap(dayMuscles(d), 'mmap-today')}</div>
-        <div class="ex-chips">${d.items.slice(0, 4).map(([id]) => `<span>${esc(exName(id))}</span>`).join('')}${d.items.length > 4 ? `<span class="more">${t('moreN', { n: d.items.length - 4 })}</span>` : ''}</div>
         <button class="btn btn-primary btn-block" data-act="start" data-v="${d.id}">${I.play} ${t('startWorkout')}</button>
         <button class="link other-btn" data-act="builder">${t('otherWorkout')}</button>
       </section>`;
@@ -521,13 +521,7 @@ const VIEWS = {
       </section>
       ${today}
       ${coachCard(r)}
-      <button class="card card-tap ask-card" data-act="go" data-v="coach"><span class="ask-ic">${I.chat}<i></i></span><span class="grow"><b>${t('askCoach')}</b><small>${t('askCoachSub')}</small></span>${I.chev}</button>
-      ${challengeCard()}
-      <section class="card">
-        <div class="streak"><span class="flame">${I.flame}</span><span class="grow"><span class="big-num">${streakWeeks()}</span> <b>${t('weekStreak')}</b><br><span class="muted small">${t('thisWeek', { n: thisWeek, goal: S.profile.days })}</span></span></div>
-        ${weekDots()}
-      </section>
-      ${learnCard()}`;
+      ${homeTiles(thisWeek)}`;
   },
 
   train() {
@@ -599,9 +593,10 @@ const VIEWS = {
       </div>
       <div class="ia-actions">
         ${hasFlex(r) ? `<button class="btn btn-sm" data-act="ia-flex" aria-pressed="false">${t('flexBtn')}</button>` : ''}
-        <button class="btn btn-sm" data-act="ia-demo">${t('tryAnim')}</button>
-        <button class="btn btn-sm btn-primary" data-act="share-rank">${I.share}${t('share')}</button>
+        <button class="btn btn-sm btn-primary" data-act="share-rank">${I.share}${t('shareRank')}</button>
       </div>
+      ${rankLadder(r, sc)}
+      ${bodyRanks(sc)}
       ${AVATAR_READY ? '' : `<p class="muted small" style="text-align:center">${t('placeholderNote')}</p>`}
       <section class="card">
         <div class="card-head"><span class="eyebrow">${t('strengthScore')}</span><span class="big-num">${sc.total}<span class="muted" style="font-size:18px"> / 100</span></span></div>
@@ -722,6 +717,43 @@ function histName(w) {
   if (w.rounds) return t(w.rounds.mode === 'shadow' ? 'shadowName' : 'roundsName');
   for (const p of Object.values(PROGRAMS)) { const d = p.days.find((x) => x.id === w.dayId); if (d && w.equip && PROGRAMS[w.equip] === p) return dayName(d); }
   return w.name;
+}
+
+// Home: four small doors instead of four big cards.
+function homeTiles(thisWeek = S.workouts.filter((w) => w.date >= weekStart(Date.now())).length) {
+  const c = todayChallenge(), st = streakWeeks();
+  const tile = (act, v, icon, title, sub, extra = '') => `<button class="tile-h" data-act="${act}" ${v ? `data-v="${v}"` : ''}><span class="th-ic">${icon}${extra}</span><b>${title}</b><small>${sub}</small></button>`;
+  return `<div class="home-tiles">
+    ${tile('go', 'coach', I.chat, t('tileCoach'), t('tileCoachSub'), '<i class="th-dot"></i>')}
+    ${tile('ch-open', '', I.target, t('chTitle'), c.done ? t('chDone') : `${c.timed ? fmtSecs(c.n) : c.n} / ${c.timed ? fmtSecs(c.goal) : c.goal} · ${esc(exName(c.id))}`)}
+    ${tile('go', 'rank', I.flame, t('tileStreak', { n: st }), t('thisWeek', { n: thisWeek, goal: S.profile.days }))}
+    ${tile('go', 'learn', I.learn, t('tileLearn'), t('tileLearnSub'))}
+  </div>`;
+}
+function showChallenge() {
+  openSheet(`<span class="eyebrow">${t('chTitle')}</span><h2 style="margin-top:6px">${t('chSheetTitle')}</h2><p class="muted" style="margin:6px 0 14px">${t('chSheetText')}</p>${challengeCard()}`);
+}
+
+// Progress: every rank with the character, and where you are.
+function rankLadder(r, sc) {
+  const next = RANKS[r + 1];
+  return `<div class="section-title"><span class="eyebrow">${t('ranksTitle')}</span><span class="muted small">${next ? t('pointsTo', { n: next.at - sc.total, rank: esc(next.name) }) : t('reachedTop')}</span></div>
+    <div class="rank-ladder" id="rankLadder">${RANKS.map((x, i) => `<div class="rl-card ${i === r ? 'cur' : i < r ? 'past' : 'lock'}" style="--c:${x.color}">
+      <img src="${avatarSrc(i)}" alt="" loading="lazy"><b>${esc(x.name)}</b><small>${i === r ? t('youAreHere') : i < r ? t('rankPassed') : t('rankFrom', { n: x.at })}</small></div>`).join('')}</div>`;
+}
+// Each muscle group painted with the color of its own rank (brighter than the badge colors, so the map reads at a glance).
+const RANK_TINT = ['#7C8389', '#6F93B5', '#4FA3E8', '#F08A3C', '#E5483D', '#F2C94C'];
+function bodyRanks(sc) {
+  const rows = sc.groups.map(([g, v]) => ({ g, v, ri: rankIndex(v), has: v > 0 })).sort((a, b) => b.v - a.v);
+  const st = Object.fromEntries(rows.map((x) => [x.g, x.has ? 'rk' + x.ri : 'rkn']));
+  const done = rows.filter((x) => x.has);
+  const note = done.length >= 2 ? t('bestWorst', { g: t('g_' + done[0].g), w: t('g_' + rows[rows.length - 1].g) }) : t('bodyRanksEmpty');
+  return `<div class="section-title"><span class="eyebrow">${t('bodyRanksTitle')}</span></div>
+    <section class="card body-ranks">
+      ${bodySvg(st, 'both', 'bmap brmap')}
+      <div class="br-list">${rows.map((x) => `<div class="br-row"><i style="background:${x.has ? RANK_TINT[x.ri] : 'rgba(255,255,255,.12)'}"></i><span>${t('g_' + x.g)}</span><b style="color:${x.has ? RANK_TINT[x.ri] : 'var(--faint)'}">${x.has ? esc(RANKS[x.ri].name) : t('noData')}</b></div>`).join('')}</div>
+      <p class="muted small" style="margin-top:12px">${note}</p>
+    </section>`;
 }
 
 // ---------- Sheets: exercise, calculator, confirm ----------
@@ -1319,6 +1351,8 @@ function addChallenge(v) {
   save();
   const el = $('#chCard');
   if (el) el.outerHTML = challengeCard();
+  const ht = $('.home-tiles');
+  if (ht) ht.outerHTML = homeTiles();
   if (n >= c.goal && c.n < c.goal) { confetti(60); vibrate([40, 30, 80]); toast(t('chToast')); } else if (v > 0) vibrate(12);
 }
 
@@ -2278,6 +2312,7 @@ document.addEventListener('click', (e) => {
   else if (k === 'move-ex') moveEx(+b.dataset.i, +v);
   else if (k === 'bw-add') { const n = num($('#bwIn').value); if (n > 20) { logWeight(Math.round(toKg(n) * 10) / 10); render(); toast(t('saved')); } }
   else if (k === 'lesson') showLesson(v);
+  else if (k === 'ch-open') showChallenge();
   else if (k === 'lesson-done') {
     S.lessonsDone = S.lessonsDone || {};
     if (S.lessonsDone[v]) delete S.lessonsDone[v]; else { S.lessonsDone[v] = Date.now(); vibrate(30); }
