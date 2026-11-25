@@ -1,12 +1,15 @@
 // Earned Strength app prototype. Everything is stored on the phone (localStorage).
 import { RANKS, RANK_EXAMPLES, EXERCISES, PROGRAMS, GOALS, LEVELS, EQUIPMENT, MYTHS, ARTICLES, VIDEOS, ACTIVITY, STANDARDS, GROUPS, placeOf, PLACE_OK, COMPOUND } from './data.js';
 import {
-  t, setLang, getLang, detectLang, defaultUnits, locale, muscleName, exText, programName, dayName, dayFocus,
+  t, setLang, getLang, detectLang, defaultUnits, locale, muscleName, exText, exNames, programName, dayName, dayFocus,
   optText, rankLine, rankExample, mythText, articleCat, articleTitle, videoTopic, activityText,
 } from './i18n.js';
-import { PUNCHES, COMBO_SETS, COMBOS, LESSONS } from './combat.js';
+import { PUNCHES, COMBO_SETS, COMBOS, LESSONS, SPORTS } from './combat.js';
 import { exFigure, lessonFigure } from './figures.js';
 import { bodySvg } from './bodymap.js';
+import { MOVES } from './moves.js';
+import { QUOTES, personalQuotes } from './quotes.js';
+import { coachReply, SUGGEST } from './coach.js';
 
 const KEY = 'es-app-v1';
 const DAY = 864e5;
@@ -48,6 +51,8 @@ const I = {
   bookmark: '<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>',
   bell: '<svg viewBox="0 0 24 24"><path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></svg>',
   pause: '<svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg>',
+  chat: '<svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5z"/><path d="M8.5 8.5h7M8.5 11.5h4.5"/></svg>',
+  send: '<svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg>',
   gloves: '<svg viewBox="0 0 24 24"><path d="M7 10.5V8.2C7 5.3 9.2 3.5 12 3.5h1.3c2.9 0 4.9 2.1 4.9 5v3.6c0 2.4-1.5 4.2-3.8 4.7V20H8.6v-3.4C7.6 15.9 7 14.8 7 13.5z"/><path d="M7 11h3.6a1.9 1.9 0 0 1 0 3.8H8.8"/><path d="M8.6 18h5.8"/></svg>',
 };
 const LOGO = '<svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="#16181B" stroke="#C8443B" stroke-width="5"/><polygon points="60,22 93,41 93,79 60,98 27,79 27,41" fill="none" stroke="#C8443B" stroke-width="3"/><text x="60" y="74" text-anchor="middle" font-family="Bebas Neue, Arial Black, sans-serif" font-size="40" fill="#F4EEE4">ES</text></svg>';
@@ -506,10 +511,12 @@ const VIEWS = {
           </button>
         </div>
         <img class="hero-img" src="${avatarSrc(r)}" alt="">
+        <button class="icon-btn hero-chat" data-act="go" data-v="coach" aria-label="${t('coachTitle')}">${I.chat}</button>
         <button class="icon-btn hero-me" data-act="go" data-v="me" aria-label="${t('tabMe')}">${I.me}</button>
       </section>
       ${today}
       ${coachCard(r)}
+      <button class="card card-tap ask-card" data-act="go" data-v="coach"><span class="ask-ic">${I.chat}<i></i></span><span class="grow"><b>${t('askCoach')}</b><small>${t('askCoachSub')}</small></span>${I.chev}</button>
       ${challengeCard()}
       <section class="card">
         <div class="streak"><span class="flame">${I.flame}</span><span class="grow"><span class="big-num">${streakWeeks()}</span> <b>${t('weekStreak')}</b><br><span class="muted small">${t('thisWeek', { n: thisWeek, goal: S.profile.days })}</span></span></div>
@@ -638,13 +645,22 @@ const VIEWS = {
     if (sportSel) return sportDetail(sportSel);
     const n = (k) => LESSONS.filter((l) => l.kind === k).length;
     return `<header class="top"><div><p class="eyebrow">${t('sportsEyebrow')}</p><h1>${t('tabSports')}</h1></div></header>
-      ${['box', 'mma'].map((k) => `<button class="sport-card sp-${k}" data-act="sport" data-v="${k}">
-        <span class="sp-txt"><span class="eyebrow">${t('sportLabel_' + k)}</span><b>${t(k === 'box' ? 'boxTitle' : 'mmaTitle')}</b><small>${t(k === 'box' ? 'boxSub' : 'mmaSub')}</small><span class="sp-meta">${t('nLessons', { n: n(k) })} ${I.chev}</span></span>
-        <span class="sp-art">${lessonFigure(k === 'box' ? 'jab' : 'teep', REDUCED ? { anim: false, still: 1 } : {})}</span>
+      ${SPORTS.map(({ id: k, card }) => `<button class="sport-card sp-${k}" data-act="sport" data-v="${k}">
+        <span class="sp-txt"><span class="eyebrow">${t('sportLabel_' + k)}</span><b>${t(k + 'Title')}</b><small>${t(k + 'Sub')}</small><span class="sp-meta">${t('nLessons', { n: n(k) })} ${I.chev}</span></span>
+        <span class="sp-art">${heroArt(card)}</span>
       </button>`).join('')}
       <div class="section-title"><span class="eyebrow">${t('fightTools')}</span></div>
       <div class="tools">${toolTile('fight', I.gloves, 'shadowBtn', 'shadowTool', 'shadow')}${toolTile('fight', I.bell, 'roundsBtn', 'roundsTool', 'rounds')}</div>
       <section class="card safety"><b>${I.info}${t('safetyTitle')}</b><p class="small">${t('safetyText')}</p></section>`;
+  },
+
+  coach() {
+    const r = rankIndex(computeScore().total);
+    return `<header class="top me-top coach-top"><button class="icon-btn" data-act="go" data-v="home" aria-label="${t('back')}">${I.back}</button>
+      <span class="coach-av"><img src="${avatarSrc(r)}" alt=""><i></i></span><div class="grow"><h1 class="h2">${t('coachTitle')}</h1><p class="muted small">${t('coachOnline')}</p></div>
+      ${(S.chat || []).length ? `<button class="link small" data-act="coach-clear">${t('coachClear')}</button>` : ''}</header>
+      <div class="chat" id="chat">${chatHtml()}</div>
+      <form class="chat-bar" id="chatForm" autocomplete="off"><input id="chatIn" type="text" enterkeyhint="send" maxlength="300" placeholder="${t('coachPlaceholder')}" aria-label="${t('coachPlaceholder')}"><button class="chat-send" type="submit" aria-label="${t('coachSend')}">${I.send}</button></form>`;
   },
 
   me() {
@@ -843,7 +859,7 @@ function renderWorkout() {
     ${a.exercises.map((ex, i) => {
       const def = EXERCISES[ex.id], prev = lastSets(ex.id), sg = suggestFor(ex);
       return `<section class="card wo-ex">
-        <div class="wo-ex-top"><button class="wo-ex-name" data-wo="info" data-v="${ex.id}">${exFigure(ex.id, { anim: false, cls: 'fig-mini' })}<span>${esc(exName(ex.id))}</span>${I.info}</button><button class="icon-btn sm" data-wo="menu" data-i="${i}" aria-label="${t('exOptions')}">${I.more}</button></div>
+        <div class="wo-ex-top"><button class="wo-ex-name" data-wo="info" data-v="${ex.id}">${exThumb(ex.id)}<span>${esc(exName(ex.id))}</span>${I.info}</button><button class="icon-btn sm" data-wo="menu" data-i="${i}" aria-label="${t('exOptions')}">${I.more}</button></div>
         <p class="muted small">${t('target', { sets: ex.sets.length, reps: ex.target, what: t(def.timed ? 'seconds' : 'reps') })}${def.perHand ? t('oneDumbbell') : ''}</p>
         ${suggLine(ex)}
         <div class="sets"><div class="set head"><span>${t('set')}</span><span>${t('lastTime')}</span><span style="text-align:center">${def.bw ? '' : unit()}</span><span style="text-align:center">${t(def.timed ? 'secShort' : 'repsShort')}</span><span></span></div>
@@ -944,6 +960,7 @@ function finishWorkout() {
     <p class="muted">${esc(histName(w))} · ${fmtDate(w.date)}</p>
     <div class="sum-stats"><div><b>${Math.max(1, Math.round(w.dur / 60))}</b><span>${t(Math.round(w.dur / 60) <= 1 ? 'minute' : 'minutes')}</span></div><div><b>${w.exercises.reduce((sum, e) => sum + e.sets.length, 0)}</b><span>${t('setsWord')}</span></div>${vol.kg ? `<div><b>${fmtN(toDisp(vol.kg))}</b><span>${t('lifted', { u: unit() })}</span></div>` : `<div><b>${vol.reps}</b><span>${t('repsWord')}</span></div>`}</div>
     ${funLine(vol.moved, vol.est)}
+    <p class="sum-quote">“${esc(nextQuote())}”</p>
     ${ra > rb ? `<div class="rankup" style="--c:${RANKS[ra].color}"><span class="eyebrow">${t('rankUp')}</span><b>${esc(RANKS[ra].name)}</b><span class="muted small">${esc(rankLine(ra, RANKS[ra]))}</span></div>` : ''}
     <h3>${t('prs')}</h3>${prs.length ? `<ul>${prs.map((ex) => `<li><b>${esc(exName(ex.id))}</b>: ${t('newBest')}</li>`).join('')}</ul>` : `<p class="muted small">${t('noPrs')}</p>`}
     <h3>${t('musclesWorked')}</h3>${muscleMap(Object.fromEntries(w.exercises.filter((e) => STANDARDS[e.id]).map((e) => [STANDARDS[e.id][0], 'on'])), 'mmap-wide')}<div class="muscles">${muscles.map((m) => `<span class="badge">${esc(muscleName(m))}</span>`).join('')}</div>
@@ -1052,7 +1069,7 @@ function renderBuilder() {
      <div class="times">${[20, 30, 45, 60].map((m) => `<button class="time" data-bd="time" data-v="${m}" aria-pressed="${bd.time === m}"><b>${m}</b><small>min</small></button>`).join('')}</div>`,
     bd.plan && bd.plan.length ? `<div class="plan-head">${muscleMap(Object.fromEntries((bd.groups.length ? bd.groups : GROUPS).map((x) => [x, 'on'])), 'mmap-wide')}
        <h1>${esc(builderName())}</h1><p class="muted small">${t('place_' + bd.place)} · ${t('nEx', { n: bd.plan.length, m: bd.time })}</p><button class="btn btn-sm" data-bd="save" style="margin-top:10px">${I.bookmark}${t('saveRoutine')}</button></div><p class="plan-why">${I.info}<span>${t('builderWhy')}</span></p>
-     <div class="stack">${bd.plan.map(([id, sets, reps], i) => `<button class="card card-tap plan-ex" data-bd="info" data-v="${id}"><span class="pn-fig">${exFigure(id, { anim: false, cls: 'fig-mini' })}<i>${i + 1}</i></span><span class="grow"><b>${esc(exName(id))}</b><small>${t('g_' + STANDARDS[id][0])}</small></span><span class="sr">${sets} × ${repsLabel(id, reps)}</span></button>`).join('')}</div>`
+     <div class="stack">${bd.plan.map(([id, sets, reps], i) => `<button class="card card-tap plan-ex" data-bd="info" data-v="${id}"><span class="pn-fig">${exThumb(id)}<i>${i + 1}</i></span><span class="grow"><b>${esc(exName(id))}</b><small>${t('g_' + STANDARDS[id][0])}</small></span><span class="sr">${sets} × ${repsLabel(id, reps)}</span></button>`).join('')}</div>`
       : `<h1>${esc(builderName())}</h1><p class="muted">${t('noEx')}</p>`,
   ][s];
   const next = [
@@ -1369,7 +1386,7 @@ function libListHtml() {
   if (!list.length) return `<p class="hist muted">${t('noResults')}</p>`;
   return list.map(([id, e]) => {
     const sc = exScore(id);
-    return `<button class="lib-item" data-act="ex" data-v="${id}">${exFigure(id, { anim: false, cls: 'fig-mini' })}<span class="grow"><b>${esc(exName(id))}</b><small>${esc(e.muscles.map(muscleName).join(', '))}</small></span>${sc == null ? '' : rkChip(RANKS[rankIndex(sc)])}${I.chev}</button>`;
+    return `<button class="lib-item" data-act="ex" data-v="${id}">${exThumb(id)}<span class="grow"><b>${esc(exName(id))}</b><small>${esc(e.muscles.map(muscleName).join(', '))}</small></span>${sc == null ? '' : rkChip(RANKS[rankIndex(sc)])}${I.chev}</button>`;
   }).join('');
 }
 
@@ -1483,7 +1500,7 @@ function showRoutine(id) {
   if (!r) return;
   openSheet(`<span class="eyebrow">${t('myRoutines')}</span><h2 style="margin-top:6px">${esc(r.name)}</h2>
     <p class="muted small">${t('place_' + (r.place || 'gym'))} · ${t(r.items.length === 1 ? 'nExShort1' : 'nExShort', { n: r.items.length })}</p>
-    <div class="card list-card" style="margin-top:14px">${r.items.map(([eid, sets, reps], i) => `<button class="lib-item" data-act="ex" data-v="${eid}"><span class="pn-fig">${exFigure(eid, { anim: false, cls: 'fig-mini' })}<i>${i + 1}</i></span><span class="grow"><b>${esc(exName(eid))}</b></span><span class="sr">${sets} × ${repsLabel(eid, reps)}</span></button>`).join('')}</div>
+    <div class="card list-card" style="margin-top:14px">${r.items.map(([eid, sets, reps], i) => `<button class="lib-item" data-act="ex" data-v="${eid}"><span class="pn-fig">${exThumb(eid)}<i>${i + 1}</i></span><span class="grow"><b>${esc(exName(eid))}</b></span><span class="sr">${sets} × ${repsLabel(eid, reps)}</span></button>`).join('')}</div>
     <div class="split" style="margin-top:16px"><button class="btn" data-act="rt-del" data-v="${r.id}" style="color:var(--red-2)">${I.trash}${t('delWorkout')}</button><button class="btn btn-primary" data-act="rt-start" data-v="${r.id}">${I.play}${t('start')}</button></div>`);
 }
 function startRoutine(id) {
@@ -1515,13 +1532,15 @@ function showLesson(id) {
   const l = LESSONS.find((x) => x.id === id);
   if (!l) return;
   const x = L(l);
-  openSheet(`<span class="eyebrow">${t(l.kind === 'box' ? 'boxing' : 'mma')}${l.tag ? ' · ' + esc(l.tag) : ''}</span><h2 style="margin-top:6px">${esc(x.name)}</h2>
+  const sp = SPORTS.find((s) => s.id === l.kind) || SPORTS[0];
+  openSheet(`<span class="eyebrow">${t(l.kind + 'Title')}${l.tag ? ' · ' + esc(l.tag) : ''}</span><h2 style="margin-top:6px">${esc(x.name)}</h2>
     ${demoBox('ls', id, x.steps.length)}
     <h3>${t('stepByStep')}</h3><ol class="steps-list" id="demoSteps">${x.steps.map((s, i) => `<li data-act="demo-step" data-v="${i}">${esc(s)}</li>`).join('')}</ol>
     <h3>${t('mistakes')}</h3><ul>${x.mistakes.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>
     <div class="tip"><b>${t('tip')}</b> ${esc(x.tip)}</div>
-    <a class="btn btn-block vid-btn" href="${ytLink(`${x.name} ${l.kind === 'box' ? t('ytBoxing') : 'MMA'} ${t('ytTechnique')}`)}" target="_blank" rel="noopener">${I.yt}${t('watchVideos')}</a>
-    ${l.drill ? `<button class="btn btn-primary btn-block" style="margin-top:16px" data-act="fight" data-v="shadow">${I.gloves}${t('practice')}</button>` : ''}`);
+    <a class="btn btn-block vid-btn" href="${ytLink(`${x.name} ${t(l.kind + 'Title')} ${t('ytTechnique')}`)}" target="_blank" rel="noopener">${I.yt}${t('watchVideos')}</a>
+    ${l.drill ? `<button class="btn btn-primary btn-block" style="margin-top:16px" data-act="fight" data-v="shadow" data-set="${sp.set || 'basic'}">${I.gloves}${t('practice')}</button>` : ''}
+    ${l.kind === 'cali' && MOVE_ALIAS[l.id] ? `<button class="btn btn-primary btn-block" style="margin-top:16px" data-act="builder" data-v="${MOVE_ALIAS[l.id]}">${I.train}${t('caliTrain')}</button>` : ''}`);
 }
 
 // Round timer and guided shadowboxing: a full screen you can see from a few steps away.
@@ -1579,7 +1598,7 @@ function renderFight() {
         <h3>${t('fRounds')}</h3>${opt('rounds', [3, 5, 8, 12], (v) => v)}
         <h3>${t('fWork')}</h3>${opt('work', [60, 120, 180], fmtSecs)}
         <h3>${t('fRest')}</h3>${opt('rest', [30, 60], fmtSecs)}
-        ${f.mode === 'shadow' ? `<h3>${t('fLevel')}</h3>${opt('set', ['basic', 'advanced', 'mma'], (v) => t('set_' + v))}
+        ${f.mode === 'shadow' ? `<h3>${t('fLevel')}</h3>${opt('set', ['basic', 'advanced', 'mma', 'muay'], (v) => t('set_' + v))}
         <label class="f-voice"><input type="checkbox" data-f="voice" ${f.voice ? 'checked' : ''}>${t('fVoice')}</label>` : ''}
       </div>
       <div class="f-foot"><button class="btn btn-primary btn-block" data-f="go">${I.play}${t('fStart')}</button></div>`;
@@ -1727,16 +1746,36 @@ function demoSvg(kind, id, mode) {
 }
 function demoBox(kind, id, nSteps = 3) {
   const first = REDUCED ? { step: nSteps - 1, n: nSteps } : { speed: 1 };
-  const svg = demoSvg(kind, id, first);
-  if (!svg) return '';
-  demoCur = { kind, id, n: nSteps, photo: false };
-  setTimeout(() => probePhotos(kind, id), 0);
+  const m = moveId(id);
+  demoCur = { kind, id, m, n: nSteps, photo: !!m };
+  const art = m ? photoHtml(m, first) : demoSvg(kind, id, first);
+  if (!art) return '';
   const chips = [`<button class="chip" data-act="demo-play" data-v="1" aria-pressed="${!REDUCED}">${I.play}${t('demoPlay')}</button>`,
     `<button class="chip" data-act="demo-play" data-v="2.2" aria-pressed="false">${t('demoSlow')}</button>`,
     ...[...Array(nSteps).keys()].map((i) => `<button class="chip" data-act="demo-step" data-v="${i}" aria-pressed="${REDUCED && i === nSteps - 1}">${t('stepN', { n: i + 1 })}</button>`)];
-  return `<div class="demo-fig" id="demoFig">${svg}</div><div class="chips demo-ctl" id="demoCtl">${chips.join('')}</div>`;
+  return `<div class="demo-fig" id="demoFig">${art}</div><div class="chips demo-ctl" id="demoCtl">${chips.join('')}</div>`;
 }
+// Pictures of the character (made in Google Flow, listed in moves.js) take the drawing's place wherever they exist.
+const MOVE_ALIAS = {
+  'split-squat': 'lunge', 'mt-stance': 'stance', 'mt-teep': 'teep', 'mt-roundhouse': 'low-kick',
+  'cali-pushup': 'push-up', 'cali-pullup': 'inverted-row', 'cali-dip': 'chair-dip', 'cali-pike': 'pike-push-up',
+  'cali-squat': 'bw-squat', 'cali-plank': 'plank', 'cali-legraise': 'leg-raise',
+};
+const moveId = (id) => (MOVES.includes(id) ? id : MOVES.includes(MOVE_ALIAS[id]) ? MOVE_ALIAS[id] : null);
 const movePath = (id, n) => `moves/${id}-${n}.webp`;
+function moveThumb(kind, id) {
+  const m = moveId(id);
+  if (m) return `<img class="mv-thumb" src="${movePath(m, 't')}" alt="" loading="lazy">`;
+  return (kind === 'ex' ? exFigure : lessonFigure)(id, { anim: false, cls: 'fig-mini' });
+}
+const exThumb = (id) => moveThumb('ex', id);
+// Big looping picture for the sport cards; the drawing stays only where there is no picture yet.
+function heroArt(id, drawnId = id) {
+  const m = moveId(id);
+  if (!m) return lessonFigure(drawnId, REDUCED ? { anim: false, still: 1 } : {});
+  return REDUCED ? `<div class="move-anim"><img src="${movePath(m, 2)}" alt=""></div>`
+    : `<div class="move-anim"><img src="${movePath(m, 1)}" alt="" class="m1"><img src="${movePath(m, 2)}" alt="" class="m2"></div>`;
+}
 function photoHtml(id, mode) {
   const n = demoCur ? demoCur.n : 3;
   const op = mode.step === 0 ? 0 : mode.step >= n - 1 ? 1 : 0.5;
@@ -1744,23 +1783,13 @@ function photoHtml(id, mode) {
   // The two pictures cross-fade: when the end shows, the start fades out (they have no background).
   const first = mode.step == null ? `class="m1" style="${dur}"` : `class="m1 still" style="opacity:${op === 0.5 ? 0.45 : 1 - op}"`;
   const second = mode.step == null ? `class="m2" style="${dur}"` : `class="m2 still" style="opacity:${op}"`;
-  return `<div class="move-anim"><img src="${movePath(id, 1)}" alt="" ${first}><img src="${movePath(id, 2)}" alt="" ${second}></div>`;
-}
-// If the character's pictures for this move exist, they take the drawing's place.
-function probePhotos(kind, id) {
-  const img = new Image();
-  img.onload = () => {
-    if (!demoCur || demoCur.id !== id) return;
-    demoCur.photo = true;
-    const box = $('#demoFig');
-    if (box) box.innerHTML = photoHtml(id, REDUCED ? { step: demoCur.n - 1 } : { speed: 1 });
-  };
-  img.src = movePath(id, 1);
+  // .play: the person asked to see it move, so it plays even when the phone asks for less motion.
+  return `<div class="move-anim${mode.step == null ? ' play' : ''}"><img src="${movePath(id, 1)}" alt="" ${first}><img src="${movePath(id, 2)}" alt="" ${second}></div>`;
 }
 function demoShow(mode, btn) {
   const box = $('#demoFig');
   if (!box || !demoCur) return;
-  box.innerHTML = demoCur.photo ? photoHtml(demoCur.id, mode) : demoSvg(demoCur.kind, demoCur.id, mode.step != null ? { ...mode, n: demoCur.n } : mode);
+  box.innerHTML = demoCur.photo ? photoHtml(demoCur.m, mode) : demoSvg(demoCur.kind, demoCur.id, mode.step != null ? { ...mode, n: demoCur.n } : mode);
   document.querySelectorAll('#demoCtl .chip').forEach((c) => c.setAttribute('aria-pressed', 'false'));
   const chip = mode.step != null ? $(`#demoCtl [data-act="demo-step"][data-v="${mode.step}"]`) : btn;
   if (chip) chip.setAttribute('aria-pressed', 'true');
@@ -1771,46 +1800,91 @@ const toolTile = (act, icon, title, sub, v) => `<button class="card card-tap too
 
 // ---------- Sports ----------
 function sportDetail(k) {
+  const sp = SPORTS.find((s) => s.id === k) || SPORTS[0];
   const lessons = LESSONS.filter((l) => l.kind === k);
-  const combos = (k === 'box' ? COMBOS.filter((c) => !/[a-z]/.test(c)) : COMBO_SETS.mma).map((c) => `<span class="combo">${esc(comboLabel(c))}</span>`).join('');
-  return `<header class="top me-top"><button class="icon-btn" data-act="sport" data-v="" aria-label="${t('back')}">${I.back}</button><div class="grow"><p class="eyebrow">${t('tabSports')}</p><h1>${t(k === 'box' ? 'boxTitle' : 'mmaTitle')}</h1></div></header>
-    <section class="card combat-hero">
-      <div class="ch-fig">${lessonFigure(k === 'box' ? 'cross' : 'lowkick', REDUCED ? { anim: false, still: 1 } : {})}</div>
-      <p class="muted small">${t(k === 'box' ? 'boxSub' : 'mmaSub')}</p>
-      <div class="split" style="margin-top:12px"><button class="btn btn-primary" data-act="fight" data-v="shadow">${I.gloves}${t('shadowBtn')}</button><button class="btn" data-act="fight" data-v="rounds">${I.bell}${t('roundsBtn')}</button></div>
+  const list = k === 'box' ? COMBOS.filter((c) => !/[a-z]/.test(c)) : COMBO_SETS[sp.set] || [];
+  const combos = list.map((c) => `<span class="combo">${esc(comboLabel(c))}</span>`).join('');
+  const actions = sp.routine
+    ? `<button class="btn btn-primary btn-block" style="margin-top:12px" data-act="builder" data-v="${sp.routine.join(',')}">${I.train}${t('caliRoutine')}</button>`
+    : `<div class="split" style="margin-top:12px"><button class="btn btn-primary" data-act="fight" data-v="shadow" data-set="${sp.set}">${I.gloves}${t('shadowBtn')}</button><button class="btn" data-act="fight" data-v="rounds">${I.bell}${t('roundsBtn')}</button></div>`;
+  let extra = '';
+  if (k === 'box') {
+    extra = `<div class="section-title"><span class="eyebrow">${t('numbersTitle')}</span></div>
+    <section class="card"><div class="nums">${['1', '2', '3', '4', '5', '6'].map((n) => `<div><b>${n}</b><span>${esc(punchName(n))}</span></div>`).join('')}</div>
+      <h3 class="mini">${t('combosTitle')}</h3><div class="combos">${combos}</div><p class="muted small" style="margin-top:10px">${t('lefty')}</p></section>`;
+  } else if (sp.routine) {
+    const rows = [['push-up', '10', '30', '50'], ['inverted-row', '1', '8', '15'], ['chair-dip', '5', '15', '25'], ['plank', '30 s', '1 min', '2 min'], ['bw-squat', '20', '50', t('pistol')]];
+    extra = `<div class="section-title"><span class="eyebrow">${t('caliLevelsTitle')}</span></div>
+    <section class="card levels"><div class="lv-row lv-head"><span></span><b>${t('levelBeg')}</b><b>${t('levelMid')}</b><b>${t('levelAdv')}</b></div>
+      ${rows.map(([id, a, b, c]) => `<button class="lv-row" data-act="ex" data-v="${id}"><span>${esc(exName(id))}</span><i>${a}</i><i>${b}</i><i>${c}</i></button>`).join('')}
+      <p class="muted small" style="margin-top:10px">${t('caliLevelsNote')}</p></section>`;
+  } else {
+    extra = `<div class="section-title"><span class="eyebrow">${t('combosTitle')}</span></div><section class="card"><div class="combos">${combos}</div></section>`;
+  }
+  return `<header class="top me-top"><button class="icon-btn" data-act="sport" data-v="" aria-label="${t('back')}">${I.back}</button><div class="grow"><p class="eyebrow">${t('tabSports')}</p><h1>${t(k + 'Title')}</h1></div></header>
+    <section class="card combat-hero sp-${k}">
+      <div class="ch-fig">${heroArt(sp.detail, k === 'box' ? 'cross' : k === 'mma' ? 'lowkick' : sp.detail)}</div>
+      <p class="muted small">${t(k + 'Sub')}</p>
+      ${actions}
     </section>
     <div class="section-title"><span class="eyebrow">${t('lessonsTitle')}</span><span class="muted small">${t('tapToLearn')}</span></div>
-    <section class="card list-card">${lessons.map((l, i) => `<button class="lib-item" data-act="lesson" data-v="${l.id}">${lessonFigure(l.id, { anim: false, cls: 'fig-mini' }) || `<span class="ln">${i + 1}</span>`}<span class="grow"><b>${esc(L(l).name)}${l.tag ? ` <em class="ptag">${esc(l.tag)}</em>` : ''}</b><small>${esc(L(l).short)}</small></span>${I.chev}</button>`).join('')}</section>
-    ${k === 'box' ? `<div class="section-title"><span class="eyebrow">${t('numbersTitle')}</span></div>
-    <section class="card"><div class="nums">${['1', '2', '3', '4', '5', '6'].map((n) => `<div><b>${n}</b><span>${esc(punchName(n))}</span></div>`).join('')}</div>
-      <h3 class="mini">${t('combosTitle')}</h3><div class="combos">${combos}</div><p class="muted small" style="margin-top:10px">${t('lefty')}</p></section>`
-      : `<div class="section-title"><span class="eyebrow">${t('combosTitle')}</span></div><section class="card"><div class="combos">${combos}</div></section>`}
-    <section class="card safety"><b>${I.info}${t('safetyTitle')}</b><p class="small">${t('safetyText')}</p></section>`;
+    <section class="card list-card">${lessons.map((l, i) => `<button class="lib-item" data-act="lesson" data-v="${l.id}">${moveThumb('ls', l.id) || `<span class="ln">${i + 1}</span>`}<span class="grow"><b>${esc(L(l).name)}${l.tag ? ` <em class="ptag">${esc(l.tag)}</em>` : ''}</b><small>${esc(L(l).short)}</small></span>${I.chev}</button>`).join('')}</section>
+    ${extra}
+    <section class="card safety"><b>${I.info}${t(sp.routine ? 'caliSafetyTitle' : 'safetyTitle')}</b><p class="small">${t(sp.routine ? 'caliSafety' : 'safetyText')}</p></section>`;
 }
 
 // ---------- Motivation ----------
-const MOTIVATION = [
-  ['Every rep you log today is strength you keep tomorrow.', 'Cada repetición que anotas hoy es fuerza que te llevas mañana.'],
-  ["You don't need to feel like it. Show up, and the drive comes after.", 'No necesitas tener ganas. Preséntate y las ganas llegan después.'],
-  ['Four weeks of showing up beat one perfect week.', 'Cuatro semanas presentándote valen más que una semana perfecta.'],
-  ['Your body adapts to what you do often, not to what you do once.', 'Tu cuerpo se adapta a lo que haces seguido, no a lo que haces una vez.'],
-  ['Strength is built slowly. That is why it lasts.', 'La fuerza se construye despacio. Por eso dura.'],
-  ['Nobody sees the first workouts. Everybody sees the results.', 'Nadie ve los primeros entrenamientos. Todos ven los resultados.'],
-  ['Beat last week, not other people.', 'Gánale a tu semana pasada, no a los demás.'],
-  ['One more rep than last time. That is the whole secret.', 'Una repetición más que la vez pasada. Ese es todo el secreto.'],
-  ['A short workout today beats no workout.', 'Un entrenamiento corto hoy vale más que ninguno.'],
-  ['Sleep, eat protein, train. Repeat.', 'Duerme, come proteína, entrena. Repite.'],
-  ['The hardest part is the first set. Start there.', 'Lo más difícil es la primera serie. Empieza por ahí.'],
-  ['No shortcuts. That is what makes it yours.', 'Sin atajos. Por eso es tuyo.'],
-  ['Consistency turns effort into muscle.', 'La constancia convierte el esfuerzo en músculo.'],
-  ['A month from now you will be glad you started today.', 'En un mes vas a agradecer haber empezado hoy.'],
-  ['Rest days count too: muscle grows while you recover.', 'Los días de descanso también cuentan: el músculo crece mientras te recuperas.'],
-  ['Good form first. Heavy weight later.', 'Primero buena técnica. El peso pesado viene después.'],
-  ['You are one workout closer than yesterday.', 'Hoy estás un entrenamiento más cerca que ayer.'],
-  ['Discipline is remembering what you want.', 'La disciplina es acordarte de lo que quieres.'],
-  ['Small progress is still progress.', 'Avanzar poco sigue siendo avanzar.'],
-  ['Train for the person you will be in a year.', 'Entrena por la persona que vas a ser en un año.'],
-];
+// Random lines that do not repeat until the others were shown; about a third use the person's own numbers.
+function quoteCtx() {
+  const P = S.profile || {}, u = unit();
+  const c = { name: P.name || '', u, workouts: S.workouts.length, streak: streakWeeks() };
+  const sets = {}, max = {}, old = {}, monthAgo = Date.now() - 28 * DAY;
+  let week = 0, month = 0, last = 0;
+  for (const w of S.workouts) {
+    last = Math.max(last, w.date);
+    if (w.exercises) {
+      const v = workVolume(w).moved;
+      if (w.date >= weekStart(Date.now())) week += v;
+      if (w.date >= Date.now() - 30 * DAY) month += v;
+      for (const ex of w.exercises) {
+        const d = EXERCISES[ex.id];
+        if (!d || d.bw) continue;
+        for (const s of ex.sets) {
+          if (!s.w) continue;
+          sets[ex.id] = (sets[ex.id] || 0) + 1;
+          max[ex.id] = Math.max(max[ex.id] || 0, s.w);
+          if (w.date < monthAgo) old[ex.id] = Math.max(old[ex.id] || 0, s.w);
+        }
+      }
+    }
+  }
+  const top = Object.keys(sets).sort((a, b) => sets[b] - sets[a])[0];
+  if (top) {
+    const w = +fmtW(max[top]);
+    c.top = { ex: exName(top).toLocaleLowerCase(locale()), w, next: w + (u === 'lb' ? 5 : 2.5), prev: old[top] ? +fmtW(old[top]) : 0 };
+  }
+  c.week = week ? fmtN(toDisp(week)) : 0;
+  c.month = month ? fmtN(toDisp(month)) : 0;
+  c.daysOff = last ? Math.floor((Date.now() - last) / DAY) : null;
+  const sc = computeScore(), N = RANKS[rankIndex(sc.total) + 1];
+  if (N && S.workouts.length) c.rank = { pts: N.at - sc.total, name: N.name };
+  if (P.target && P.bw && Math.abs(P.bw - P.target) >= 1) c.target = { left: fmtW(Math.abs(P.bw - P.target)), goal: fmtW(P.target) };
+  return c;
+}
+function nextQuote() {
+  const es = getLang() === 'es';
+  const pool = [...QUOTES.map((q, i) => ['g' + i, q[es ? 1 : 0]]), ...personalQuotes(quoteCtx(), es)];
+  let seen = S.qseen || [];
+  let fresh = pool.filter(([k]) => !seen.includes(k));
+  if (!fresh.length) { seen = []; fresh = pool; }
+  const mine = fresh.filter(([k]) => k[0] === 'p');
+  const from = mine.length && Math.random() < 0.35 ? mine : fresh;
+  const pick = from[Math.floor(Math.random() * from.length)];
+  S.qseen = [...seen, pick[0]].slice(-(pool.length - 1));
+  save();
+  return pick[1];
+}
+let curQuote = null;
 // Where your trend is taking you: based on your last four weeks, never a promise.
 function projection() {
   const sc = computeScore(), r = rankIndex(sc.total), N = RANKS[r + 1], days = S.profile.days;
@@ -1824,13 +1898,73 @@ function projection() {
   return t('projLong', { days, rank: esc(N.name) });
 }
 function coachCard(r) {
-  const ph = MOTIVATION[todayIdx() % MOTIVATION.length][getLang() === 'es' ? 1 : 0];
-  return `<section class="card coach"><span class="coach-pic"><img src="${avatarSrc(r)}" alt=""></span><span class="coach-txt"><span class="eyebrow">${t('coachEyebrow')}</span><b>“${esc(ph)}”</b><small>${I.up}<span>${projection()}</span></small></span></section>`;
+  if (!curQuote) curQuote = nextQuote();
+  return `<button class="card card-tap coach" data-act="quote"><span class="coach-pic"><img src="${avatarSrc(r)}" alt=""></span><span class="coach-txt"><span class="eyebrow">${t('coachEyebrow')}<em class="q-hint">${t('quoteNext')}</em></span><b class="quote-txt">“${esc(curQuote)}”</b><small>${I.up}<span>${projection()}</span></small></span></button>`;
 }
 function learnCard() {
   const v = VIDEOS[todayIdx() % VIDEOS.length];
   return `<button class="card card-tap learn-card" data-act="go" data-v="learn"><img src="https://i.ytimg.com/vi/${v.id}/mqdefault.jpg" alt="" loading="lazy"><span class="grow"><span class="eyebrow">${t('learnCardEyebrow')}</span><b>${t('learnCardTitle')}</b><small>${t('learnCardSub')}</small></span>${I.chev}</button>`;
 }
+
+// ---------- Coach chat (answers on the phone, any time, without internet) ----------
+function coachKcal() {
+  const P = S.profile || {};
+  if (!P.bw || !P.height || !P.age) return 0;
+  const base = 10 * P.bw + 6.25 * P.height - 5 * P.age + (P.sex === 'f' ? -161 : P.sex === 'x' ? -78 : 5);
+  const f = P.days >= 6 ? 1.725 : P.days >= 4 ? 1.55 : 1.375;
+  return Math.round((base * f) / 50) * 50;
+}
+let coachData = null;
+function coachCtx() {
+  if (!coachData || coachData.lang !== getLang()) {
+    coachData = {
+      lang: getLang(),
+      exercises: Object.keys(EXERCISES).map((id) => { const x = exText(id, EXERCISES[id]); return { id, names: exNames(id, EXERCISES[id]), steps: x.steps, mistakes: x.mistakes, tip: x.tip, group: STANDARDS[id] && STANDARDS[id][0] }; }),
+      lessons: LESSONS.map((l) => ({ id: l.id, names: [l.en.name, l.es.name], steps: L(l).steps, mistakes: L(l).mistakes, tip: L(l).tip })),
+    };
+  }
+  const P = S.profile || {};
+  return { ...coachData, es: getLang() === 'es', name: P.name || '', weightKg: P.bw || 0, kcal: coachKcal(), days: P.days, score: computeScore().total, nextDay: dayName(nextDay()), quote: nextQuote };
+}
+const chatText = (s) => esc(s).replace(/\n/g, '<br>');
+function chatHtml() {
+  const msgs = S.chat || [];
+  const es = getLang() === 'es';
+  if (!msgs.length) {
+    const sug = [...SUGGEST].sort(() => Math.random() - 0.5).slice(0, 5);
+    return `<div class="msg bot"><p>${chatText(t('coachHello', { name: S.profile.name ? ' ' + S.profile.name : '' }))}</p></div>
+      <div class="chat-sug">${sug.map((s) => `<button class="chip" data-act="coach-ask" data-v="${esc(s[es ? 1 : 0])}">${esc(s[es ? 1 : 0])}</button>`).join('')}</div>`;
+  }
+  return msgs.map((m) => `<div class="msg ${m.me ? 'me' : 'bot'}"><p>${chatText(m.text)}</p>${(m.acts || []).length ? `<div class="msg-acts">${m.acts.map((a) => `<button class="chip" data-act="${esc(a.act)}" data-v="${esc(a.v)}">${a.act === 'ex' || a.act === 'lesson' ? I.play : ''}${esc(a.label)}</button>`).join('')}</div>` : ''}${m.link ? `<a class="link small" href="https://earnedstrength.online${esc(m.link)}" target="_blank" rel="noopener">${t('coachReadMore')}</a>` : ''}</div>`).join('');
+}
+function chatScroll() { requestAnimationFrame(() => window.scrollTo({ top: document.body.scrollHeight, behavior: REDUCED ? 'auto' : 'smooth' })); }
+let coachBusy = false;
+function coachAsk(text) {
+  text = String(text || '').trim();
+  if (!text || coachBusy) return;
+  S.chat = [...(S.chat || []), { me: true, text }].slice(-60);
+  save();
+  const box = $('#chat');
+  if (!box) return;
+  box.innerHTML = chatHtml() + '<div class="msg bot typing"><p><i></i><i></i><i></i></p></div>';
+  chatScroll();
+  coachBusy = true;
+  setTimeout(() => {
+    coachBusy = false;
+    const r = coachReply(text, coachCtx());
+    S.chat = [...S.chat, { me: false, text: r.text, acts: r.acts, link: r.link }].slice(-60);
+    save();
+    const b = $('#chat');
+    if (b) { b.innerHTML = chatHtml(); chatScroll(); }
+  }, 550 + Math.min(900, text.length * 12));
+}
+document.addEventListener('submit', (e) => {
+  if (e.target.id !== 'chatForm') return;
+  e.preventDefault();
+  const inp = $('#chatIn');
+  coachAsk(inp.value);
+  inp.value = '';
+});
 
 // ---------- Charts ----------
 function lineChart(points, fmt = (v) => v, fit = false) {
@@ -2080,7 +2214,14 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-act]');
   if (!b) return;
   const k = b.dataset.act, v = b.dataset.v;
-  if (k === 'go') { if (v === 'sports') sportSel = null; go(v); }
+  if (k === 'go') { if (v === 'sports') sportSel = null; if (v === 'home') curQuote = null; go(v); }
+  else if (k === 'coach-ask') coachAsk(v);
+  else if (k === 'coach-clear') { S.chat = []; save(); render(); }
+  else if (k === 'quote') {
+    curQuote = nextQuote();
+    const q = b.querySelector('.quote-txt');
+    if (q) { q.textContent = `“${curQuote}”`; q.classList.remove('q-in'); void q.offsetWidth; q.classList.add('q-in'); }
+  }
   else if (k === 'start') startWorkout(v);
   else if (k === 'resume') openWorkout();
   else if (k === 'ex') showExercise(v);
@@ -2124,7 +2265,7 @@ document.addEventListener('click', (e) => {
   else if (k === 'move-ex') moveEx(+b.dataset.i, +v);
   else if (k === 'bw-add') { const n = num($('#bwIn').value); if (n > 20) { logWeight(Math.round(toKg(n) * 10) / 10); render(); toast(t('saved')); } }
   else if (k === 'lesson') showLesson(v);
-  else if (k === 'fight') { closeSheet(); openFight(v); }
+  else if (k === 'fight') { closeSheet(); if (b.dataset.set && !fight.iv) fight.set = b.dataset.set; openFight(v); }
   else if (k === 'sport') { sportSel = v || null; render(); }
   else if (k === 'flipmap') b.closest('.flipmap').classList.toggle('back');
   else if (k === 'demo-play') demoShow({ speed: +v }, b);

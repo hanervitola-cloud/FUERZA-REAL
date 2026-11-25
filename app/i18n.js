@@ -244,13 +244,35 @@ const UI = {
   plansTitle: ['Pick your plan', 'Elige tu plan'], nDaysPlan: ['{n} different days', '{n} días distintos'], currentPlan: ['Your plan', 'Tu plan'], usePlan: ['Use this plan', 'Usar este plan'], planChanged: ['Plan changed', 'Plan cambiado'],
   langAuto: ["Phone's language", 'Idioma del teléfono'],
   // Round 6: sports tab, figures, coach
-  tabSports: ['Sports', 'Deportes'], sportsEyebrow: ['Fight sports', 'Deportes de combate'], sportLabel_box: ['Boxing', 'Boxeo'], sportLabel_mma: ['Mixed martial arts', 'Artes marciales mixtas'],
+  tabSports: ['Sports', 'Deportes'], sportsEyebrow: ['Fight and bodyweight sports', 'Combate y peso corporal'], sportLabel_box: ['Boxing', 'Boxeo'], sportLabel_mma: ['Mixed martial arts', 'Artes marciales mixtas'],
   boxTitle: ['Boxing', 'Boxeo'], mmaTitle: ['MMA', 'MMA'],
+  muayTitle: ['Muay Thai', 'Muay Thai'], caliTitle: ['Calisthenics', 'Calistenia'],
+  sportLabel_muay: ['Thai boxing', 'Boxeo tailandés'], sportLabel_cali: ['Bodyweight training', 'Entrenamiento con tu peso'],
+  muaySub: ['The art of eight limbs: punches, kicks, knees and elbows.', 'El arte de las ocho armas: puños, patadas, rodillas y codos.'],
+  caliSub: ['Your body is the gym: from your first pull-up to the handstand.', 'Tu cuerpo es el gimnasio: de tu primera dominada a la parada de manos.'],
+  set_muay: ['Muay Thai (knees and elbows)', 'Muay Thai (rodillas y codos)'],
+  caliRoutine: ['Build a calisthenics workout', 'Armar rutina de calistenia'],
+  caliTrain: ['Train it in a workout', 'Entrenarlo en una rutina'],
+  caliLevelsTitle: ['Goals by level', 'Metas por nivel'],
+  caliLevelsNote: ['Reps in a row with good form. Tap an exercise to see how it is done.', 'Repeticiones seguidas con buena técnica. Toca un ejercicio para ver cómo se hace.'],
+  levelBeg: ['Beginner', 'Principiante'], levelMid: ['Intermediate', 'Intermedio'], levelAdv: ['Advanced', 'Avanzado'], pistol: ['Pistol', 'Pistola'],
+  caliSafetyTitle: ['Before you start', 'Antes de empezar'],
+  caliSafety: ['Move up one level at a time. If a joint hurts, go back a level for a week. Use bars, chairs and tables that are firm.', 'Avanza un nivel a la vez. Si te molesta una articulación, regresa un nivel por una semana. Usa barras, sillas y mesas firmes.'],
   boxSub: ['Stance, punches, defense and combos. Train them with rounds and guided shadowboxing.', 'Guardia, golpes, defensa y combos. Entrénalos con los rounds y la sombra guiada.'],
   mmaSub: ['Kicks, sprawls and the basics on the ground, step by step.', 'Patadas, sprawl y lo básico en el piso, paso a paso.'],
   nLessons: ['{n} lessons', '{n} lecciones'], fightTools: ['Train like a fighter', 'Entrena como peleador'], lessonsTitle: ['Lessons', 'Lecciones'], tapToLearn: ['Tap one to see how', 'Toca una para ver cómo'],
   seeMove: ['See it move', 'Ver el movimiento'], howItMoves: ['How it moves', 'Así se mueve'], worksTitle: ['Muscles it works', 'Músculos que trabaja'],
   coachEyebrow: ['Your coach says', 'Tu entrenador dice'],
+  quoteNext: ['Tap for another', 'Toca para otra'],
+  coachTitle: ['Your coach', 'Tu coach'],
+  coachOnline: ['Online 24/7 · works without internet', 'En línea 24/7 · funciona sin internet'],
+  coachClear: ['Clear', 'Borrar'],
+  coachPlaceholder: ['Ask about training, food, boxing…', 'Pregunta de entreno, comida, boxeo…'],
+  coachSend: ['Send', 'Enviar'],
+  coachHello: ['Hi{name}! I am your coach. Ask me anything about your workouts, food, technique or boxing, any time of day.', '¡Hola{name}! Soy tu coach. Pregúntame lo que quieras de tus entrenamientos, comida, técnica o boxeo, a cualquier hora.'],
+  coachReadMore: ['Read more on the site', 'Leer más en la página'],
+  askCoach: ['Ask your coach', 'Pregúntale a tu coach'],
+  askCoachSub: ['Answers 24/7: food, technique, motivation', 'Responde 24/7: comida, técnica, motivación'],
   projStart: ['Train {days} times a week for a month and you will feel it: more strength, more muscle and a new rank, {rank}.', 'Entrena {days} veces por semana durante un mes y lo vas a notar: más fuerza, más músculo y un rango nuevo, {rank}.'],
   projSoon: ['At this pace you reach {rank} in a week or two. Almost there!', 'A este ritmo llegas a {rank} en una o dos semanas. ¡Ya casi!'],
   projWeeks: ['At this pace you reach {rank} in about {n} weeks. Keep going!', 'A este ritmo llegas a {rank} en unas {n} semanas. ¡No pares!'],
@@ -391,6 +413,8 @@ const ACT = { 24: ['Sedentario', 'Poco o nada de ejercicio'], 27: ['Ligero', 'En
 
 const es = () => lang === 'es';
 export const muscleName = (m) => (es() && MUSCLES[m]) || m;
+// Both names of an exercise, for the coach to recognize it in either language.
+export const exNames = (id, e) => [e.name, (EX[id] && EX[id][0]) || e.name];
 export function exText(id, e) {
   const x = es() && EX[id];
   return x ? { name: x[0], steps: x[1], mistakes: x[2], tip: x[3] } : { name: e.name, steps: e.steps, mistakes: e.mistakes, tip: e.tip };

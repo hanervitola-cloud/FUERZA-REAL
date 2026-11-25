@@ -1,4 +1,4 @@
-// Boxing and MMA basics, in English and Spanish. Meant for practice alone, on a bag or with pads.
+// Boxing, MMA, Muay Thai and calisthenics basics, in English and Spanish. Meant for practice alone, on a bag or with pads.
 // Punch numbers follow the usual boxing system for an orthodox stance (left foot forward).
 
 // Names for the numbers and moves used in combos. [English, Spanish]
@@ -13,6 +13,10 @@ export const PUNCHES = {
   lk: ['Low kick', 'Patada baja'],
   teep: ['Front kick', 'Patada frontal'],
   sprawl: ['Sprawl', 'Sprawl'],
+  rk: ['Roundhouse kick', 'Patada circular'],
+  knee: ['Knee', 'Rodillazo'],
+  elbow: ['Elbow', 'Codazo'],
+  check: ['Check', 'Bloqueo'],
 };
 
 // Combos called out during guided shadowboxing.
@@ -20,10 +24,20 @@ export const COMBO_SETS = {
   basic: ['1', '1-1', '1-2', '1-1-2', '2-3', '1-2-3', '1-2-slip'],
   advanced: ['1-2-3-2', '1-6-3-2', '3-2-3', '1-2-5-2', '1-2-3-4', 'slip-2-3-2', '1-1-2-3'],
   mma: ['1-2-lk', '1-2-sprawl', 'teep-1-2', '1-2-3-lk', 'lk-2-3', 'sprawl-1-2', '2-lk'],
+  muay: ['1-2-rk', 'teep-1-2', '1-2-knee', '1-elbow', '2-3-rk', 'check-2-rk', 'knee-knee', '1-2-3-knee'],
 };
 
 // Combos shown on the Learn page.
 export const COMBOS = ['1-2', '1-1-2', '1-2-3', '1-2-3-2', '1-6-3-2', '2-3-2', '1-2-lk', '1-2-sprawl'];
+
+// The sports on the Sports tab. card and detail: the lesson whose pictures play on the card and on the sport's page.
+// set: the combo list used by guided shadowboxing. routine: the exercises a calisthenics workout starts with.
+export const SPORTS = [
+  { id: 'box', card: 'jab', detail: 'cross', set: 'basic' },
+  { id: 'mma', card: 'teep', detail: 'low-kick', set: 'mma' },
+  { id: 'muay', card: 'mt-roundhouse', detail: 'mt-knee', set: 'muay' },
+  { id: 'cali', card: 'cali-pullup', detail: 'cali-pushup', routine: ['push-up', 'inverted-row', 'chair-dip', 'pike-push-up', 'bw-squat', 'plank'] },
+];
 
 // drill: true means it can be practised in guided shadowboxing.
 export const LESSONS = [
@@ -191,5 +205,148 @@ export const LESSONS = [
       steps: ['Da un paso pequeño hacia afuera con el pie de adelante.', 'Gira la cadera y la pierna de atrás como un bate.', 'Pega con la espinilla en el muslo y regresa a tu guardia.'],
       mistakes: ['Patear con el empeine: te puedes lastimar.', 'Bajar las manos al patear.'],
       tip: 'Empieza despacio contra un saco o unos pads.' },
+  },
+  {
+    id: 'mt-stance', kind: 'muay', drill: true,
+    en: { name: 'Muay Thai stance', short: 'Taller, ready to kick',
+      steps: ['Stand a bit more upright than in boxing, feet shoulder-width apart.', 'Weight a little on the back leg so the front leg is light and ready to lift.', 'Hands high at eyebrow level, elbows in, chin down.'],
+      mistakes: ['Putting all your weight on the front leg: you cannot kick or check.', 'Holding the hands low like in boxing.'],
+      tip: 'Bounce lightly on the balls of your feet to stay ready.' },
+    es: { name: 'Guardia de Muay Thai', short: 'Más erguida, lista para patear',
+      steps: ['Párate un poco más derecho que en boxeo, pies al ancho de los hombros.', 'Un poco más de peso en la pierna de atrás, para que la de adelante quede ligera y lista para subir.', 'Manos altas a la altura de las cejas, codos adentro y la barbilla abajo.'],
+      mistakes: ['Poner todo el peso en la pierna de adelante: no puedes patear ni bloquear.', 'Tener las manos bajas como en boxeo.'],
+      tip: 'Rebota suave sobre la punta de los pies para estar siempre listo.' },
+  },
+  {
+    id: 'mt-teep', kind: 'muay', drill: true,
+    en: { name: 'Teep (push kick)', short: 'Keep them away',
+      steps: ['Lift the front knee up toward your chest.', 'Push the sole of the foot straight into the stomach, hips forward.', 'Bring the leg back fast to your stance.'],
+      mistakes: ['Kicking with the toes instead of the sole.', 'Leaning back too much.'],
+      tip: 'In Muay Thai the teep is the jab of the legs: use it a lot.' },
+    es: { name: 'Teep (patada de empuje)', short: 'Mantén la distancia',
+      steps: ['Sube la rodilla de adelante hacia el pecho.', 'Empuja con la planta del pie recto al abdomen, con la cadera hacia adelante.', 'Recoge la pierna rápido y vuelve a tu guardia.'],
+      mistakes: ['Patear con la punta de los dedos en vez de la planta.', 'Echarte mucho hacia atrás.'],
+      tip: 'En Muay Thai el teep es el jab de las piernas: úsalo mucho.' },
+  },
+  {
+    id: 'mt-roundhouse', kind: 'muay', drill: true,
+    en: { name: 'Roundhouse kick', short: 'The most powerful kick',
+      steps: ['Step out at an angle with the front foot and turn it out.', 'Swing the back leg up and around, turning your hips all the way over.', 'Hit with the shin at body height, then let the leg come back down to your stance.'],
+      mistakes: ['Hitting with the foot instead of the shin.', 'Not turning the hip: the kick has no power.', 'Dropping the hands.'],
+      tip: 'Swing the arm on the kicking side down and back for balance and power.' },
+    es: { name: 'Patada circular', short: 'La patada más fuerte',
+      steps: ['Da un paso en diagonal con el pie de adelante y gíralo hacia afuera.', 'Sube la pierna de atrás en círculo y gira la cadera completa.', 'Pega con la espinilla a la altura del cuerpo y deja que la pierna vuelva a tu guardia.'],
+      mistakes: ['Pegar con el pie en vez de la espinilla.', 'No girar la cadera: la patada no tiene fuerza.', 'Bajar las manos.'],
+      tip: 'Baja y lleva hacia atrás el brazo del lado que patea: te da equilibrio y fuerza.' },
+  },
+  {
+    id: 'mt-knee', kind: 'muay', drill: true,
+    en: { name: 'Knee strike', short: 'Short range power',
+      steps: ['From your stance, reach both hands forward as if holding the bag or your opponent.', 'Drive the back knee straight up and forward, pushing your hips in.', 'Pull your hands down at the same time, then step back to your stance.'],
+      mistakes: ['Lifting the knee without pushing the hips forward.', 'Leaning back.'],
+      tip: 'Point your toes down to make the knee sharper and safer.' },
+    es: { name: 'Rodillazo', short: 'Poder a corta distancia',
+      steps: ['Desde tu guardia, estira las dos manos al frente como si agarraras el saco o al rival.', 'Lleva la rodilla de atrás hacia arriba y adelante, empujando con la cadera.', 'Al mismo tiempo jala las manos hacia abajo y luego vuelve a tu guardia.'],
+      mistakes: ['Subir la rodilla sin empujar la cadera hacia adelante.', 'Echarte hacia atrás.'],
+      tip: 'Apunta los dedos del pie hacia abajo: el rodillazo es más firme y seguro.' },
+  },
+  {
+    id: 'mt-elbow', kind: 'muay', drill: true,
+    en: { name: 'Elbow strike', short: 'The sharpest weapon',
+      steps: ['Get close: elbows are for very short range.', 'Raise the elbow to shoulder height with the hand near your ear.', 'Turn your hips and shoulders and swing the elbow across, then go back to guard.'],
+      mistakes: ['Throwing from too far.', 'Leaving the other hand down.'],
+      tip: 'Practice slowly on a bag. Elbows are never used in light sparring.' },
+    es: { name: 'Codazo', short: 'El arma más filosa',
+      steps: ['Acércate: los codos son para muy corta distancia.', 'Sube el codo a la altura del hombro con la mano cerca de tu oreja.', 'Gira la cadera y los hombros y pasa el codo cruzando, luego vuelve a tu guardia.'],
+      mistakes: ['Lanzarlo desde muy lejos.', 'Dejar la otra mano abajo.'],
+      tip: 'Practícalo despacio en el saco. Los codos no se usan en sparring ligero.' },
+  },
+  {
+    id: 'mt-check', kind: 'muay', drill: true,
+    en: { name: 'Checking a kick', short: 'Block with your shin',
+      steps: ['When a kick comes to your leg, lift the front knee up and slightly out.', 'Point the shin toward the kick so it lands on your shin, not your thigh.', 'Keep your hands up and put the foot back down ready to answer.'],
+      mistakes: ['Lifting the leg too late.', 'Turning your back or closing your eyes.'],
+      tip: 'Check, then answer right away with a punch or a kick.' },
+    es: { name: 'Bloqueo con la espinilla', short: 'Defiende las patadas',
+      steps: ['Cuando viene una patada a tu pierna, sube la rodilla de adelante un poco hacia afuera.', 'Apunta la espinilla hacia la patada para que choque con tu espinilla y no con tu muslo.', 'Mantén las manos arriba y baja el pie listo para contestar.'],
+      mistakes: ['Subir la pierna muy tarde.', 'Darte la vuelta o cerrar los ojos.'],
+      tip: 'Bloquea y contesta enseguida con un golpe o una patada.' },
+  },
+  {
+    id: 'cali-pushup', kind: 'cali', tag: '0 → 50',
+    en: { name: 'Push-up path', short: 'From the wall to 50 in a row',
+      steps: ['Level 1: push-ups against a wall, 3 sets of 15.', 'Level 2: hands on a table or bench, then knees on the floor.', 'Level 3: full push-ups, body straight. Goal: 3 sets of 15.', 'Level 4: diamond push-ups and slow 3-second lowering. Goal: 50 in a row.'],
+      mistakes: ['Hips sagging or sticking up.', 'Half reps: chest should almost touch the floor.'],
+      tip: 'Move to the next level when you can do 3 sets of 15 clean reps.' },
+    es: { name: 'Camino de las flexiones', short: 'De la pared a 50 seguidas',
+      steps: ['Nivel 1: flexiones contra la pared, 3 series de 15.', 'Nivel 2: manos en una mesa o banco, después rodillas en el piso.', 'Nivel 3: flexiones completas con el cuerpo recto. Meta: 3 series de 15.', 'Nivel 4: flexiones diamante y bajar lento en 3 segundos. Meta: 50 seguidas.'],
+      mistakes: ['La cadera se cae o se sube.', 'Repeticiones a medias: el pecho casi debe tocar el piso.'],
+      tip: 'Pasa al siguiente nivel cuando hagas 3 series de 15 limpias.' },
+  },
+  {
+    id: 'cali-pullup', kind: 'cali', tag: '0 → 15',
+    en: { name: 'Your first pull-up', short: 'The king of bodyweight moves',
+      steps: ['Level 1: inverted rows under a sturdy table or low bar.', 'Level 2: hang from the bar 3 times for 20 to 30 seconds.', 'Level 3: jump to the top and lower yourself as slowly as you can (5 seconds).', 'Level 4: full pull-ups, chin over the bar. Goal: 15 in a row.'],
+      mistakes: ['Kicking and swinging to get up.', 'Not going all the way down.'],
+      tip: 'Slow lowering (negatives) is the fastest way to your first pull-up.' },
+    es: { name: 'Tu primera dominada', short: 'La reina del peso corporal',
+      steps: ['Nivel 1: remo invertido debajo de una mesa firme o una barra baja.', 'Nivel 2: cuélgate de la barra 3 veces por 20 a 30 segundos.', 'Nivel 3: salta arriba y baja lo más lento que puedas (5 segundos).', 'Nivel 4: dominadas completas, la barbilla sobre la barra. Meta: 15 seguidas.'],
+      mistakes: ['Patear y columpiarte para subir.', 'No bajar completo.'],
+      tip: 'Bajar lento (negativas) es el camino más rápido a tu primera dominada.' },
+  },
+  {
+    id: 'cali-dip', kind: 'cali', tag: '0 → 25',
+    en: { name: 'Dips', short: 'Chest, shoulders and triceps',
+      steps: ['Level 1: bench dips with knees bent.', 'Level 2: bench dips with legs straight.', 'Level 3: dips on parallel bars or two sturdy chairs, lowering slowly.', 'Level 4: full dips, shoulders just below the elbows. Goal: 25 in a row.'],
+      mistakes: ['Shrugging the shoulders up to your ears.', 'Going too deep if your shoulders hurt.'],
+      tip: 'Lean slightly forward for more chest, stay upright for more triceps.' },
+    es: { name: 'Fondos', short: 'Pecho, hombros y tríceps',
+      steps: ['Nivel 1: fondos en banco con las rodillas dobladas.', 'Nivel 2: fondos en banco con las piernas estiradas.', 'Nivel 3: fondos en paralelas o entre dos sillas firmes, bajando lento.', 'Nivel 4: fondos completos, los hombros un poco abajo de los codos. Meta: 25 seguidos.'],
+      mistakes: ['Subir los hombros hacia las orejas.', 'Bajar demasiado si te molestan los hombros.'],
+      tip: 'Inclínate un poco al frente para más pecho; derecho para más tríceps.' },
+  },
+  {
+    id: 'cali-pike', kind: 'cali',
+    en: { name: 'Toward the handstand', short: 'Strong shoulders',
+      steps: ['Level 1: pike push-ups with feet on the floor.', 'Level 2: pike push-ups with feet on a chair or bench.', 'Level 3: hold a handstand against a wall for 20 to 60 seconds.', 'Level 4: handstand push-ups against the wall.'],
+      mistakes: ['Hips too low: it becomes a normal push-up.', 'Going upside down on a soft or slippery surface.'],
+      tip: 'Learn to come down safely before trying to stay up.' },
+    es: { name: 'Hacia la parada de manos', short: 'Hombros fuertes',
+      steps: ['Nivel 1: flexiones en pica con los pies en el piso.', 'Nivel 2: flexiones en pica con los pies sobre una silla o banco.', 'Nivel 3: aguanta de manos contra la pared de 20 a 60 segundos.', 'Nivel 4: flexiones de manos contra la pared.'],
+      mistakes: ['La cadera muy baja: se vuelve una flexión normal.', 'Ponerte de cabeza en un piso blando o resbaloso.'],
+      tip: 'Aprende a bajar seguro antes de intentar quedarte arriba.' },
+  },
+  {
+    id: 'cali-squat', kind: 'cali', tag: '→ pistol',
+    en: { name: 'Legs without weights', short: 'Toward the one-leg squat',
+      steps: ['Level 1: bodyweight squats, 3 sets of 20.', 'Level 2: lunges and split squats, 3 sets of 12 per leg.', 'Level 3: one-leg squat onto a chair, standing back up on one leg.', 'Level 4: full pistol squat, holding something at first.'],
+      mistakes: ['Knees caving in.', 'Lifting the heels off the floor.'],
+      tip: 'Leg strength without a gym comes from going slow and adding one leg at a time.' },
+    es: { name: 'Piernas sin pesas', short: 'Hacia la sentadilla a una pierna',
+      steps: ['Nivel 1: sentadillas sin peso, 3 series de 20.', 'Nivel 2: zancadas y sentadilla dividida, 3 series de 12 por pierna.', 'Nivel 3: siéntate en una silla con una pierna y levántate con la misma.', 'Nivel 4: sentadilla pistola completa, agarrándote de algo al principio.'],
+      mistakes: ['Las rodillas se van hacia adentro.', 'Levantar los talones del piso.'],
+      tip: 'La fuerza de piernas sin gym viene de ir lento y usar una pierna a la vez.' },
+  },
+  {
+    id: 'cali-plank', kind: 'cali', tag: '→ 2 min',
+    en: { name: 'Iron core', short: 'Plank and its upgrades',
+      steps: ['Level 1: forearm plank, 3 times 20 to 30 seconds.', 'Level 2: plank for 60 seconds and side planks for 30 seconds.', 'Level 3: plank lifting one arm or one leg.', 'Level 4: 2-minute plank and hollow body holds.'],
+      mistakes: ['Letting the hips drop.', 'Holding your breath.'],
+      tip: 'Squeeze your glutes and abs as if someone were about to punch your stomach.' },
+    es: { name: 'Abdomen de acero', short: 'La plancha y sus mejoras',
+      steps: ['Nivel 1: plancha en antebrazos, 3 veces de 20 a 30 segundos.', 'Nivel 2: plancha de 60 segundos y plancha lateral de 30.', 'Nivel 3: plancha levantando un brazo o una pierna.', 'Nivel 4: plancha de 2 minutos y posición de "hollow body".'],
+      mistakes: ['Dejar caer la cadera.', 'Aguantar la respiración.'],
+      tip: 'Aprieta glúteos y abdomen como si te fueran a pegar en el estómago.' },
+  },
+  {
+    id: 'cali-legraise', kind: 'cali', tag: '→ L-sit',
+    en: { name: 'Leg raises', short: 'Lower abs and grip',
+      steps: ['Level 1: lying leg raises with knees bent.', 'Level 2: lying leg raises with straight legs.', 'Level 3: hanging knee raises from a bar.', 'Level 4: hanging straight-leg raises and the L-sit.'],
+      mistakes: ['Arching the lower back off the floor.', 'Swinging on the bar.'],
+      tip: 'Lower the legs slowly: that is where the work is.' },
+    es: { name: 'Elevación de piernas', short: 'Abdomen bajo y agarre',
+      steps: ['Nivel 1: elevación de piernas acostado con las rodillas dobladas.', 'Nivel 2: elevación de piernas acostado con las piernas rectas.', 'Nivel 3: colgado de una barra, sube las rodillas al pecho.', 'Nivel 4: colgado, sube las piernas rectas, y la escuadra (L-sit).'],
+      mistakes: ['Despegar la espalda baja del piso.', 'Columpiarte en la barra.'],
+      tip: 'Baja las piernas despacio: ahí está el trabajo.' },
   },
 ];
