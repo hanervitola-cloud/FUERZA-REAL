@@ -8,6 +8,7 @@ import { PUNCHES, COMBO_SETS, COMBOS, LESSONS, SPORTS } from './combat.js';
 import { exFigure, lessonFigure } from './figures.js';
 import { bodySvg } from './bodymap.js';
 import { MOVES } from './moves.js';
+import { buildPlan as makePlan, autoSplit, timesPerWeek, SPLITS, BLOCK_WEEKS } from './plan.js';
 import { QUOTES, personalQuotes } from './quotes.js';
 import { coachReply, SUGGEST, QUICK } from './coach.js';
 
@@ -92,8 +93,38 @@ const dayKey = (ts) => { const d = new Date(ts); return `${d.getFullYear()}-${d.
 const fmtDate = (ts) => new Date(ts).toLocaleDateString(locale(), { weekday: 'short', month: 'short', day: 'numeric' });
 
 // ---------- Program, score, streak ----------
-const program = () => PROGRAMS[(S.profile && S.profile.equipment) || 'gym'];
-const progName = () => programName((S.profile && S.profile.equipment) || 'gym', program());
+// Best score (0-100) per muscle group, without looking at the plan (the plan itself uses it).
+function groupBests(workouts = S.workouts) {
+  const bw = (S.profile && S.profile.bw) || 0, af = ageFactor((S.profile && S.profile.age) || 30), best = {};
+  for (const w of workouts) for (const ex of w.exercises || []) {
+    const st = STANDARDS[ex.id];
+    if (!st) continue;
+    const [group, type, lo, hi] = st;
+    for (const s of ex.sets) {
+      let val;
+      if (type === 'ratio') { if (!bw || !s.w) continue; val = e1rm(s.w, s.r) / bodyBase(bw); } else val = s.r;
+      best[group] = Math.max(best[group] || 0, clamp((((val * af) / sexAdj(group) - lo) / (hi - lo)) * 100, 0, 100));
+    }
+  }
+  return best;
+}
+// The muscle group furthest behind gets an extra set (only once there is enough data to know).
+function laggingGroup() {
+  if (S.workouts.length < 6) return null;
+  const b = groupBests(), ks = GROUPS.filter((g) => b[g] > 0);
+  return ks.length < 3 ? null : ks.sort((x, y) => b[x] - b[y])[0];
+}
+// The plan is built from the person's answers and changes every 4-week block (plan.js).
+let planCache = { key: '', plan: null };
+function program() {
+  const P = S.profile || {};
+  if (!S.plan) S.plan = { split: 'auto', start: Date.now() };
+  const lag = laggingGroup(), wk = Math.floor((Date.now() - S.plan.start) / (7 * DAY));
+  const key = JSON.stringify([P.days, P.minutes, P.equipment, P.level, P.goal, P.focus, S.plan, wk, lag]);
+  if (planCache.key !== key) planCache = { key, plan: makePlan(P, S.plan, Date.now(), lag) };
+  return planCache.plan;
+}
+const progName = () => t('split_' + program().split);
 const setsFor = (n) => (S.profile && S.profile.level === 'comeback' ? Math.max(2, n - 1) : n);
 const exName = (id) => exText(id, EXERCISES[id]).name;
 function nextDay() {
@@ -288,7 +319,7 @@ function planNumbers(d) {
   return { kcal, protein, water, weeks, pts, target };
 }
 function planHtml(d) {
-  const n = planNumbers(d), p = PROGRAMS[d.equipment || 'gym'];
+  const n = planNumbers(d);
   const end = new Date(Date.now() + n.weeks * 7 * DAY).toLocaleDateString(locale(), { month: 'long', day: 'numeric' });
   const focus = !d.focus.length || d.focus.length === GROUPS.length ? t('wholeBody') : d.focus.map((g) => t('g_' + g)).join(', ');
   const phrase = t('whyQ_' + (d.why || 'strong'), { days: d.days });
@@ -300,7 +331,7 @@ function planHtml(d) {
     <section class="card ob-timeline"><span class="eyebrow">${t('obTimelineTitle')}</span>
       <ol>${[1, 4, 8, 12].map((w, i) => `<li><b>${t('weekN', { n: w })}</b><span>${t('obT' + (i + 1))}</span></li>`).join('')}</ol></section>
     <div class="sum-stats ob-stats"><div><b>${n.protein}</b><span>${t('obProtein')}</span></div><div><b>${fmtN(n.kcal)}</b><span>${t('obKcal')}</span></div><div><b>${n.water}</b><span>${t('obWater')}</span></div></div>
-    <section class="card ob-planbox"><span class="eyebrow">${t('yourPlan')}</span><b>${esc(programName(d.equipment || 'gym', p))}</b>
+    <section class="card ob-planbox"><span class="eyebrow">${t('yourPlan')}</span><b>${esc(t('split_' + autoSplit(d.days)))}</b>
       <span class="ob-tags"><span>${t('nDays', { n: d.days })} / ${t('weekWord')}</span><span>${d.minutes} min</span><span>${esc(focus)}</span></span></section>
     <p class="muted small" style="margin-top:12px">${t('obEstimate')} ${t('obPrivate')}</p>`;
 }
@@ -328,7 +359,7 @@ function renderOnboard() {
       <div class="days">${[2, 3, 4, 5, 6].map((n) => `<button class="opt" type="button" data-ob="days" data-v="${n}" aria-pressed="${d.days === n}">${n}</button>`).join('')}</div>
       <p class="muted small" style="margin-top:14px">${t('obDaysNote')}</p>`,
     time: `<h1>${t('obTimeTitle')}</h1><p>${t('obTimeText')}</p>
-      <div class="times">${[20, 30, 45, 60].map((m) => `<button class="time" type="button" data-ob="minutes" data-v="${m}" aria-pressed="${d.minutes === m}"><b>${m}</b><small>min</small></button>`).join('')}</div>`,
+      <div class="times">${[30, 45, 60, 75, 90].map((m) => `<button class="time" type="button" data-ob="minutes" data-v="${m}" aria-pressed="${d.minutes === m}"><b>${m}</b><small>min</small></button>`).join('')}</div>`,
     equipment: `<h1>${t('obEquipTitle')}</h1><p>${t('obEquipText')}</p>${optList(EQUIPMENT, 'equipment')}`,
     body: `<h1>${t('obBodyTitle')}</h1><p>${t('obBodyText')}</p>
       <div class="unit-toggle">${['lb', 'kg'].map((u) => `<button class="opt" type="button" data-ob="units" data-v="${u}" aria-pressed="${d.units === u}" style="justify-content:center"><b>${u}</b></button>`).join('')}</div>
@@ -536,10 +567,15 @@ const VIEWS = {
       <div class="section-title"><span class="eyebrow">${t('myRoutines')}</span></div>
       ${mine.length ? `<section class="card list-card">${mine.map((x) => `<div class="rt"><button class="rt-main" data-act="rt-info" data-v="${x.id}"><b>${esc(x.name)}</b><small>${t(x.items.length === 1 ? 'nExShort1' : 'nExShort', { n: x.items.length })} · ${t('place_' + (x.place || 'gym'))}</small></button><button class="btn btn-sm btn-primary" data-act="rt-start" data-v="${x.id}" aria-label="${t('start')}">${I.play}</button></div>`).join('')}</section>`
         : `<p class="muted small empty">${t('noRoutines')}</p>`}
-      <div class="section-title"><span class="eyebrow">${t('yourPlan')}</span><button class="link" data-act="programs">${t('changePlan')}</button></div>
-      <p class="muted small empty">${esc(progName())} · ${t('daysWeek', { n: S.profile.days })} · ${esc(lvl ? optText(lvl).name : '')}${S.profile.level === 'comeback' ? t('comebackNote') : ''}</p>
+      <div class="section-title"><span class="eyebrow">${t('yourPlan')}</span></div>
+      <section class="card plan-card">
+        <div class="pc-top"><div class="grow"><b>${esc(progName())}</b><small>${t('planMeta', { days: S.profile.days, min: S.profile.minutes || 45, place: t('place_' + (S.profile.equipment || 'gym')) })}${lvl ? ' · ' + esc(optText(lvl).name) : ''}</small></div><button class="btn btn-sm" data-act="programs">${t('planAdjust')}</button></div>
+        <div class="blk"><b>${t('blockN', { n: p.block + 1 })}</b><span class="blk-dots">${[...Array(BLOCK_WEEKS).keys()].map((i) => `<i class="${i + 1 < p.week ? 'done' : i + 1 === p.week ? 'cur' : ''}"></i>`).join('')}</span><span class="muted small">${t('weekOf', { w: p.week, n: BLOCK_WEEKS })}</span></div>
+        <p class="small muted">${p.deload ? t('deloadNote') : t('blockNote')}</p>
+        ${p.lagging ? `<p class="small lag">${I.up}<span>${t('lagNote', { g: t('g_' + p.lagging) })}</span></p>` : ''}
+      </section>
       <details class="card fold how-plan"><summary><span class="hp-t">${I.info}${t('howPlanTitle')}</span>${I.chev}</summary>
-        <ul class="how-list">${[S.profile.equipment === 'bodyweight' ? 'planWhyBw' : 'planWhyPpl', 'howSets', 'howRest', 'howProgress', 'howWeek'].map((k) => `<li>${t(k)}</li>`).join('')}</ul></details>
+        <ul class="how-list">${['planWhy_' + p.split, 'howSets', 'howRest', 'howProgress', 'howBlocks'].map((k) => `<li>${t(k)}</li>`).join('')}</ul></details>
       ${p.days.map((d) => `<section class="card day">
         <div class="day-head"><span class="row"><span class="day-letter">${esc(dayName(d)[0])}</span><span><b>${esc(dayName(d))}</b><br><span class="muted small">${esc(dayFocus(d))}</span></span></span>
         <button class="btn btn-sm ${d.id === nd ? 'btn-primary' : ''}" data-act="start" data-v="${d.id}">${t(d.id === nd ? 'next' : 'start')}</button></div>
@@ -715,8 +751,7 @@ const VIEWS = {
 // Workout names are saved in the language used at the time; show them in the current one when possible.
 function histName(w) {
   if (w.rounds) return t(w.rounds.mode === 'shadow' ? 'shadowName' : 'roundsName');
-  for (const p of Object.values(PROGRAMS)) { const d = p.days.find((x) => x.id === w.dayId); if (d && w.equip && PROGRAMS[w.equip] === p) return dayName(d); }
-  return w.name;
+  return w.dayId ? dayName({ id: w.dayId, name: w.name }) : w.name;
 }
 
 // Home: four small doors instead of four big cards.
@@ -764,7 +799,7 @@ function showExercise(id) {
     <span class="eyebrow">${t('howTo')}</span>
     <h2 style="margin-top:6px">${esc(x.name)}</h2>
     ${demoBox('ex', id, x.steps.length)}
-    ${e.timed ? '' : `<p class="tempo">${I.timer}<span>${t('tempoLine')}</span></p>`}
+    ${e.timed || id === 'nordic-curl' ? '' : `<p class="tempo">${I.timer}<span>${t('tempoLine')}</span></p>`}
     <div class="ex-muscles">${muscleMap(exMuscleState(id), 'mmap-ex')}<div><span class="eyebrow">${t('worksTitle')}</span><div class="muscles">${e.muscles.map((m, i) => `<span class="badge ${i ? 'help' : 'main'}">${esc(muscleName(m))}</span>`).join('')}</div>
       <p class="mm-legend"><i class="lg-main"></i>${t('worksMain')} <i class="lg-help"></i>${t('worksHelp')}</p></div></div>
     <h3>${t('stepByStep')}</h3><ol class="steps-list" id="demoSteps">${x.steps.map((s, i) => `<li data-act="demo-step" data-v="${i}">${esc(s)}</li>`).join('')}</ol>
@@ -847,7 +882,7 @@ document.getElementById('restPill').addEventListener('click', showRestSheet);
 let woTick;
 function startWorkout(dayId) {
   if (S.active) { openWorkout(); return; }
-  const d = program().days.find((x) => x.id === dayId);
+  const d = program().days.find((x) => x.id === dayId) || nextDay();
   S.active = {
     dayId: d.id, name: dayName(d), equip: S.profile.equipment, start: Date.now(),
     exercises: d.items.map(([id, sets, reps]) => ({ id, target: reps, sets: Array.from({ length: setsFor(sets) }, () => ({ w: '', r: '', done: false })) })),
@@ -1266,7 +1301,7 @@ function repeatWorkout(id) {
   if (!w) return;
   closeSheet();
   if (S.active) { toast(t('finishFirst')); openWorkout(); return; }
-  const progReps = (eid) => { for (const p of Object.values(PROGRAMS)) for (const d of p.days) { const it = d.items.find((x) => x[0] === eid); if (it) return it[2]; } return null; };
+  const progReps = (eid) => { for (const d of program().days) { const it = d.items.find((x) => x[0] === eid); if (it) return it[2]; } return null; };
   const sameProgram = w.equip === S.profile.equipment && program().days.some((d) => d.id === w.dayId);
   S.active = {
     dayId: sameProgram ? w.dayId : 'custom', name: histName(w), equip: S.profile.equipment, place: w.place || w.equip, start: Date.now(),
@@ -1504,17 +1539,38 @@ function bodyHtml() {
 }
 
 // ---------- Plans ----------
-function showPrograms() {
-  const cur = S.profile.equipment;
-  openSheet(`<span class="eyebrow">${t('yourPlan')}</span><h2 style="margin-top:6px">${t('plansTitle')}</h2>
-    <div class="stack" style="margin-top:14px">${Object.entries(PROGRAMS).map(([key, p]) => `<div class="card prog ${key === cur ? 'on' : ''}"><b>${esc(programName(key, p))}</b><small>${esc(optText(EQUIPMENT.find((e) => e.id === key)).name)} · ${t('nDaysPlan', { n: p.days.length })}</small>
-      <div class="ex-chips">${p.days.map((d) => `<span>${esc(dayName(d))}</span>`).join('')}</div>
-      ${key === cur ? `<span class="badge">${t('currentPlan')}</span>` : `<button class="btn btn-sm btn-primary" data-act="use-program" data-v="${key}">${t('usePlan')}</button>`}</div>`).join('')}</div>`);
+let planDraft = null;
+function planAdvice(dr) {
+  const split = dr.split === 'auto' ? autoSplit(dr.days) : dr.split, f = timesPerWeek(split, dr.days), beg = S.profile.level === 'beginner';
+  const n = Math.round(f * 10) / 10, better = { split: t('split_' + autoSplit(dr.days)) };
+  const out = [f > 3.5 ? t('advFreqHigh', { n, ...better }) : f >= 2 ? t('advFreqGood', { n }) : t('advFreqLow', better)];
+  out.push(t(dr.minutes <= 30 ? 'advTime30' : dr.minutes <= 60 ? 'advTime60' : dr.minutes <= 75 ? 'advTime75' : 'advTime90'));
+  if (beg && dr.minutes > 60) out.push(t('advBeginnerTime'));
+  if (beg && dr.days >= 6) out.push(t('advBeginnerDays'));
+  return out;
+}
+function showPlan() {
+  const P = S.profile;
+  if (!planDraft) planDraft = { split: (S.plan && S.plan.split) || 'auto', days: P.days || 3, minutes: P.minutes || 45, equipment: P.equipment || 'gym' };
+  const dr = planDraft;
+  const prev = makePlan({ ...P, days: dr.days, minutes: dr.minutes, equipment: dr.equipment }, { split: dr.split, start: Date.now() }, Date.now(), laggingGroup());
+  const seg = (k, vals, label) => `<div class="chips seg">${vals.map((v) => `<button class="chip" data-act="pd" data-k="${k}" data-v="${v}" aria-pressed="${String(dr[k]) === String(v)}">${label(v)}</button>`).join('')}</div>`;
+  const html = `<span class="eyebrow">${t('yourPlan')}</span><h2 style="margin-top:6px">${t('planTitle')}</h2>
+    <h3>${t('pqType')}</h3><div class="opts">${SPLITS.map((s) => `<button class="opt" type="button" data-act="pd" data-k="split" data-v="${s}" aria-pressed="${dr.split === s}"><span><b>${t('split_' + s)}${s === 'auto' ? ` · ${t('split_' + autoSplit(dr.days))}` : ''}</b><small>${t('splitSub_' + s)}</small></span><i class="radio"></i></button>`).join('')}</div>
+    <h3>${t('pqDays')}</h3>${seg('days', [2, 3, 4, 5, 6], (v) => v)}
+    <h3>${t('pqTime')}</h3>${seg('minutes', [30, 45, 60, 75, 90], (v) => v + ' min')}
+    <h3>${t('pqEquip')}</h3>${seg('equipment', ['gym', 'dumbbells', 'bodyweight'], (v) => t('place_' + v))}
+    <div class="plan-advice">${planAdvice(dr).map((l) => `<p>${I.info}<span>${esc(l)}</span></p>`).join('')}</div>
+    <h3>${t('pqPreview')}</h3>
+    <div class="plan-prev">${prev.days.map((d) => `<div><b>${esc(dayName(d))}</b><small>${t('nExShort', { n: d.items.length })} · ${t('aboutMin', { n: d.items.length * 9 })}</small><span>${d.items.map(([id]) => esc(exName(id))).join(' · ')}</span></div>`).join('')}</div>
+    <button class="btn btn-primary btn-block" style="margin-top:16px" data-act="plan-save">${t('planSave')}</button>`;
+  const box = $('#planSheet');
+  if (box && !$('#sheet').hidden) box.innerHTML = html; else openSheet(`<div id="planSheet">${html}</div>`);
 }
 
 // ---------- My routines ----------
 function findProgReps(eid) {
-  for (const p of Object.values(PROGRAMS)) for (const d of p.days) { const it = d.items.find((x) => x[0] === eid); if (it) return it[2]; }
+  for (const d of program().days) { const it = d.items.find((x) => x[0] === eid); if (it) return it[2]; }
   return null;
 }
 let pendingRoutine = null;
@@ -2299,7 +2355,13 @@ document.addEventListener('click', (e) => {
   else if (k === 'orm') showOrm();
   else if (k === 'train-tab') { trainTab = v; render(); }
   else if (k === 'prog-tab') { progTab = v; render(); }
-  else if (k === 'programs') showPrograms();
+  else if (k === 'programs') { planDraft = null; showPlan(); }
+  else if (k === 'pd') { planDraft[b.dataset.k] = b.dataset.k === 'split' || b.dataset.k === 'equipment' ? v : +v; showPlan(); }
+  else if (k === 'plan-save') {
+    Object.assign(S.profile, { days: planDraft.days, minutes: planDraft.minutes, equipment: planDraft.equipment });
+    S.plan = { split: planDraft.split, start: Date.now() };
+    planDraft = null; save(); closeSheet(); render(); toast(t('planSaved'));
+  }
   else if (k === 'use-program') { S.profile.equipment = v; save(); closeSheet(); render(); toast(t('planChanged')); }
   else if (k === 'rt-info') showRoutine(v);
   else if (k === 'rt-start') startRoutine(v);

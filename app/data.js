@@ -370,6 +370,90 @@ export const EXERCISES = {
     mistakes: ['Letting the lower back sag.', 'Rolling out farther than you can control.'],
     tip: 'Go only as far as you can come back with a flat back.',
   },
+  'chin-up': {
+    name: 'Chin-up', muscles: ['Lats', 'Biceps', 'Upper back'], bw: true, pattern: 'pull', std: ['reps', 1, 22],
+    steps: ['Hang from a bar with your palms facing you, hands at shoulder width, arms straight.', 'Pull until your chin is over the bar, elbows driving down to your ribs.', 'Lower all the way down with control.'],
+    mistakes: ['Kicking and swinging to get up.', 'Stopping halfway down.'],
+    tip: 'Palms facing you put more work on the biceps: a bit easier than the pull-up.',
+  },
+  'machine-chest-press': {
+    name: 'Machine chest press', muscles: ['Chest', 'Triceps', 'Front shoulders'], pattern: 'push', std: ['ratio', 0.4, 1.5],
+    steps: ['Set the seat so the handles line up with the middle of your chest.', 'Push the handles forward until your arms are straight, without locking hard.', 'Bring them back slowly until you feel the stretch in your chest.'],
+    mistakes: ['Seat too high or too low: the handles should be at mid-chest.', 'Letting the weight slam back.'],
+    tip: 'Great for adding chest work safely after the bench press, even close to failure.',
+  },
+  'pec-deck': {
+    name: 'Pec deck fly', muscles: ['Chest', 'Front shoulders'], std: ['ratio', 0.2, 1.0],
+    steps: ['Sit with your back flat on the pad and grab the handles at shoulder height.', 'Bring your arms together in front of your chest, elbows slightly bent.', 'Open slowly until you feel a stretch across your chest.'],
+    mistakes: ['Shoulders rolling forward at the end.', 'Opening too far and straining the shoulder.'],
+    tip: 'Squeeze for a second when your hands meet: that is where the chest works hardest.',
+  },
+  'chest-supported-row': {
+    name: 'Chest-supported row', muscles: ['Upper back', 'Lats', 'Rear shoulders'], perHand: true, pattern: 'pull', std: ['ratio', 0.15, 0.6],
+    steps: ['Lie face down on a bench set to about 30 degrees, a dumbbell in each hand hanging down.', 'Row the dumbbells up beside your ribs, squeezing your shoulder blades together.', 'Lower them until your arms are straight again.'],
+    mistakes: ['Lifting your chest off the pad to cheat.', 'Shrugging the shoulders up to your ears.'],
+    tip: 'The bench holds your body still, so all the work goes to your back. Easy on the lower back.',
+  },
+  'db-pullover': {
+    name: 'Dumbbell pullover', muscles: ['Lats', 'Chest', 'Triceps'], std: ['ratio', 0.12, 0.5],
+    steps: ['Lie on a bench holding one dumbbell with both hands above your chest.', 'With arms almost straight, lower it back behind your head until you feel a stretch.', 'Pull it back over your chest using your lats.'],
+    mistakes: ['Bending the elbows a lot: it turns into a triceps exercise.', 'Going too heavy and arching the lower back.'],
+    tip: 'One of the few back exercises you can do with only one dumbbell.',
+  },
+  'step-up': {
+    name: 'Step-up', muscles: ['Quads', 'Glutes'], perHand: true, pattern: 'squat', std: ['ratio', 0.05, 0.5],
+    steps: ['Stand in front of a sturdy box or bench about knee high, a dumbbell in each hand.', 'Put one whole foot on the box and push through it to stand up tall.', 'Step down slowly with the same leg. Do all reps, then switch.'],
+    mistakes: ['Pushing off with the back foot.', 'Using a box so high your knee goes past your hip.'],
+    tip: 'Also works with no weight: just your body is already a good start.',
+  },
+  'single-leg-rdl': {
+    name: 'Single-leg Romanian deadlift', muscles: ['Hamstrings', 'Glutes', 'Core'], pattern: 'hinge', std: ['ratio', 0.1, 0.6],
+    steps: ['Stand on one leg holding a dumbbell in the opposite hand.', 'Lean forward from the hips and let the free leg go straight back, back flat.', 'Stop when you feel the stretch in your hamstring and stand back up.'],
+    mistakes: ['Rounding the back to reach lower.', 'Opening the hips to the side.'],
+    tip: 'Start light and hold a wall with your free hand if you wobble. Balance improves fast.',
+  },
+  'incline-curl': {
+    name: 'Incline dumbbell curl', muscles: ['Biceps', 'Forearms'], perHand: true, std: ['ratio', 0.05, 0.3],
+    steps: ['Sit back on a bench set to about 45 degrees, arms hanging straight down.', 'Curl both dumbbells up without moving your upper arms forward.', 'Lower them slowly all the way down.'],
+    mistakes: ['Bringing the elbows forward to lift more.', 'Cutting the bottom half of the rep.'],
+    tip: 'The arms hang behind your body, so the biceps work stretched: one of the best curls to grow.',
+  },
+  'triceps-kickback': {
+    name: 'Triceps kickback', muscles: ['Triceps'], perHand: true, std: ['ratio', 0.04, 0.25],
+    steps: ['One hand and knee on a bench, back flat, upper arm pinned to your side.', 'Straighten the elbow until the dumbbell is behind you and the arm is fully straight.', 'Bend back to 90 degrees slowly. Do all reps, then switch arms.'],
+    mistakes: ['Swinging the upper arm to move the weight.', 'Going too heavy: this one works with light weights.'],
+    tip: 'Hold the straight arm for a second at the end: that squeeze is what makes it work.',
+  },
+  'cable-crunch': {
+    name: 'Cable crunch', muscles: ['Abs'], std: ['ratio', 0.2, 1.0],
+    steps: ['Kneel in front of a high cable, holding the rope beside your head.', 'Curl your chest down toward your knees, rounding your back.', 'Come back up slowly until your torso is upright.'],
+    mistakes: ['Sitting back on your heels and pulling with the arms.', 'Moving the hips instead of curling the spine.'],
+    tip: 'Your abs can be trained with weight like any other muscle: add a little each week.',
+  },
+  'side-plank': {
+    name: 'Side plank', muscles: ['Core', 'Abs'], bw: true, timed: true, std: ['secs', 15, 120],
+    steps: ['Lie on your side with your elbow under your shoulder and your feet stacked.', 'Lift your hips until your body is a straight line from head to feet.', 'Hold, breathe, then do the other side.'],
+    mistakes: ['Letting the hips sag toward the floor.', 'Rolling the chest forward.'],
+    tip: 'Too hard? Bend your knees and rest on them.',
+  },
+  'decline-push-up': {
+    name: 'Decline push-up', muscles: ['Upper chest', 'Front shoulders', 'Triceps'], bw: true, pattern: 'push', std: ['reps', 3, 45],
+    steps: ['Put your feet on a bench or chair behind you and your hands on the floor.', 'Lower your chest close to the floor, body straight.', 'Push back up until your arms are straight.'],
+    mistakes: ['Letting the hips sag.', 'Using a support so high it turns into a shoulder exercise.'],
+    tip: 'The higher your feet, the harder it gets: a great next step after normal push-ups.',
+  },
+  'farmer-carry': {
+    name: 'Farmer\'s walk', muscles: ['Forearms', 'Upper back', 'Core'], bw: true, timed: true, std: ['secs', 20, 90],
+    steps: ['Pick up a heavy dumbbell in each hand like a deadlift: back flat, legs pushing.', 'Stand tall, shoulders back, and walk with short, steady steps.', 'Walk for the time, then put the weights down with the same care.'],
+    mistakes: ['Leaning to one side.', 'Letting the shoulders round forward.'],
+    tip: 'Use the heaviest dumbbells you can carry while standing tall. Log the seconds you walk.',
+  },
+  'nordic-curl': {
+    name: 'Nordic curl', muscles: ['Hamstrings', 'Glutes'], bw: true, std: ['reps', 1, 15],
+    steps: ['Kneel on a pad with your ankles held down under something heavy or by a partner.', 'Keeping a straight line from knees to head, lean forward as slowly as you can.', 'Catch yourself with your hands, push off the floor and come back up.'],
+    mistakes: ['Bending at the hips instead of staying straight.', 'Dropping fast instead of fighting the fall.'],
+    tip: 'Very hard at first: lowering slowly for 3 to 5 seconds already counts as a rep.',
+  },
 };
 
 const day = (id, name, focus, items) => ({ id, name, focus, items });
@@ -531,16 +615,32 @@ export const STANDARDS = {
   'hack-squat': ['legs', 'ratio', 0.6, 2.5],
   'hanging-leg-raise': ['core', 'reps', 3, 25],
   'ab-wheel': ['core', 'reps', 3, 25],
+  'chin-up': ['back', 'reps', 1, 22],
+  'machine-chest-press': ['chest', 'ratio', 0.4, 1.5],
+  'pec-deck': ['chest', 'ratio', 0.2, 1.0],
+  'chest-supported-row': ['back', 'ratio', 0.15, 0.6],
+  'db-pullover': ['back', 'ratio', 0.12, 0.5],
+  'step-up': ['legs', 'ratio', 0.05, 0.5],
+  'single-leg-rdl': ['hinge', 'ratio', 0.1, 0.6],
+  'incline-curl': ['arms', 'ratio', 0.05, 0.3],
+  'triceps-kickback': ['arms', 'ratio', 0.04, 0.25],
+  'cable-crunch': ['core', 'ratio', 0.2, 1.0],
+  'side-plank': ['core', 'secs', 15, 120],
+  'decline-push-up': ['chest', 'reps', 3, 45],
+  'farmer-carry': ['back', 'secs', 20, 90],
+  'nordic-curl': ['hinge', 'reps', 1, 15],
 };
 
 // Where each exercise can be done. Gym covers everything; dumbbells cover dumbbell and bodyweight.
 const DUMBBELL = ['db-bench-press', 'db-shoulder-press', 'db-row', 'db-curl', 'db-rdl', 'lateral-raise', 'hammer-curl',
-  'rear-delt-fly', 'goblet-squat', 'lunge', 'oh-triceps-extension', 'incline-db-press', 'db-fly', 'shrug', 'arnold-press', 'bulgarian-split-squat'];
+  'rear-delt-fly', 'goblet-squat', 'lunge', 'oh-triceps-extension', 'incline-db-press', 'db-fly', 'shrug', 'arnold-press', 'bulgarian-split-squat',
+  'chest-supported-row', 'db-pullover', 'step-up', 'single-leg-rdl', 'incline-curl', 'triceps-kickback', 'farmer-carry'];
 const HOME_ITEMS = ['backpack-curl']; // household objects, no equipment needed
-export const placeOf = (id) => (EXERCISES[id].bw || HOME_ITEMS.includes(id) ? 'bodyweight' : DUMBBELL.includes(id) ? 'dumbbells' : 'gym');
+export const placeOf = (id) => (DUMBBELL.includes(id) ? 'dumbbells' : EXERCISES[id].bw || HOME_ITEMS.includes(id) ? 'bodyweight' : 'gym');
 export const PLACE_OK = { gym: ['gym', 'dumbbells', 'bodyweight'], dumbbells: ['dumbbells', 'bodyweight'], bodyweight: ['bodyweight'] };
 // Big multi-joint lifts go first in a session.
 export const COMPOUND = ['bench-press', 'db-bench-press', 'push-up', 'overhead-press', 'db-shoulder-press', 'pike-push-up',
   'lat-pulldown', 'barbell-row', 'db-row', 'inverted-row', 'squat', 'goblet-squat', 'leg-press', 'bw-squat', 'split-squat',
-  'lunge', 'romanian-deadlift', 'db-rdl', 'hip-thrust', 'chair-dip', 'incline-bench-press', 'incline-db-press', 'parallel-dip', 'pull-up', 'cable-row', 'deadlift', 'arnold-press', 'close-grip-bench', 'front-squat', 'bulgarian-split-squat', 'hack-squat'];
+  'lunge', 'romanian-deadlift', 'db-rdl', 'hip-thrust', 'chair-dip', 'incline-bench-press', 'incline-db-press', 'parallel-dip', 'pull-up', 'cable-row', 'deadlift', 'arnold-press', 'close-grip-bench', 'front-squat', 'bulgarian-split-squat', 'hack-squat',
+  'chin-up', 'machine-chest-press', 'chest-supported-row', 'step-up', 'single-leg-rdl', 'decline-push-up'];
 export const GROUPS = ['chest', 'shoulders', 'back', 'legs', 'hinge', 'arms', 'core'];
