@@ -1804,7 +1804,7 @@ function demoBox(kind, id, nSteps = 3) {
 // Pictures of the character (made in Google Flow, listed in moves.js) take the drawing's place wherever they exist.
 const MOVE_ALIAS = {
   'split-squat': 'lunge', 'mt-stance': 'stance', 'mt-teep': 'teep', 'mt-roundhouse': 'low-kick',
-  'cali-pushup': 'push-up', 'cali-pullup': 'inverted-row', 'cali-dip': 'chair-dip', 'cali-pike': 'pike-push-up',
+  'cali-pushup': 'push-up', 'cali-pullup': 'pull-up', 'cali-dip': 'chair-dip', 'cali-pike': 'pike-push-up',
   'cali-squat': 'bw-squat', 'cali-plank': 'plank', 'cali-legraise': 'leg-raise',
 };
 const moveId = (id) => (MOVES.includes(id) ? id : MOVES.includes(MOVE_ALIAS[id]) ? MOVE_ALIAS[id] : null);

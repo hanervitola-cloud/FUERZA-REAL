@@ -179,10 +179,10 @@ export const EXERCISES = {
     tip: 'Bend your knees to make it easier, straighten your legs to make it harder.',
   },
   'inverted-row': {
-    name: 'Pull-up or inverted row', muscles: ['Lats', 'Upper back', 'Biceps'], bw: true, pattern: 'pull', std: ['reps', 3, 25],
-    steps: ['Pull-up: hang from a bar and pull your chest up toward it.', 'No bar? Lie under a sturdy table, hold the edge and pull your chest up to it.', 'Lower all the way down with control.'],
-    mistakes: ['Half reps.', 'Kicking your legs to get up.'],
-    tip: 'Log the version you can do for at least 6 clean reps.',
+    name: 'Inverted row', muscles: ['Upper back', 'Lats', 'Biceps'], bw: true, pattern: 'pull', std: ['reps', 5, 30],
+    steps: ['Lie under a sturdy bar or table edge set at hip height, holding it with straight arms.', 'Keep your body straight and pull your chest up to the bar.', 'Lower all the way down with control.'],
+    mistakes: ['Letting the hips sag.', 'Half reps.'],
+    tip: 'Bend your knees to make it easier, raise your feet to make it harder.',
   },
   'bw-squat': {
     name: 'Bodyweight squat', muscles: ['Quads', 'Glutes'], bw: true, pattern: 'squat', std: ['reps', 10, 60],
@@ -232,26 +232,167 @@ export const EXERCISES = {
     mistakes: ['Arching your lower back.', 'Pushing through your toes.'],
     tip: 'Try one leg at a time once two legs gets easy.',
   },
+  'incline-bench-press': {
+    name: 'Incline bench press', muscles: ['Upper chest', 'Front shoulders', 'Triceps'], pattern: 'push', std: ['ratio', 0.4, 1.4],
+    steps: ['Set the bench to about 30 degrees and lie with your eyes under the bar.', 'Lower the bar with control to the top of your chest.', 'Press up until your arms are straight, shoulder blades pulled back.'],
+    mistakes: ['Setting the bench too steep: it turns into a shoulder press.', 'Bouncing the bar off your chest.'],
+    tip: 'A low incline (about 30 degrees) hits the upper chest best.',
+  },
+  'incline-db-press': {
+    name: 'Incline dumbbell press', muscles: ['Upper chest', 'Front shoulders', 'Triceps'], perHand: true, pattern: 'push', std: ['ratio', 0.15, 0.6],
+    steps: ['Sit on a bench set to about 30 degrees with a dumbbell on each knee, then lie back.', 'Press the dumbbells up over your upper chest.', 'Lower them slowly to the sides of your chest.'],
+    mistakes: ['Clanking the dumbbells together at the top.', 'Dropping them too fast at the bottom.'],
+    tip: 'Dumbbells let each arm work on its own: good for fixing a weaker side.',
+  },
+  'db-fly': {
+    name: 'Dumbbell fly', muscles: ['Chest', 'Front shoulders'], perHand: true, std: ['ratio', 0.06, 0.35],
+    steps: ['Lie on a flat bench with the dumbbells above your chest, palms facing each other.', 'With elbows slightly bent, open your arms out to the sides until you feel a stretch.', 'Bring the dumbbells back up in a wide arc, like hugging a tree.'],
+    mistakes: ['Bending the elbows so much it becomes a press.', 'Going too low and straining the shoulders.'],
+    tip: 'Use light weights: this is about the stretch, not about lifting heavy.',
+  },
+  'cable-fly': {
+    name: 'Cable fly', muscles: ['Chest', 'Front shoulders'], perHand: true, std: ['ratio', 0.06, 0.4],
+    steps: ['Stand between two cable pulleys set high, one handle in each hand, one foot forward.', 'With elbows slightly bent, bring your hands together in front of your chest.', 'Open your arms slowly back to the start, feeling the stretch.'],
+    mistakes: ['Pulling with the arms instead of the chest.', 'Leaning so far forward that the back takes over.'],
+    tip: 'Squeeze for one second when your hands meet.',
+  },
+  'parallel-dip': {
+    name: 'Parallel bar dip', muscles: ['Chest', 'Triceps', 'Front shoulders'], bw: true, pattern: 'push', std: ['reps', 3, 30],
+    steps: ['Hold yourself up on parallel bars with straight arms.', 'Lower slowly until your shoulders are just below your elbows.', 'Push back up until your arms are straight.'],
+    mistakes: ['Shrugging the shoulders up to the ears.', 'Dropping down fast.'],
+    tip: 'Lean forward a little for more chest, stay upright for more triceps.',
+  },
+  'pull-up': {
+    name: 'Pull-up', muscles: ['Lats', 'Upper back', 'Biceps'], bw: true, pattern: 'pull', std: ['reps', 1, 20],
+    steps: ['Hang from a bar with hands a bit wider than your shoulders, arms straight.', 'Pull your chest up until your chin is over the bar.', 'Lower all the way down with control.'],
+    mistakes: ['Kicking and swinging to get up.', 'Half reps that never reach straight arms.'],
+    tip: 'Can not do one yet? Jump up and lower yourself slowly for 5 seconds.',
+  },
+  'cable-row': {
+    name: 'Seated cable row', muscles: ['Upper back', 'Lats', 'Biceps'], pattern: 'pull', std: ['ratio', 0.4, 1.2],
+    steps: ['Sit at the cable row with feet on the platform and knees slightly bent, chest up.', 'Pull the handle to your stomach, squeezing your shoulder blades together.', 'Let your arms stretch forward slowly without rounding your back.'],
+    mistakes: ['Rocking the body back and forth.', 'Rounding the lower back at the stretch.'],
+    tip: 'Think of pulling with your elbows, not with your hands.',
+  },
+  'deadlift': {
+    name: 'Deadlift', muscles: ['Hamstrings', 'Glutes', 'Lower back', 'Upper back'], pattern: 'hinge', std: ['ratio', 1.0, 2.75],
+    steps: ['Stand with the bar over the middle of your feet, grip it just outside your legs.', 'Chest up, back flat, push the floor away and stand up tall with the bar close to your legs.', 'Lower the bar the same way: hips back first, bar sliding down your legs.'],
+    mistakes: ['Rounding the back.', 'Letting the bar drift away from the legs.'],
+    tip: 'Learn it light. A flat back matters more than the weight.',
+  },
+  'face-pull': {
+    name: 'Face pull', muscles: ['Rear shoulders', 'Upper back'], std: ['ratio', 0.1, 0.5],
+    steps: ['Set a rope on a cable at face height and hold both ends, palms facing down.', 'Pull the rope toward your face, separating the ends and pulling the elbows high and back.', 'Return slowly with your arms straight.'],
+    mistakes: ['Using too much weight and leaning back.', 'Pulling to the chest instead of the face.'],
+    tip: 'Great for healthy shoulders and better posture.',
+  },
+  'shrug': {
+    name: 'Dumbbell shrug', muscles: ['Upper back'], perHand: true, std: ['ratio', 0.2, 0.8],
+    steps: ['Stand tall with a heavy dumbbell in each hand at your sides.', 'Lift your shoulders straight up toward your ears.', 'Hold one second and lower slowly.'],
+    mistakes: ['Rolling the shoulders in circles.', 'Bending the arms to help.'],
+    tip: 'Straight up and down: no need to roll.',
+  },
+  'cable-lateral-raise': {
+    name: 'Cable lateral raise', muscles: ['Side shoulders'], std: ['ratio', 0.03, 0.2],
+    steps: ['Stand sideways to a low cable, holding the handle with the far hand in front of your hips.', 'Raise the arm out to the side up to shoulder height, elbow slightly bent.', 'Lower slowly, keeping tension on the cable.'],
+    mistakes: ['Swinging the body.', 'Raising the arm above the shoulder.'],
+    tip: 'The cable keeps tension at the bottom, where dumbbells feel light.',
+  },
+  'arnold-press': {
+    name: 'Arnold press', muscles: ['Front shoulders', 'Side shoulders', 'Triceps'], perHand: true, pattern: 'push', std: ['ratio', 0.12, 0.45],
+    steps: ['Sit or stand with dumbbells in front of your shoulders, palms facing you.', 'Press up while turning the palms to face forward at the top.', 'Lower and turn them back to the start.'],
+    mistakes: ['Arching the lower back.', 'Rushing the turn.'],
+    tip: 'Go slow: the turn is what makes it different from a normal press.',
+  },
+  'preacher-curl': {
+    name: 'Preacher curl', muscles: ['Biceps'], std: ['ratio', 0.15, 0.6],
+    steps: ['Sit at the preacher bench with the back of your arms flat on the pad, holding an EZ bar.', 'Curl the bar up toward your shoulders.', 'Lower slowly until your arms are almost straight.'],
+    mistakes: ['Lifting the elbows off the pad.', 'Dropping fast at the bottom.'],
+    tip: 'The pad stops cheating, so use less weight than a normal curl.',
+  },
+  'cable-curl': {
+    name: 'Cable curl', muscles: ['Biceps', 'Forearms'], std: ['ratio', 0.15, 0.6],
+    steps: ['Stand facing a low cable with a straight bar, elbows at your sides.', 'Curl the bar up to your chest.', 'Lower slowly while the cable keeps pulling.'],
+    mistakes: ['Leaning back to lift.', 'Elbows moving forward.'],
+    tip: 'Good finisher at the end of a workout.',
+  },
+  'skull-crusher': {
+    name: 'Skull crusher', muscles: ['Triceps'], std: ['ratio', 0.15, 0.6],
+    steps: ['Lie on a flat bench holding an EZ bar above your chest with straight arms.', 'Bend only at the elbows to lower the bar toward your forehead.', 'Straighten your arms back up.'],
+    mistakes: ['Elbows flaring out wide.', 'Moving the upper arms instead of only the elbows.'],
+    tip: 'Lower toward the top of your head, not your nose, and go controlled.',
+  },
+  'close-grip-bench': {
+    name: 'Close-grip bench press', muscles: ['Triceps', 'Chest', 'Front shoulders'], pattern: 'push', std: ['ratio', 0.4, 1.4],
+    steps: ['Lie on a flat bench and grip the bar at shoulder width.', 'Lower it to your lower chest with elbows close to your body.', 'Press up until your arms are straight.'],
+    mistakes: ['Hands too close together, which hurts the wrists.', 'Elbows flaring out.'],
+    tip: 'Shoulder-width grip is close enough.',
+  },
+  'front-squat': {
+    name: 'Front squat', muscles: ['Quads', 'Glutes', 'Core'], pattern: 'squat', std: ['ratio', 0.6, 2.0],
+    steps: ['Rest the bar on the front of your shoulders, elbows high.', 'Squat down keeping your chest up and elbows pointing forward.', 'Stand back up through the middle of your feet.'],
+    mistakes: ['Elbows dropping, so the bar rolls forward.', 'Heels lifting off the floor.'],
+    tip: 'Keep the elbows up the whole time.',
+  },
+  'bulgarian-split-squat': {
+    name: 'Bulgarian split squat', muscles: ['Quads', 'Glutes'], perHand: true, pattern: 'squat', std: ['ratio', 0.1, 0.6],
+    steps: ['Stand a big step in front of a bench and put the top of your back foot on it, a dumbbell in each hand.', 'Lower straight down until your front thigh is parallel to the floor.', 'Push through the front foot to stand back up.'],
+    mistakes: ['Front foot too close to the bench.', 'Front knee caving in.'],
+    tip: 'Hard but worth it: one of the best leg exercises with dumbbells.',
+  },
+  'leg-extension': {
+    name: 'Leg extension', muscles: ['Quads'], std: ['ratio', 0.3, 1.2],
+    steps: ['Sit on the machine with the pad on the front of your ankles, back against the seat.', 'Straighten your legs fully and squeeze the thighs.', 'Lower slowly.'],
+    mistakes: ['Swinging the weight up.', 'Lifting the hips off the seat.'],
+    tip: 'Pause one second at the top.',
+  },
+  'leg-curl': {
+    name: 'Leg curl', muscles: ['Hamstrings'], std: ['ratio', 0.2, 0.9],
+    steps: ['Lie face down on the leg curl machine with the pad just above your heels.', 'Curl your heels toward your glutes.', 'Lower slowly until your legs are almost straight.'],
+    mistakes: ['Lifting the hips off the bench.', 'Short, fast reps.'],
+    tip: 'Point your toes up toward your shins for a stronger squeeze.',
+  },
+  'hack-squat': {
+    name: 'Hack squat', muscles: ['Quads', 'Glutes'], pattern: 'squat', std: ['ratio', 0.6, 2.5],
+    steps: ['Stand on the hack squat platform with your back and shoulders against the pads.', 'Release the safeties and squat down until your thighs are parallel.', 'Press back up without locking the knees hard.'],
+    mistakes: ['Heels lifting off the platform.', 'Very short reps with too much weight.'],
+    tip: 'Feet a bit lower on the platform work the quads more.',
+  },
+  'hanging-leg-raise': {
+    name: 'Hanging leg raise', muscles: ['Abs', 'Core'], bw: true, std: ['reps', 3, 25],
+    steps: ['Hang from a pull-up bar with straight arms.', 'Raise your knees (or straight legs) up toward your chest.', 'Lower slowly without swinging.'],
+    mistakes: ['Swinging the body.', 'Dropping the legs fast.'],
+    tip: 'Start with knees bent; straight legs are the advanced version.',
+  },
+  'ab-wheel': {
+    name: 'Ab wheel rollout', muscles: ['Abs', 'Core'], bw: true, std: ['reps', 3, 25],
+    steps: ['Kneel on the floor holding an ab wheel under your shoulders.', 'Roll forward slowly, keeping your back flat and abs tight.', 'Pull back to the start using your abs.'],
+    mistakes: ['Letting the lower back sag.', 'Rolling out farther than you can control.'],
+    tip: 'Go only as far as you can come back with a flat back.',
+  },
 };
 
 const day = (id, name, focus, items) => ({ id, name, focus, items });
 
 // From the "Beginner Routine" article: push / pull / legs, 3 days a week, plus core.
 export const PROGRAMS = {
+  // Upper / lower: each muscle about twice a week, big lifts first, then the exercises with the best stretch and payoff.
   gym: {
-    name: 'Push / Pull / Legs',
+    name: 'Upper / Lower',
     days: [
-      day('push', 'Push', 'Chest, shoulders and triceps', [['bench-press', 4, '8-10'], ['overhead-press', 3, '10-12'], ['lateral-raise', 3, '12-15'], ['triceps-pushdown', 3, '10-12'], ['plank', 3, '30-45']]),
-      day('pull', 'Pull', 'Back and biceps', [['lat-pulldown', 4, '8-10'], ['barbell-row', 3, '10-12'], ['barbell-curl', 3, '10-12'], ['hammer-curl', 2, '12']]),
-      day('legs', 'Legs', 'Full legs', [['squat', 4, '8-10'], ['romanian-deadlift', 3, '10-12'], ['hip-thrust', 3, '10-12'], ['leg-press', 3, '12'], ['calf-raise', 3, '15']]),
+      day('upper-a', 'Upper A', 'Chest, back and arms', [['bench-press', 4, '6-10'], ['lat-pulldown', 4, '8-12'], ['incline-db-press', 3, '8-12'], ['cable-row', 3, '8-12'], ['lateral-raise', 3, '12-20'], ['oh-triceps-extension', 2, '10-12'], ['barbell-curl', 2, '8-12']]),
+      day('lower-a', 'Lower A', 'Quads, hamstrings and calves', [['squat', 4, '6-10'], ['romanian-deadlift', 3, '8-10'], ['leg-press', 3, '10-12'], ['leg-curl', 3, '10-15'], ['calf-raise', 3, '10-15'], ['hanging-leg-raise', 3, '8-15']]),
+      day('upper-b', 'Upper B', 'Shoulders, upper back and arms', [['incline-bench-press', 4, '6-10'], ['pull-up', 3, '5-10'], ['overhead-press', 3, '8-10'], ['db-row', 3, '8-12'], ['lateral-raise', 3, '12-20'], ['preacher-curl', 2, '10-12'], ['skull-crusher', 2, '10-12']]),
+      day('lower-b', 'Lower B', 'Glutes, single leg and abs', [['deadlift', 3, '4-6'], ['bulgarian-split-squat', 3, '8-12'], ['hip-thrust', 3, '8-12'], ['leg-extension', 2, '12-15'], ['calf-raise', 3, '12-20'], ['ab-wheel', 3, '6-12']]),
     ],
   },
   dumbbells: {
-    name: 'Push / Pull / Legs with dumbbells',
+    name: 'Upper / Lower with dumbbells',
     days: [
-      day('push', 'Push', 'Chest, shoulders and triceps', [['db-bench-press', 4, '8-10'], ['db-shoulder-press', 3, '10-12'], ['lateral-raise', 3, '12-15'], ['oh-triceps-extension', 3, '10-12'], ['plank', 3, '30-45']]),
-      day('pull', 'Pull', 'Back and biceps', [['db-row', 4, '8-10'], ['rear-delt-fly', 3, '12-15'], ['db-curl', 3, '10-12'], ['hammer-curl', 2, '12']]),
-      day('legs', 'Legs', 'Full legs', [['goblet-squat', 4, '8-12'], ['db-rdl', 3, '10-12'], ['lunge', 3, '10'], ['calf-raise', 3, '15']]),
+      day('upper-a', 'Upper A', 'Chest, back and arms', [['db-bench-press', 4, '8-12'], ['db-row', 4, '8-12'], ['arnold-press', 3, '8-12'], ['lateral-raise', 3, '12-20'], ['db-curl', 2, '10-12'], ['oh-triceps-extension', 2, '10-12']]),
+      day('lower-a', 'Lower A', 'Quads, hamstrings and calves', [['goblet-squat', 4, '8-12'], ['db-rdl', 3, '8-12'], ['bulgarian-split-squat', 3, '8-12'], ['calf-raise', 3, '12-20'], ['crunch', 3, '12-20']]),
+      day('upper-b', 'Upper B', 'Shoulders, upper back and arms', [['incline-db-press', 4, '8-12'], ['db-row', 3, '8-12'], ['db-fly', 3, '12-15'], ['rear-delt-fly', 3, '12-20'], ['hammer-curl', 2, '10-12'], ['oh-triceps-extension', 2, '10-12']]),
+      day('lower-b', 'Lower B', 'Glutes, single leg and abs', [['db-rdl', 3, '8-12'], ['lunge', 3, '10'], ['goblet-squat', 3, '10-12'], ['calf-raise', 3, '12-20'], ['leg-raise', 3, '10-15']]),
     ],
   },
   bodyweight: {
@@ -344,7 +485,7 @@ export const STANDARDS = {
   'lat-pulldown': ['back', 'ratio', 0.5, 1.3],
   'barbell-row': ['back', 'ratio', 0.5, 1.5],
   'db-row': ['back', 'ratio', 0.2, 0.75],
-  'inverted-row': ['back', 'reps', 3, 25],
+  'inverted-row': ['back', 'reps', 5, 30],
   'squat': ['legs', 'ratio', 0.75, 2.5],
   'goblet-squat': ['legs', 'ratio', 0.2, 0.8],
   'leg-press': ['legs', 'ratio', 1.0, 4.0],
@@ -367,16 +508,39 @@ export const STANDARDS = {
   'superman': ['back', 'reps', 8, 40],
   'diamond-push-up': ['arms', 'reps', 3, 40],
   'backpack-curl': ['arms', 'ratio', 0.08, 0.45],
+  'incline-bench-press': ['chest', 'ratio', 0.4, 1.4],
+  'incline-db-press': ['chest', 'ratio', 0.15, 0.6],
+  'db-fly': ['chest', 'ratio', 0.06, 0.35],
+  'cable-fly': ['chest', 'ratio', 0.06, 0.4],
+  'parallel-dip': ['chest', 'reps', 3, 30],
+  'pull-up': ['back', 'reps', 1, 20],
+  'cable-row': ['back', 'ratio', 0.4, 1.2],
+  'deadlift': ['hinge', 'ratio', 1.0, 2.75],
+  'face-pull': ['shoulders', 'ratio', 0.1, 0.5],
+  'shrug': ['back', 'ratio', 0.2, 0.8],
+  'cable-lateral-raise': ['shoulders', 'ratio', 0.03, 0.2],
+  'arnold-press': ['shoulders', 'ratio', 0.12, 0.45],
+  'preacher-curl': ['arms', 'ratio', 0.15, 0.6],
+  'cable-curl': ['arms', 'ratio', 0.15, 0.6],
+  'skull-crusher': ['arms', 'ratio', 0.15, 0.6],
+  'close-grip-bench': ['arms', 'ratio', 0.4, 1.4],
+  'front-squat': ['legs', 'ratio', 0.6, 2.0],
+  'bulgarian-split-squat': ['legs', 'ratio', 0.1, 0.6],
+  'leg-extension': ['legs', 'ratio', 0.3, 1.2],
+  'leg-curl': ['hinge', 'ratio', 0.2, 0.9],
+  'hack-squat': ['legs', 'ratio', 0.6, 2.5],
+  'hanging-leg-raise': ['core', 'reps', 3, 25],
+  'ab-wheel': ['core', 'reps', 3, 25],
 };
 
 // Where each exercise can be done. Gym covers everything; dumbbells cover dumbbell and bodyweight.
 const DUMBBELL = ['db-bench-press', 'db-shoulder-press', 'db-row', 'db-curl', 'db-rdl', 'lateral-raise', 'hammer-curl',
-  'rear-delt-fly', 'goblet-squat', 'lunge', 'oh-triceps-extension'];
+  'rear-delt-fly', 'goblet-squat', 'lunge', 'oh-triceps-extension', 'incline-db-press', 'db-fly', 'shrug', 'arnold-press', 'bulgarian-split-squat'];
 const HOME_ITEMS = ['backpack-curl']; // household objects, no equipment needed
 export const placeOf = (id) => (EXERCISES[id].bw || HOME_ITEMS.includes(id) ? 'bodyweight' : DUMBBELL.includes(id) ? 'dumbbells' : 'gym');
 export const PLACE_OK = { gym: ['gym', 'dumbbells', 'bodyweight'], dumbbells: ['dumbbells', 'bodyweight'], bodyweight: ['bodyweight'] };
 // Big multi-joint lifts go first in a session.
 export const COMPOUND = ['bench-press', 'db-bench-press', 'push-up', 'overhead-press', 'db-shoulder-press', 'pike-push-up',
   'lat-pulldown', 'barbell-row', 'db-row', 'inverted-row', 'squat', 'goblet-squat', 'leg-press', 'bw-squat', 'split-squat',
-  'lunge', 'romanian-deadlift', 'db-rdl', 'hip-thrust', 'chair-dip'];
+  'lunge', 'romanian-deadlift', 'db-rdl', 'hip-thrust', 'chair-dip', 'incline-bench-press', 'incline-db-press', 'parallel-dip', 'pull-up', 'cable-row', 'deadlift', 'arnold-press', 'close-grip-bench', 'front-squat', 'bulgarian-split-squat', 'hack-squat'];
 export const GROUPS = ['chest', 'shoulders', 'back', 'legs', 'hinge', 'arms', 'core'];
