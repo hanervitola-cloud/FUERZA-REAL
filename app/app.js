@@ -60,7 +60,7 @@ const I = {
   trophy: '<svg viewBox="0 0 24 24"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1.5A3.5 3.5 0 0 0 7.5 11M17 6h3v1.5a3.5 3.5 0 0 1-3.5 3.5M12 14v4M8 21h8M9.5 18h5"/></svg>',
   gloves: '<svg viewBox="0 0 24 24"><path d="M7 10.5V8.2C7 5.3 9.2 3.5 12 3.5h1.3c2.9 0 4.9 2.1 4.9 5v3.6c0 2.4-1.5 4.2-3.8 4.7V20H8.6v-3.4C7.6 15.9 7 14.8 7 13.5z"/><path d="M7 11h3.6a1.9 1.9 0 0 1 0 3.8H8.8"/><path d="M8.6 18h5.8"/></svg>',
 };
-const LOGO = '<svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="#16181B" stroke="#C8443B" stroke-width="5"/><polygon points="60,22 93,41 93,79 60,98 27,79 27,41" fill="none" stroke="#C8443B" stroke-width="3"/><text x="60" y="74" text-anchor="middle" font-family="Bebas Neue, Arial Black, sans-serif" font-size="40" fill="#F4EEE4">ES</text></svg>';
+const LOGO = '<img class="logo-img" src="icons/logo-512.png" alt="Earned Strength">';
 
 // ---------- State ----------
 const blank = () => ({ v: 1, lang: null, profile: null, workouts: [], active: null, quiz: { idx: 0, right: 0, total: 0 }, daily: {}, rest: 90 });
