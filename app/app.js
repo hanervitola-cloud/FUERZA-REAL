@@ -347,9 +347,10 @@ function renderOnboard() {
   const body = {
     welcome: `${AVATAR_READY ? `<div class="ob-char"><img src="${avatarSrc(TOP)}" alt=""></div>` : `<div class="ob-hero">${LOGO}</div>`}<h1>${t('obWelcomeTitle')}</h1><p>${t('obWelcomeText')}</p>
       <ul class="ob-points">
-        <li>${I.train}<span><b>${t('obP1')}</b><br><span class="muted small">${t('obP1t')}</span></span></li>
-        <li>${I.rank}<span><b>${t('obP2')}</b><br><span class="muted small">${t('obP2t')}</span></span></li>
-        <li>${I.learn}<span><b>${t('obP3')}</b><br><span class="muted small">${t('obP3t')}</span></span></li>
+        <li><span class="obp-ic">${I.camera}</span><span><b>${t('obN1')}</b><br><span class="muted small">${t('obN1t')}</span></span></li>
+        <li><span class="obp-ic">${I.train}</span><span><b>${t('obN2')}</b><br><span class="muted small">${t('obN2t')}</span></span></li>
+        <li><span class="obp-ic">${I.chat}</span><span><b>${t('obN3')}</b><br><span class="muted small">${t('obN3t')}</span></span></li>
+        <li><span class="obp-ic">${I.trophy}</span><span><b>${t('obN4')}</b><br><span class="muted small">${t('obN4t')}</span></span></li>
       </ul>
       <p class="ob-note">${t('healthNote')}</p>`,
     name: `<h1>${t('obNameTitle')}</h1><p>${t('obNameText')}</p>
@@ -378,13 +379,15 @@ function renderOnboard() {
     why: `<h1>${t('obWhyTitle')}</h1><p>${t('obWhyText')}</p><div class="opts">${WHY.map((w) => opt('why', w, t('why_' + w))).join('')}</div>`,
     building: `<div class="ob-build"><div class="ob-ring"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" class="ring-bg"/><circle cx="32" cy="32" r="27" class="ring-fg" id="obRing" stroke-dasharray="169.6" stroke-dashoffset="169.6"/></svg><b id="obPct">0%</b></div>
       <h1>${t('obBuildTitle')}</h1><ul class="ob-checks">${['obB1', 'obB2', 'obB3', 'obB4'].map((k) => `<li>${I.check}<span>${t(k)}</span></li>`).join('')}</ul></div>`,
-    ready: step === 'ready' ? planHtml(d) : '',
+    ready: step === 'ready' ? planHtml(d) + `<div class="ob-start"><span class="eyebrow">${t('obStartT')}</span><ol>${['obS1', 'obS2', 'obS3'].map((k, i) => `<li><span>${i + 1}</span>${t(k)}</li>`).join('')}</ol></div>` : '',
   }[step];
   const valid = { welcome: true, name: d.name.length >= 2, sex: !!d.sex, goal: !!d.goal, focus: d.focus.length > 0, level: !!d.level, days: !!d.days, time: !!d.minutes, equipment: !!d.equipment, body: bodyOk(d), target: true, why: !!d.why, building: false, ready: true }[step];
   const label = step === 'welcome' ? t('getStarted') : step === 'ready' ? t('letsGo') : t('continue');
+  const moved = ob.shown !== ob.step ? (ob.shown == null || ob.step > ob.shown ? ' fwd' : ' bwd') : ' same';
+  ob.shown = ob.step;
   el.innerHTML = `
     <div class="ob-bar"><i style="width:${Math.round((ob.step / (OB_STEPS.length - 1)) * 100)}%"></i></div>
-    <div class="ob-body">${body}</div>
+    <div class="ob-body${moved}">${body}</div>
     ${step === 'building' ? '' : `<div class="ob-foot" ${ob.step === 0 ? 'style="grid-template-columns:1fr"' : ''}>
       ${ob.step > 0 ? `<button class="btn" type="button" data-ob="back" aria-label="${t('back')}">${I.back}</button>` : ''}
       <button class="btn btn-primary" type="button" data-ob="next" ${valid ? '' : 'disabled'}>${label}</button>
@@ -441,6 +444,8 @@ document.getElementById('onboard').addEventListener('click', (e) => {
       $('#onboard').hidden = true;
       go('home');
       toast(t('welcome'));
+      confetti(90);
+      vibrate([40, 30, 80]);
       return;
     }
     ob.step++;

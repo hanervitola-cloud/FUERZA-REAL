@@ -1397,3 +1397,22 @@ button,.card-tap,.chip,.tab,.lib-item{-webkit-user-select:none;user-select:none;
 .wm-dots i.done{background:var(--ok)}
 .wm-dots i.cur{background:var(--red);transform:scale(1.3)}
 .wm-next{color:var(--muted);font-size:13px;margin-top:4px}
+
+/* First time: steps slide in, richer welcome, how to start */
+.ob-body.same{animation:none}
+@media (prefers-reduced-motion:no-preference){
+  .ob-body.fwd{animation:obFwd .38s cubic-bezier(.2,.8,.2,1) both}
+  .ob-body.bwd{animation:obBwd .38s cubic-bezier(.2,.8,.2,1) both}
+  .ob-points li{animation:cardIn .5s cubic-bezier(.2,.8,.2,1) both}
+  .ob-points li:nth-child(2){animation-delay:.08s}.ob-points li:nth-child(3){animation-delay:.16s}.ob-points li:nth-child(4){animation-delay:.24s}
+  .ob-char img{animation:obChar .9s cubic-bezier(.2,.8,.2,1) both}
+}
+@keyframes obFwd{from{opacity:0;transform:translateX(34px)}to{opacity:1;transform:none}}
+@keyframes obBwd{from{opacity:0;transform:translateX(-34px)}to{opacity:1;transform:none}}
+@keyframes obChar{from{opacity:0;transform:translateY(24px) scale(.94)}to{opacity:1;transform:none}}
+.obp-ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto;background:rgba(226,70,59,.14);border:.5px solid rgba(226,70,59,.35)}
+.ob-points .obp-ic svg{margin:0;width:20px;height:20px}
+.ob-start{margin-top:18px;padding:16px;border-radius:18px;background:radial-gradient(240px 140px at 100% 0%,rgba(232,184,74,.18),transparent 70%),rgba(255,255,255,.04);border:.5px solid rgba(232,184,74,.3)}
+.ob-start ol{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:10px}
+.ob-start li{display:flex;gap:10px;align-items:center;font-size:14.5px;line-height:1.35}
+.ob-start li span{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;background:#E8B84A;color:#1a1a1a;font-weight:800;font-size:13px}
