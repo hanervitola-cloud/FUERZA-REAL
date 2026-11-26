@@ -1363,3 +1363,37 @@ button,.card-tap,.chip,.tab,.lib-item{-webkit-user-select:none;user-select:none;
 .fd-cheer.on span{color:#E8B84A}
 .fd-cheer:active{transform:scale(.9)}
 .fd-cheer:disabled{opacity:.85}
+
+/* Achievements with progress */
+.bdg small{font-size:10.5px;color:var(--muted);font-weight:700}
+.bdg-sum{display:flex;align-items:center;gap:14px}
+.bdg-sum>b{font-family:var(--display);font-weight:400;font-size:54px;line-height:.9;color:#E8B84A}
+.bdg-sum small{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+.badges{row-gap:14px}
+
+/* Guided warm-up */
+.warm-btn{margin-top:8px;background:rgba(232,184,74,.1);border-color:rgba(232,184,74,.35);color:#F2D08A}
+.warm-btn svg{width:17px;height:17px;stroke:#E8B84A;fill:none;stroke-width:2}
+.wm-list{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:8px}
+.wm-list li{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:14px;background:rgba(255,255,255,.04)}
+.wm-list b{display:block;font-size:14.5px}
+.wm-list small{display:block;font-size:12px;color:var(--muted)}
+.wm-list em{font-style:normal;font-size:12px;font-weight:800;color:#E8B84A}
+.wm-th{width:62px;height:46px;flex:0 0 auto;display:grid;place-items:center;border-radius:10px;background:rgba(226,70,59,.1);overflow:hidden}
+.wm-th .move-anim{width:100%;height:100%;aspect-ratio:auto}
+.wm-th .move-anim img{object-fit:contain}
+.wm-emoji{font-size:24px;line-height:1}
+.wm-run{flex:1;display:grid;justify-items:center;align-content:center;gap:8px;text-align:center}
+.wm-art{width:100%;max-width:340px;height:230px;display:grid;place-items:center;border-radius:22px;background:radial-gradient(220px 160px at 50% 70%,rgba(226,70,59,.25),transparent 70%)}
+.wm-art .move-anim{width:100%;height:100%;aspect-ratio:auto}
+.wm-art .move-anim img{object-fit:contain}
+.wm-art .wm-emoji{font-size:110px}
+.wm-name{font-size:26px;font-weight:800;letter-spacing:-.02em}
+.wm-cue{font-size:14px;color:var(--muted)}
+.wm-run .f-time{font-size:72px}
+.wm-run .f-bar{width:min(320px,80vw)}
+.wm-dots{display:flex;gap:6px;margin-top:6px}
+.wm-dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.18)}
+.wm-dots i.done{background:var(--ok)}
+.wm-dots i.cur{background:var(--red);transform:scale(1.3)}
+.wm-next{color:var(--muted);font-size:13px;margin-top:4px}

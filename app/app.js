@@ -544,6 +544,7 @@ const VIEWS = {
         <p class="muted small">${esc(dayFocus(d))} · ${t('aboutMin', { n: d.items.length * 9 })}</p></div>
         ${muscleMap(dayMuscles(d), 'mmap-today')}</div>
         <button class="btn btn-primary btn-block" data-act="start" data-v="${d.id}">${I.play} ${t('startWorkout')}</button>
+        <button class="btn btn-block warm-btn" data-act="warm" data-v="${d.id}">${I.flame}${t('wmBtn')}</button>
         <button class="link other-btn" data-act="builder">${t('otherWorkout')}</button>
       </section>`;
     return `
@@ -607,7 +608,7 @@ const VIEWS = {
       <section class="card list-card">${hist.length ? hist.map((w) => `<button class="lib-item" data-act="hist" data-v="${esc(w.id)}"><span class="grow"><b>${esc(histName(w))}</b><small>${fmtDate(w.date)} · ${Math.max(1, Math.round(w.dur / 60))} min · ${w.rounds ? t('nRounds', { n: w.rounds.n }) : t('nSets', { n: w.exercises.reduce((a, e) => a + e.sets.length, 0) })}</small></span>${I.chev}</button>`).join('') : `<p class="hist muted">${t('noHistory')}</p>`}</section>`;
     } else {
       const tool = (act, icon, title, sub, v) => `<button class="card card-tap tool" data-act="${act}" ${v ? `data-v="${v}"` : ''}>${icon}<b>${t(title)}</b><span>${t(sub)}</span></button>`;
-      body = `<div class="tools">${tool('rest', I.timer, 'restTimer', 'restTimerSub')}${tool('plates', I.plates, 'platesTool', 'platesSub')}${tool('orm', I.gauge, 'ormTitle', 'ormSub')}${tool('calc', I.calc, 'calcTitle', 'calcSub')}${tool('fight', I.bell, 'roundsBtn', 'roundsTool', 'rounds')}${tool('fight', I.gloves, 'shadowBtn', 'shadowTool', 'shadow')}</div>`;
+      body = `<div class="tools">${tool('rest', I.timer, 'restTimer', 'restTimerSub')}${tool('plates', I.plates, 'platesTool', 'platesSub')}${tool('orm', I.gauge, 'ormTitle', 'ormSub')}${tool('calc', I.calc, 'calcTitle', 'calcSub')}${tool('fight', I.bell, 'roundsBtn', 'roundsTool', 'rounds')}${tool('fight', I.gloves, 'shadowBtn', 'shadowTool', 'shadow')}${tool('warm', I.flame, 'wmTitle', 'wmTool')}</div>`;
     }
     return `<header class="top"><div><h1>${t('tabTrain')}</h1></div></header>
       <div class="chips seg">${tabs.map(([id, l]) => `<button class="chip" data-act="train-tab" data-v="${id}" aria-pressed="${trainTab === id}">${t(l)}</button>`).join('')}</div>${body}`;
@@ -622,8 +623,7 @@ const VIEWS = {
     if (progTab === 'awards') {
       const r = rankIndex(computeScore().total);
       return seg + `
-      <div class="section-title"><span class="eyebrow">${t('badges')}</span><span class="muted small">${badges().filter((b) => b.on).length} / ${badges().length}</span></div>
-      <div class="badges">${badges().map((b) => `<div class="bdg ${b.on ? 'on' : ''}"><span>${b.icon}</span><b>${t(b.key)}</b></div>`).join('')}</div>
+      ${badgesHtml()}
       <details class="card fold">
         <summary><span class="eyebrow">${t('howRank')}</span>${I.chev}</summary>
         <ul class="ex-list" style="color:var(--text);margin-bottom:4px">${['howRank1', 'howRank2', 'howRank5', 'howRank3', 'howRank4'].map((k) => `<li><span>${t(k)}</span></li>`).join('')}</ul>
@@ -820,7 +820,7 @@ async function acctAction(k) {
     openSheet(`<span class="eyebrow">${t('friendsTitle')}</span><h2 style="margin-top:6px">${t('friendAdd')}</h2><p class="muted small" style="margin:6px 0 12px">${t('friendAddP')}</p>
       <input class="vs-in vs-room-in" id="friendIn" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC123"><button class="btn btn-primary btn-block" style="margin-top:12px" data-act="friend-add-go">${t('friendAddGo')}</button>`);
   } else if (k === 'friend-add-go') {
-    try { const f = await net.addFriend($('#friendIn').value); closeSheet(); toast(t('friendAdded', { name: f.name })); }
+    try { const f = await net.addFriend($('#friendIn').value); closeSheet(); toast(t('friendAdded', { name: f.name })); grow('friend', 1, true); }
     catch (e) { toast(t(e && e.status === 404 ? 'friendNotFound' : e && e.status === 400 ? 'friendSelf' : 'vsNeedNet')); }
   } else if (k === 'friends') {
     openSheet(`<span class="eyebrow">${t('acctTitle')}</span><h2 style="margin-top:6px">${t('friendsTitle')}</h2><div id="friendList" class="vs-rank"><p class="muted small">${t('vsRankLoading')}</p></div>`);
@@ -1113,6 +1113,8 @@ function finishWorkout() {
   const xp0 = xpTotal();
   grow('workout', 1, true);
   if (prs.length) grow('pr', prs.length, true);
+  const startH = new Date(w.date).getHours();
+  if (startH < 8) grow('early', 1, true); else if (startH >= 21) grow('night', 1, true);
   const xpGain = xpTotal() - xp0, lvNow = levelOf(xpTotal());
   shareEvent('workout', { w: histName(w), sets: w.exercises.reduce((sum, e) => sum + e.sets.length, 0) });
   for (const ex of prs.slice(0, 3)) shareEvent('pr', { ex: ex.id });
@@ -1141,6 +1143,7 @@ function finishWorkout() {
     <div class="split" style="margin-top:18px"><button class="btn" data-act="share-workout">${I.share}${t('share')}</button><button class="btn btn-primary" data-act="close-sheet">${t('done')}</button></div>`);
   confetti(ra > rb ? 90 : 45);
   if (ra > rb) vibrate([60, 40, 60, 40, 120]);
+  checkBadges();
 }
 
 // ---------- Muscle map (front and back) ----------
@@ -2337,16 +2340,45 @@ function confetti(n = 60) {
 }
 
 // ---------- Achievements ----------
+// Achievements in five groups. Each has a goal and shows how close you are.
+const cnt = (k) => (S.cnt && S.cnt[k]) || 0;
+function totalKg() { let kg = 0; for (const w of S.workouts) if (w.exercises) kg += workVolume(w).kg || 0; return kg; }
 function badges() {
-  const sc = computeScore(), n = S.workouts.length, st = streakWeeks();
+  const sc = computeScore(), n = S.workouts.filter((w) => w.exercises && w.exercises.length).length, st = streakWeeks();
   const bw = (S.profile && S.profile.bw) || 0;
-  const benchBw = bw > 0 && S.workouts.some((w) => w.exercises.some((e) => e.id === 'bench-press' && e.sets.some((x) => e1rm(x.w, x.r) >= bw)));
-  const B = (key, on, icon) => ({ key, on, icon });
+  const benchBw = bw > 0 && S.workouts.some((w) => (w.exercises || []).some((e) => e.id === 'bench-press' && e.sets.some((x) => e1rm(x.w, x.r) >= bw)));
+  const lv = levelOf(xpTotal()).L, kg = Math.round(totalKg()), rounds = S.workouts.filter((w) => w.rounds).length;
+  const lessons = Object.keys(S.lessonsDone || {}).length, recs = Object.keys((S.vs && S.vs.best) || {}).length;
+  const B = (cat, key, cur, goal, icon) => ({ cat, key, cur: Math.min(cur, goal), goal, on: cur >= goal, icon });
   return [
-    B('bFirst', n >= 1, I.play), B('bTen', n >= 10, I.train), B('bFifty', n >= 50, I.train),
-    B('bStreak3', st >= 3, I.flame), B('bIron', sc.total >= RANKS[1].at, I.rank), B('bForged', sc.total >= RANKS[3].at, I.rank),
-    B('bBench', benchBw, I.check), B('bLimit', sc.total >= RANKS[5].at, I.rank),
+    B('train', 'bFirst', n, 1, I.play), B('train', 'bTen', n, 10, I.train), B('train', 'bFifty', n, 50, I.train), B('train', 'bHundred', n, 100, I.train),
+    B('train', 'bEarly', cnt('early'), 1, I.timer), B('train', 'bNight', cnt('night'), 1, I.timer), B('train', 'bTons', kg, 10000, I.plates), B('train', 'bTons2', kg, 100000, I.plates),
+    B('strength', 'bIron', sc.total, RANKS[1].at, I.rank), B('strength', 'bForged', sc.total, RANKS[3].at, I.rank), B('strength', 'bLimit', sc.total, RANKS[5].at, I.rank),
+    B('strength', 'bBench', benchBw ? 1 : 0, 1, I.check), B('strength', 'bPr5', cnt('pr'), 5, I.trophy), B('strength', 'bPr25', cnt('pr'), 25, I.trophy),
+    B('compete', 'bCam1', cnt('camera'), 1, I.camera), B('compete', 'bCam10', cnt('camera'), 10, I.camera), B('compete', 'bGoal', cnt('goal'), 1, I.target), B('compete', 'bGoal10', cnt('goal'), 10, I.target),
+    B('compete', 'bWin', cnt('win'), 1, I.trophy), B('compete', 'bWin10', cnt('win'), 10, I.trophy), B('compete', 'bVariety', recs, 5, I.camera), B('compete', 'bDaily7', cnt('daily'), 7, I.target),
+    B('habit', 'bStreak3', st, 3, I.flame), B('habit', 'bStreak8', st, 8, I.flame), B('habit', 'bLvl5', lv, 5, I.up), B('habit', 'bLvl10', lv, 10, I.up), B('habit', 'bLvl20', lv, 20, I.up),
+    B('habit', 'bMission10', cnt('mission'), 10, I.check), B('habit', 'bProtein7', cnt('protein'), 7, I.flame), B('habit', 'bWater7', cnt('water'), 7, I.flame),
+    B('habit', 'bPhoto', cnt('photo'), 1, I.camera), B('habit', 'bPhoto5', cnt('photo'), 5, I.camera),
+    B('friends', 'bFriend', cnt('friend'), 1, I.me), B('friends', 'bFriend5', cnt('friend'), 5, I.me), B('friends', 'bLesson10', lessons, 10, I.gloves), B('friends', 'bRounds5', rounds, 5, I.bell),
   ];
+}
+// New achievements unlocked since last time: celebrate them once.
+function checkBadges() {
+  const list = badges(), on = list.filter((b) => b.on).map((b) => b.key);
+  if (!S.badgesOn) { S.badgesOn = on; save(); return; }
+  const fresh = on.filter((k) => !S.badgesOn.includes(k));
+  if (!fresh.length) return;
+  S.badgesOn = [...S.badgesOn, ...fresh];
+  save();
+  setTimeout(() => { toast(t('badgeNew', { b: t(fresh[0]) })); confetti(60); vibrate([40, 30, 80]); }, 1600);
+}
+function badgesHtml() {
+  const list = badges(), done = list.filter((b) => b.on).length;
+  const fmt = (b) => (b.goal >= 1000 ? `${fmtN(toDisp(b.cur))}/${fmtN(toDisp(b.goal))} ${unit()}` : `${b.cur}/${b.goal}`);
+  return `<section class="card bdg-sum"><b>${done}</b><span class="grow"><small>${t('badgesDone', { n: done, total: list.length })}</small><span class="bar"><i style="width:${Math.round((done / list.length) * 100)}%"></i></span></span></section>
+    ${['train', 'strength', 'compete', 'habit', 'friends'].map((cat) => `<div class="section-title"><span class="eyebrow">${t('bcat_' + cat)}</span></div>
+      <div class="badges">${list.filter((b) => b.cat === cat).map((b) => `<div class="bdg ${b.on ? 'on' : ''}"><span>${b.icon}</span><b>${t(b.key)}</b>${b.on ? '' : `<small>${fmt(b)}</small>`}</div>`).join('')}</div>`).join('')}`;
 }
 
 // ---------- Character images on the Rank tab ----------
@@ -2446,6 +2478,7 @@ document.addEventListener('click', (e) => {
   if (k === 'go') { if (v === 'sports') sportSel = null; if (v === 'home') curQuote = null; go(v); }
   else if (k === 'coach-ask') coachAsk(v);
   else if (k === 'missions') showMissions();
+  else if (k === 'warm') openWarm(v);
   else if (k === 'fr-cheer') { b.disabled = true; b.classList.add('on'); vibrate(15); net.cheer(v).then((n) => { const s = b.querySelector('span'); if (s) s.textContent = n; }).catch(() => { b.disabled = false; b.classList.remove('on'); toast(t('vsNeedNet')); }); }
   else if (k === 'food-add') addFood(+v);
   else if (k === 'food-pick') { const f = FOODS.find((x) => x[0] === v); if (f) { addFood(f[1], v); toast(`+${f[1]} g · ${t('food_' + v)}`); } }
@@ -2676,9 +2709,131 @@ function loadDemo() {
   save();
 }
 
+// ---------- Guided warm-up: about 4 minutes, picked for what you train today ----------
+// [id, picture (character move) or null, emoji when there is no picture]
+const WARM_MOVES = {
+  jacks: [null, '⭐'], march: [null, '🚶'], arms: [null, '🔄'], hips: [null, '⭕'], legswing: [null, '🦵'],
+  squat: ['bw-squat'], pushup: ['push-up'], lunge: ['lunge'], bridge: ['glute-bridge'], superman: ['superman'], plank: ['plank'], calves: ['calf-raise'],
+};
+const WARM_PLANS = {
+  upper: ['march', 'jacks', 'arms', 'pushup', 'superman', 'plank', 'pushup', 'arms'],
+  lower: ['march', 'jacks', 'hips', 'legswing', 'squat', 'lunge', 'bridge', 'calves'],
+  full: ['jacks', 'arms', 'hips', 'squat', 'pushup', 'lunge', 'bridge', 'plank'],
+};
+const WARM_SECS = 30;
+const warm = { plan: [], i: 0, end: 0, left: 0, paused: false, iv: 0, kind: 'full', voice: true, dayId: '', lastBeep: 0 };
+function warmKind(dayId) { return /lower|legs/.test(dayId) ? 'lower' : /upper|push|pull/.test(dayId) ? 'upper' : 'full'; }
+function warmEl() {
+  let el = $('#warm');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'warm';
+    el.className = 'fight warm';
+    el.hidden = true;
+    document.body.appendChild(el);
+    el.addEventListener('click', onWarmClick);
+  }
+  return el;
+}
+function openWarm(dayId) {
+  const d = dayId || nextDay().id;
+  Object.assign(warm, { dayId: d, kind: warmKind(d), i: -1, paused: false });
+  warm.plan = WARM_PLANS[warm.kind];
+  warmEl().hidden = false;
+  document.body.style.overflow = 'hidden';
+  renderWarm();
+}
+function warmArt(id) {
+  const [pic, emoji] = WARM_MOVES[id];
+  const m = pic && moveId(pic);
+  return m ? `<div class="move-anim play"><img src="${movePath(m, 1)}" alt="" class="m1" style="animation-duration:2.4s"><img src="${movePath(m, 2)}" alt="" class="m2" style="animation-duration:2.4s"></div>` : `<span class="wm-emoji">${emoji}</span>`;
+}
+function renderWarm() {
+  const el = warmEl(), w = warm;
+  if (w.i < 0) {
+    el.innerHTML = `<div class="f-top"><button class="icon-btn" data-w="close" aria-label="${t('close')}">${I.close}</button></div>
+      <div class="f-body"><span class="eyebrow">${t('wmEyebrow')}</span><h1>${t('wmTitle')}</h1><p class="muted small">${t('wmSub_' + w.kind, { n: Math.round((w.plan.length * WARM_SECS) / 60) })}</p>
+        <ol class="wm-list">${w.plan.map((id) => `<li><span class="wm-th">${warmArt(id)}</span><span class="grow"><b>${t('wm_' + id)}</b><small>${t('wmc_' + id)}</small></span><em>${WARM_SECS} s</em></li>`).join('')}</ol>
+        <label class="f-voice"><input type="checkbox" data-w="voice" ${w.voice ? 'checked' : ''}>${t('fVoice')}</label></div>
+      <div class="f-foot"><button class="btn btn-primary btn-block" data-w="go">${I.play}${t('wmStart')}</button></div>`;
+    return;
+  }
+  if (w.i >= w.plan.length) {
+    el.innerHTML = `<div class="f-top"><button class="icon-btn" data-w="close" aria-label="${t('close')}">${I.close}</button></div>
+      <div class="f-body center"><div class="f-done-ic">${I.check}</div><h1>${t('wmDone')}</h1><p class="muted">${t('wmDoneSub')}</p><p class="ps-quote">“${esc(nextQuote())}”</p></div>
+      <div class="f-foot"><button class="btn btn-primary btn-block" data-w="start">${I.play}${t('startWorkout')}</button><button class="btn btn-block" data-w="close">${t('close')}</button></div>`;
+    return;
+  }
+  const id = w.plan[w.i], nx = w.plan[w.i + 1];
+  el.innerHTML = `<div class="f-top"><button class="icon-btn" data-w="close" aria-label="${t('close')}">${I.close}</button><span class="f-round">${t('wmStep', { n: w.i + 1, total: w.plan.length })}</span><button class="icon-btn" data-w="skip" aria-label="${t('wmSkip')}">${I.chev}</button></div>
+    <div class="wm-run"><div class="wm-art">${warmArt(id)}</div><b class="wm-name">${t('wm_' + id)}</b><small class="wm-cue">${t('wmc_' + id)}</small>
+      <div class="f-time" id="wmTime">0:${String(WARM_SECS).padStart(2, '0')}</div><div class="f-bar"><i id="wmBar"></i></div>
+      <div class="wm-dots">${w.plan.map((_, i) => `<i class="${i < w.i ? 'done' : i === w.i ? 'cur' : ''}"></i>`).join('')}</div>
+      ${nx ? `<small class="wm-next">${t('wmNext', { m: t('wm_' + nx) })}</small>` : ''}</div>
+    <div class="f-foot"><button class="btn btn-block" data-w="pause">${w.paused ? I.play + t('fResume') : I.pause + t('fPause')}</button></div>`;
+  tickWarm(true);
+}
+function warmStep(i) {
+  warm.i = i;
+  warm.lastBeep = 0;
+  if (i >= warm.plan.length) { warmFinish(); return; }
+  warm.end = Date.now() + WARM_SECS * 1000;
+  renderWarm();
+  if (warm.voice) say(t('wm_' + warm.plan[i]));
+  else toneAt(880, 0, 0.1, 0.2);
+}
+function tickWarm(force) {
+  const w = warm;
+  if (w.i < 0 || w.i >= w.plan.length) return;
+  if (w.paused && force !== true) return;
+  const left = w.paused ? w.left : Math.max(0, w.end - Date.now()), sec = Math.ceil(left / 1000);
+  const te = $('#wmTime'), be = $('#wmBar');
+  if (te) te.textContent = fmtSecs(sec);
+  if (be) be.style.width = `${(1 - left / (WARM_SECS * 1000)) * 100}%`;
+  if (w.paused) return;
+  if (sec <= 3 && sec > 0 && sec !== w.lastBeep) { w.lastBeep = sec; toneAt(660, 0, 0.08, 0.2); }
+  if (left <= 0) warmStep(w.i + 1);
+}
+function warmFinish() {
+  clearInterval(warm.iv);
+  warm.iv = 0;
+  try { if (warm.lock) warm.lock.release(); } catch (e) { /* released */ }
+  bell(2);
+  confetti(40);
+  grow('warmup', 1, true);
+  renderWarm();
+}
+function closeWarm() {
+  clearInterval(warm.iv);
+  warm.iv = 0;
+  try { if (warm.lock) warm.lock.release(); } catch (e) { /* released */ }
+  try { speechSynthesis.cancel(); } catch (e) { /* no voice */ }
+  warmEl().hidden = true;
+  document.body.style.overflow = '';
+}
+function onWarmClick(e) {
+  const b = e.target.closest('[data-w]');
+  if (!b) return;
+  const k = b.dataset.w, w = warm;
+  if (k === 'voice') { w.voice = b.checked; return; }
+  if (k === 'close') closeWarm();
+  else if (k === 'go') {
+    unlockAudio();
+    try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then((l) => { w.lock = l; }).catch(() => {}); } catch (x) { /* the screen may turn off */ }
+    clearInterval(w.iv);
+    w.iv = setInterval(tickWarm, 200);
+    warmStep(0);
+  } else if (k === 'skip') warmStep(w.i + 1);
+  else if (k === 'pause') {
+    w.paused = !w.paused;
+    if (w.paused) w.left = Math.max(0, w.end - Date.now()); else w.end = Date.now() + w.left;
+    renderWarm();
+  } else if (k === 'start') { closeWarm(); startWorkout(w.dayId); }
+}
+
 // ---------- Missions, XP and levels: small daily and weekly goals that bring you back ----------
 // Everything you do gives XP; three daily missions and three weekly missions give extra. Levels never go down.
-const XP_FOR = { workout: 50, pr: 25, camera: 20, goal: 25, lesson: 15, daily: 20, weigh: 10, coach: 5, protein: 15, water: 10, photo: 15 };
+const XP_FOR = { workout: 50, pr: 25, camera: 20, goal: 25, lesson: 15, daily: 20, weigh: 10, coach: 5, protein: 15, water: 10, photo: 15, win: 30, friend: 20, early: 10, night: 10, warmup: 10 };
 const XP_ONCE = new Set(['weigh', 'coach', 'protein', 'water']); // these give XP once a day
 const MIS_D = [['d-train', 'workout', 1, 40], ['d-daily', 'daily', 1, 25], ['d-camera', 'camera', 1, 30], ['d-lesson', 'lesson', 1, 20],
   ['d-protein', 'protein', 1, 25], ['d-water', 'water', 1, 20], ['d-coach', 'coach', 1, 15], ['d-weigh', 'weigh', 1, 15]];
@@ -2732,6 +2887,9 @@ function grow(ev, count = 1, quiet) {
     if (m.c >= need) { gain += def[3]; done.push(m.id); }
   }
   X.total += gain;
+  S.cnt = S.cnt || {};
+  S.cnt[ev] = (S.cnt[ev] || 0) + count;
+  if (done.length) S.cnt.mission = (S.cnt.mission || 0) + done.length;
   const wk = dayKey(weekStart(Date.now()));
   X.weeks[wk] = (X.weeks[wk] || 0) + gain;
   const ks = Object.keys(X.weeks).sort();
@@ -2742,6 +2900,7 @@ function grow(ev, count = 1, quiet) {
   if (after > before) { shareEvent('level', { n: after }); setTimeout(() => { toast(t('lvlUp', { n: after })); confetti(70); vibrate([50, 40, 90]); }, quiet ? 1200 : 0); }
   else if (done.length) { setTimeout(() => { toast(t('misDone', { m: misText(done[0]), xp: misDef(done[0])[3] })); confetti(35); }, quiet ? 1200 : 0); }
   else if (!quiet && gain) toast(`+${gain} XP`);
+  checkBadges();
   const mc = $('#misCard');
   if (mc) mc.outerHTML = missionsCard();
   const lp = $('#lvlPill');
@@ -3377,7 +3536,7 @@ function liveMaybeEnd() {
     const D = vsData();
     D.duels = [{ c: cam.c.id, at: Date.now(), live: true, res: live.rres.map((r) => ({ p: r.p, n: r.n })) }, ...D.duels].slice(0, 12);
     save();
-    if (live.rres[0].me && (!live.rres[1] || live.rres[1].n < me.n)) confetti(80);
+    if (live.rres[0].me && (!live.rres[1] || live.rres[1].n < me.n)) { confetti(80); grow('win', 1, true); }
   }
   renderCamHud();
 }
@@ -3769,6 +3928,8 @@ function camPodium() {
   cam.phase = 'podium';
   renderCamHud();
   confetti(80);
+  const top = [...cam.results].sort((x, y) => y.n - x.n);
+  if (top[0] === cam.results[0] && (!top[1] || top[1].n < top[0].n)) grow('win', 1, true);
 }
 function closeCam() {
   cam.phase = 'off';
@@ -3887,6 +4048,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.se
 if (S.acct) net.setAccount(S.acct);
 window.addEventListener('es-auth-lost', () => { S.acct = null; net.setAccount(null); save(); if (['me', 'friends'].includes(current)) render(); });
 setTimeout(autoBackup, 4000);
+if (S.profile) setTimeout(checkBadges, 2500);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') autoBackup(); });
 runSplash();
 if (!S.profile) showOnboard();
