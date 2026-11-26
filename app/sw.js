@@ -4,7 +4,7 @@
 const CODE = 'es-code-v1';
 const MEDIA = 'es-media-v1';
 const SHELL = ['./', 'index.html', 'app.css', 'app.js', 'data.js', 'i18n.js', 'combat.js', 'figures.js', 'bodymap.js',
-  'moves.js', 'plan.js', 'quotes.js', 'coach.js', 'repcount.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/logo-512.png'];
+  'moves.js', 'plan.js', 'quotes.js', 'coach.js', 'repcount.js', 'net.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/logo-512.png'];
 // Outside files the app uses: fonts, the pose model and its code, and the live-room library.
 const CDN = ['fonts.googleapis.com', 'fonts.gstatic.com', 'cdn.jsdelivr.net', 'storage.googleapis.com'];
 
