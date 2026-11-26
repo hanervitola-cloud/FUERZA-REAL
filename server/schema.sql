@@ -40,3 +40,25 @@ CREATE TABLE IF NOT EXISTS usage (
   n INTEGER NOT NULL,
   PRIMARY KEY (who, day, kind)
 );
+-- What friends see: workouts, records, goals and levels (kept 30 days).
+CREATE TABLE IF NOT EXISTS events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  data TEXT NOT NULL,
+  at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS events_by_user ON events (user_id, at DESC);
+-- "Strength!" reactions from friends.
+CREATE TABLE IF NOT EXISTS cheers (
+  event_id INTEGER NOT NULL,
+  user_id TEXT NOT NULL,
+  PRIMARY KEY (event_id, user_id)
+);
+-- XP earned each week, for the weekly league with friends.
+CREATE TABLE IF NOT EXISTS xpweek (
+  user_id TEXT NOT NULL,
+  week INTEGER NOT NULL,
+  xp INTEGER NOT NULL,
+  PRIMARY KEY (user_id, week)
+);

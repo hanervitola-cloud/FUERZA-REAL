@@ -1337,3 +1337,29 @@ button,.card-tap,.chip,.tab,.lib-item{-webkit-user-select:none;user-select:none;
 .section-title .eyebrow{font-size:12.5px;letter-spacing:.08em;color:var(--text);opacity:.8}
 /* Toasts float with a little bounce. */
 .toast{border-radius:16px;box-shadow:0 12px 30px rgba(0,0,0,.45)}
+
+/* Friends: league and activity */
+.fr-pad{padding:14px 16px;margin:0}
+.fr-invite{display:flex;align-items:center;gap:10px}
+.fr-invite small{display:block;font-size:12px;color:var(--muted)}
+.fr-invite b{font-family:var(--display);font-weight:400;font-size:30px;letter-spacing:.14em;line-height:1}
+.fr-empty{display:grid;justify-items:center;text-align:center;gap:8px}
+.fr-big svg{width:46px;height:46px;stroke:#E8B84A;fill:none;stroke-width:1.6}
+.lg-row{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:.5px solid var(--border)}
+.lg-row:last-child{border-bottom:0}
+.lg-row.me{background:rgba(226,70,59,.12)}
+.lg-pos{width:28px;text-align:center;font-weight:800;font-size:16px}
+.lg-row b{font-family:var(--display);font-weight:400;font-size:26px;line-height:1}
+.lg-row small{font-size:11px;color:var(--muted)}
+.fd-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:.5px solid var(--border)}
+.fd-row:last-child{border-bottom:0}
+.fd-ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto;background:rgba(226,70,59,.14)}
+.fd-ic svg{width:18px;height:18px;stroke:var(--red-2);fill:none;stroke-width:2}
+.fd-txt{display:block;font-size:14px;line-height:1.35}
+.fd-row small{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
+.fd-cheer{display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:99px;background:rgba(255,255,255,.06);border:.5px solid var(--border);font-size:15px;transition:transform .14s}
+.fd-cheer span{font-size:12px;font-weight:800;color:var(--muted)}
+.fd-cheer.on{background:rgba(232,184,74,.18);border-color:rgba(232,184,74,.5)}
+.fd-cheer.on span{color:#E8B84A}
+.fd-cheer:active{transform:scale(.9)}
+.fd-cheer:disabled{opacity:.85}

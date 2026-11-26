@@ -14,7 +14,24 @@ const CH = {
   ht: 'm', rdl60: 't', bss60: 't', gs60: 't', cu60: 't', sp60: 't', lat60: 't', tp60: 't', sk60: 't', le60: 't', hlr: 'm',
 };
 const CAP = { t: 110, m: 300, h: 1800 };
-const LIMITS = { coach: 40, scores: 120, accounts: 20, backup: 30, rooms: 30 };
+const LIMITS = { coach: 40, scores: 120, accounts: 20, backup: 30, rooms: 30, events: 80, cheers: 200, xp: 300 };
+// Weeks start on Monday (1 Jan 1970 was a Thursday, hence the +3).
+const thisWeek = () => Math.floor((Math.floor(Date.now() / 864e5) + 3) / 7);
+const MAX_WEEK_XP = 6000;
+// What each kind of activity may carry. Anything else is dropped.
+const EVENT_FIELDS = { workout: { w: 's', sets: 'n' }, pr: { ex: 'id' }, record: { c: 'id', n: 'n' }, goal: { c: 'id', n: 'n' }, level: { n: 'n' } };
+function cleanEvent(kind, d) {
+  const spec = EVENT_FIELDS[kind];
+  if (!spec || !d || typeof d !== 'object') return null;
+  const out = {};
+  for (const [k, type] of Object.entries(spec)) {
+    const v = d[k];
+    if (type === 'n') { const n = Math.round(+v); if (Number.isFinite(n) && n >= 0 && n < 100000) out[k] = n; }
+    else if (type === 'id') { if (typeof v === 'string' && /^[a-z0-9-]{1,40}$/.test(v)) out[k] = v; }
+    else if (typeof v === 'string') out[k] = cleanName(v.slice(0, 40)) || undefined;
+  }
+  return out;
+}
 const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 const randCode = (n) => Array.from(crypto.getRandomValues(new Uint8Array(n)), (b) => ALPHA[b % ALPHA.length]).join('');
@@ -126,9 +143,61 @@ async function route(req, env, cors) {
       env.DB.prepare('DELETE FROM scores WHERE user_id = ?').bind(me.id),
       env.DB.prepare('DELETE FROM backups WHERE user_id = ?').bind(me.id),
       env.DB.prepare('DELETE FROM usage WHERE who = ?').bind(me.id),
+      env.DB.prepare('DELETE FROM cheers WHERE user_id = ? OR event_id IN (SELECT id FROM events WHERE user_id = ?)').bind(me.id, me.id),
+      env.DB.prepare('DELETE FROM events WHERE user_id = ?').bind(me.id),
+      env.DB.prepare('DELETE FROM xpweek WHERE user_id = ?').bind(me.id),
       env.DB.prepare('DELETE FROM users WHERE id = ?').bind(me.id),
     ]);
     return json({ ok: true }, 200, cors);
+  }
+  // Activity: what you did, for your friends to see.
+  if (p === '/v1/events' && m === 'POST') {
+    const b = await body(req);
+    const data = cleanEvent(b.kind, b.data);
+    if (!data) return fail('bad_event', 400, cors);
+    if (!(await allow(env, me.id, 'events'))) return fail('limit', 429, cors);
+    const now = Date.now();
+    await env.DB.batch([
+      env.DB.prepare('INSERT INTO events (user_id, kind, data, at) VALUES (?, ?, ?, ?)').bind(me.id, b.kind, JSON.stringify(data), now),
+      env.DB.prepare('DELETE FROM events WHERE user_id = ? AND at < ?').bind(me.id, now - 30 * 864e5),
+    ]);
+    return json({ ok: true }, 201, cors);
+  }
+  if (p === '/v1/feed' && m === 'GET') {
+    const rows = await env.DB.prepare(`SELECT e.id, e.kind, e.data, e.at, u.name, (e.user_id = ?1) AS me,
+        (SELECT COUNT(*) FROM cheers c WHERE c.event_id = e.id) AS cheers,
+        EXISTS (SELECT 1 FROM cheers c WHERE c.event_id = e.id AND c.user_id = ?1) AS mine
+      FROM events e JOIN users u ON u.id = e.user_id
+      WHERE e.user_id = ?1 OR e.user_id IN (SELECT b FROM friends WHERE a = ?1)
+      ORDER BY e.at DESC LIMIT 40`).bind(me.id).all();
+    return json({ feed: rows.results.map((r) => ({ id: r.id, kind: r.kind, data: JSON.parse(r.data), at: r.at, name: r.name, me: !!r.me, cheers: r.cheers, mine: !!r.mine })) }, 200, cors);
+  }
+  const cheer = p.match(/^\/v1\/events\/(\d+)\/cheer$/);
+  if (cheer && m === 'POST') {
+    const ev = await env.DB.prepare('SELECT user_id FROM events WHERE id = ?').bind(+cheer[1]).first();
+    if (!ev) return fail('not_found', 404, cors);
+    const friend = ev.user_id === me.id || (await env.DB.prepare('SELECT 1 AS ok FROM friends WHERE a = ? AND b = ?').bind(me.id, ev.user_id).first());
+    if (!friend) return fail('not_friend', 403, cors);
+    if (!(await allow(env, me.id, 'cheers'))) return fail('limit', 429, cors);
+    await env.DB.prepare('INSERT OR IGNORE INTO cheers (event_id, user_id) VALUES (?, ?)').bind(+cheer[1], me.id).run();
+    const c = await env.DB.prepare('SELECT COUNT(*) AS n FROM cheers WHERE event_id = ?').bind(+cheer[1]).first();
+    return json({ cheers: c.n }, 200, cors);
+  }
+  // Weekly league: XP this week, you and your friends.
+  if (p === '/v1/xp' && m === 'PUT') {
+    const xp = Math.round(+(await body(req)).xp);
+    if (!Number.isFinite(xp) || xp < 0 || xp > MAX_WEEK_XP) return fail('bad_xp', 400, cors);
+    if (!(await allow(env, me.id, 'xp'))) return fail('limit', 429, cors);
+    await env.DB.prepare('INSERT INTO xpweek (user_id, week, xp) VALUES (?, ?, ?) ON CONFLICT (user_id, week) DO UPDATE SET xp = MAX(xpweek.xp, excluded.xp)')
+      .bind(me.id, thisWeek(), xp).run();
+    return json({ ok: true }, 200, cors);
+  }
+  if (p === '/v1/league' && m === 'GET') {
+    const week = thisWeek();
+    const rows = await env.DB.prepare(`SELECT u.id, u.name, COALESCE(x.xp, 0) AS xp FROM users u LEFT JOIN xpweek x ON x.user_id = u.id AND x.week = ?2
+      WHERE u.id = ?1 OR u.id IN (SELECT b FROM friends WHERE a = ?1) ORDER BY xp DESC, u.name LIMIT 50`).bind(me.id, week).all();
+    const endsAt = (week + 1) * 7 * 864e5 - 3 * 864e5;
+    return json({ league: rows.results.map((r, i) => ({ pos: i + 1, name: r.name, xp: r.xp, me: r.id === me.id })), endsAt }, 200, cors);
   }
   if (p === '/v1/friends' && m === 'GET') {
     const rows = await env.DB.prepare('SELECT u.id, u.name, u.code FROM friends f JOIN users u ON u.id = f.b WHERE f.a = ? ORDER BY u.name').bind(me.id).all();

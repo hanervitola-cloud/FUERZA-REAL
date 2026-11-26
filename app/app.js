@@ -491,6 +491,7 @@ function render() {
   $('#main').innerHTML = `<div class="view v-${current}${fresh ? ' enter' : ''}">${VIEWS[current]()}</div>`;
   window.scrollTo(0, 0);
   if (current === 'rank' && progTab === 'body') loadPhotos();
+  if (current === 'friends') loadFriends();
   if (current === 'rank') { mountAvatar(); const cur = $('#rankLadder .cur'); if (cur) cur.parentElement.scrollLeft = Math.max(0, cur.offsetLeft - 70); }
 }
 
@@ -848,6 +849,8 @@ function homeTiles(thisWeek = S.workouts.filter((w) => w.date >= weekStart(Date.
     ${tile('go', 'coach', I.chat, t('tileCoach'), t('tileCoachSub'), '<i class="th-dot"></i>')}
     ${tile('ch-open', '', I.target, t('chTitle'), c.done ? t('chDone') : `${c.timed ? fmtSecs(c.n) : c.n} / ${c.timed ? fmtSecs(c.goal) : c.goal} · ${esc(exName(c.id))}`)}
     ${tile('go', 'rank', I.flame, t('tileStreak', { n: st }), t('thisWeek', { n: thisWeek, goal: S.profile.days }))}
+    ${tile('go', 'friends', I.trophy, t('tileFriends'), S.acct ? t('tileFriendsSub') : t('tileFriendsOff'))}
+    ${tile('photos', '', I.camera, t('baTitle'), t('tilePhotosSub'))}
     ${tile('go', 'learn', I.learn, t('tileLearn'), t('tileLearnSub'))}
   </div>`;
 }
@@ -1111,6 +1114,8 @@ function finishWorkout() {
   grow('workout', 1, true);
   if (prs.length) grow('pr', prs.length, true);
   const xpGain = xpTotal() - xp0, lvNow = levelOf(xpTotal());
+  shareEvent('workout', { w: histName(w), sets: w.exercises.reduce((sum, e) => sum + e.sets.length, 0) });
+  for (const ex of prs.slice(0, 3)) shareEvent('pr', { ex: ex.id });
   const muscles = [...new Set(w.exercises.flatMap((ex) => EXERCISES[ex.id].muscles))];
   const vol = workVolume(w);
   const rb = rankIndex(before.total), ra = rankIndex(after.total);
@@ -2441,6 +2446,7 @@ document.addEventListener('click', (e) => {
   if (k === 'go') { if (v === 'sports') sportSel = null; if (v === 'home') curQuote = null; go(v); }
   else if (k === 'coach-ask') coachAsk(v);
   else if (k === 'missions') showMissions();
+  else if (k === 'fr-cheer') { b.disabled = true; b.classList.add('on'); vibrate(15); net.cheer(v).then((n) => { const s = b.querySelector('span'); if (s) s.textContent = n; }).catch(() => { b.disabled = false; b.classList.remove('on'); toast(t('vsNeedNet')); }); }
   else if (k === 'food-add') addFood(+v);
   else if (k === 'food-pick') { const f = FOODS.find((x) => x[0] === v); if (f) { addFood(f[1], v); toast(`+${f[1]} g · ${t('food_' + v)}`); } }
   else if (k === 'water-add') addWater(+v);
@@ -2451,6 +2457,7 @@ document.addEventListener('click', (e) => {
   else if (k === 'photo-view') showPhoto(v);
   else if (k === 'photo-del') confirmSheet(t('photosDelete'), t('photosDeleteP'), t('photosDelete'), () => { idbDel(v).then(loadPhotos); }, true);
   else if (k === 'photo-compare') comparePhotos();
+  else if (k === 'photos') { progTab = 'body'; go('rank'); }
   else if (k === 'ba-pick') { ba[b.dataset.k] = v; comparePhotos(); }
   else if (k === 'ba-share') shareBeforeAfter();
   else if (k.startsWith('acct-') || k.startsWith('backup-') || k.startsWith('friend')) {
@@ -2731,7 +2738,8 @@ function grow(ev, count = 1, quiet) {
   for (const k of ks.slice(0, Math.max(0, ks.length - 12))) delete X.weeks[k];
   save();
   const after = levelOf(X.total).L;
-  if (after > before) { setTimeout(() => { toast(t('lvlUp', { n: after })); confetti(70); vibrate([50, 40, 90]); }, quiet ? 1200 : 0); }
+  syncXp();
+  if (after > before) { shareEvent('level', { n: after }); setTimeout(() => { toast(t('lvlUp', { n: after })); confetti(70); vibrate([50, 40, 90]); }, quiet ? 1200 : 0); }
   else if (done.length) { setTimeout(() => { toast(t('misDone', { m: misText(done[0]), xp: misDef(done[0])[3] })); confetti(35); }, quiet ? 1200 : 0); }
   else if (!quiet && gain) toast(`+${gain} XP`);
   const mc = $('#misCard');
@@ -2962,6 +2970,73 @@ async function shareWeek() {
   if (!L) return;
   openShare(await makeCard({ eyebrow: t('weekTitle'), title: t('weekCardTitle'), stats: [[L.n, t('weekWorkouts')], [L.sets, t('setsWord')], [L.prs, t('weekPrs')]], r: rankIndex(computeScore().total) }));
 }
+
+// ---------- Friends: weekly league and activity ----------
+// Your friends see when you train, beat a record, hit a goal or level up, and can send you a "💪".
+// Only short facts travel (the workout's name, an exercise, a number): never photos or videos.
+function shareEvent(kind, data) {
+  if (!S.acct || !net.isOnline()) return;
+  net.postEvent(kind, data).catch(() => {});
+}
+let xpTimer = 0;
+function syncXp() {
+  if (!S.acct || !net.isOnline()) return;
+  clearTimeout(xpTimer);
+  xpTimer = setTimeout(() => { const wk = dayKey(weekStart(Date.now())); net.pushXp(Math.min(6000, (xpData().weeks || {})[wk] || 0)).catch(() => {}); }, 4000);
+}
+const agoText = (ts) => { const m = Math.max(0, Math.round((Date.now() - ts) / 60000)); return m < 1 ? t('agoNow') : m < 60 ? t('agoMin', { n: m }) : m < 1440 ? t('agoH', { n: Math.round(m / 60) }) : t('agoD', { n: Math.round(m / 1440) }); };
+function eventText(e) {
+  const d = e.data || {}, nm = `<b>${esc(e.me ? t('you') : e.name)}</b>`;
+  const ch = d.c && challengeById(d.c);
+  if (e.kind === 'workout') return t('ev_workout', { name: nm, w: esc(d.w || t('evWorkoutAny')) });
+  if (e.kind === 'pr') return t('ev_pr', { name: nm, ex: esc(EXERCISES[d.ex] ? exName(d.ex) : d.ex || '') });
+  if (e.kind === 'record' && ch) return t('ev_record', { name: nm, n: esc(fmtScore(ch, d.n)), ch: esc(chTitle(ch)) });
+  if (e.kind === 'goal' && ch) return t('ev_goal', { name: nm, n: esc(fmtScore(ch, d.n)), ch: esc(chTitle(ch)) });
+  if (e.kind === 'level') return t('ev_level', { name: nm, n: +d.n || 0 });
+  return '';
+}
+const EV_IC = { workout: 'train', pr: 'trophy', record: 'camera', goal: 'target', level: 'flame' };
+function friendsView() {
+  const A = S.acct;
+  const top = `<header class="top me-top"><button class="icon-btn" data-act="go" data-v="home" aria-label="${t('back')}">${I.back}</button><div class="grow"><p class="eyebrow">${t('frEyebrow')}</p><h1>${t('frTitle')}</h1></div></header>`;
+  if (!A) return top + `<section class="card fr-empty"><span class="fr-big">${I.trophy}</span><b>${t('frNoAcct')}</b><p class="muted small">${t('acctWhy')}</p><button class="btn btn-primary btn-block" data-act="acct-on">${t('acctOn')}</button></section>`;
+  return top + `
+    <section class="card fr-invite"><span class="grow"><small>${t('acctFriendCode')}</small><b>${esc(A.code)}</b></span><button class="btn btn-sm" data-act="acct-share">${I.share}${t('frInvite')}</button><button class="btn btn-sm btn-primary" data-act="friend-add">${I.plus}</button></section>
+    <div class="section-title"><span class="eyebrow">${t('lgTitle')}</span><span class="muted small" id="lgEnds"></span></div>
+    <section class="card list-card" id="lgBox"><p class="muted small fr-pad">${t('vsRankLoading')}</p></section>
+    <div class="section-title"><span class="eyebrow">${t('frActivity')}</span></div>
+    <section class="card list-card" id="feedBox"><p class="muted small fr-pad">${t('vsRankLoading')}</p></section>`;
+}
+async function loadFriends() {
+  if (!S.acct) return;
+  if (!net.isOnline()) { for (const id of ['#lgBox', '#feedBox']) { const el = $(id); if (el) el.innerHTML = `<p class="muted small fr-pad">${t('vsNeedNet')}</p>`; } return; }
+  net.setAccount(S.acct);
+  syncXp();
+  try {
+    const lg = await net.getLeague();
+    const el = $('#lgBox');
+    if (el) {
+      const medal = ['🥇', '🥈', '🥉'];
+      el.innerHTML = lg.league.length > 1
+        ? lg.league.map((x) => `<div class="lg-row${x.me ? ' me' : ''}"><span class="lg-pos">${medal[x.pos - 1] || x.pos}</span><span class="grow">${esc(x.me ? `${x.name} (${t('you')})` : x.name)}</span><b>${x.xp}</b><small>XP</small></div>`).join('')
+        : `<p class="muted small fr-pad">${t('lgAlone')}</p>`;
+      const days = Math.max(0, Math.ceil((lg.endsAt - Date.now()) / DAY));
+      const ends = $('#lgEnds');
+      if (ends) ends.textContent = t('lgEnds', { n: days });
+    }
+  } catch (e) { const el = $('#lgBox'); if (el) el.innerHTML = `<p class="muted small fr-pad">${t('vsRankFail')}</p>`; }
+  try {
+    const feed = await net.getFeed();
+    const el = $('#feedBox');
+    if (el) {
+      const rows = feed.map((e) => ({ e, txt: eventText(e) })).filter((x) => x.txt);
+      el.innerHTML = rows.length ? rows.map(({ e, txt }) => `<div class="fd-row"><span class="fd-ic">${I[EV_IC[e.kind]] || ''}</span><span class="grow"><span class="fd-txt">${txt}</span><small>${agoText(e.at)}</small></span>
+        <button class="fd-cheer${e.mine ? ' on' : ''}" data-act="fr-cheer" data-v="${e.id}" ${e.me || e.mine ? 'disabled' : ''} aria-label="${t('frCheer')}">💪<span>${e.cheers || ''}</span></button></div>`).join('')
+        : `<p class="muted small fr-pad">${t('frNoActivity')}</p>`;
+    }
+  } catch (e) { const el = $('#feedBox'); if (el) el.innerHTML = `<p class="muted small fr-pad">${t('vsRankFail')}</p>`; }
+}
+VIEWS.friends = friendsView;
 
 // ---------- Compete: camera challenges between friends ----------
 // Only the camera counts (repcount.js): there is no button to add reps, so nobody can cheat by tapping.
@@ -3653,7 +3728,8 @@ function camFinish() {
     grow('camera', 1, true);
     if (cam.goal && n >= cam.goal) grow('goal', 1, true);
     const prev = D.best[c.id];
-    if (n > 0 && (!prev || n > prev.n)) { D.best[c.id] = { n, cam: true, w: cam.w, at: Date.now() }; cam.lines.push(`<b class="vs-rec">${t('vsRecord')}</b>`); confetti(50); }
+    if (n > 0 && (!prev || n > prev.n)) { D.best[c.id] = { n, cam: true, w: cam.w, at: Date.now() }; cam.lines.push(`<b class="vs-rec">${t('vsRecord')}</b>`); confetti(50); shareEvent('record', { c: c.id, n }); }
+    else if (cam.goal && n >= cam.goal) shareEvent('goal', { c: c.id, n });
     else if (prev) cam.lines.push(t('vsPrev', { n: fmtScore(c, prev.n) }));
     const top = D.rivals.filter((r) => r.c === c.id).sort((x, y) => y.n - x.n)[0];
     if (top && cam.queue.length === 1 && !live.on) {
@@ -3809,6 +3885,7 @@ VIEWS.vs = vsView;
 // Installable app that also works without internet (sw.js). Only on the real site, not while developing.
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 if (S.acct) net.setAccount(S.acct);
+window.addEventListener('es-auth-lost', () => { S.acct = null; net.setAccount(null); save(); if (['me', 'friends'].includes(current)) render(); });
 setTimeout(autoBackup, 4000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') autoBackup(); });
 runSplash();

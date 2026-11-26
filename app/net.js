@@ -19,6 +19,8 @@ export async function api(method, path, body, opts = {}) {
     const text = await r.text();
     let j = null;
     try { j = text ? JSON.parse(text) : null; } catch (e) { /* not json */ }
+    // The account no longer exists on the server (deleted from another phone): the app forgets it.
+    if (r.status === 401 && acct && acct.id) window.dispatchEvent(new CustomEvent('es-auth-lost'));
     if (!r.ok) { const err = new Error((j && j.error) || 'http_' + r.status); err.status = r.status; throw err; }
     return j;
   } finally { clearTimeout(tm); }
@@ -49,3 +51,8 @@ export const getRank = (c, scope) => api('GET', `/v1/rank/${encodeURIComponent(c
 export const askAI = (payload) => api('POST', '/v1/coach', payload, { timeout: 25000 }).then((j) => j.text);
 export const newRoom = (c, w, u) => api('POST', '/v1/rooms', { c, w, u }).then((j) => j.code);
 export const roomSocket = (code) => new WebSocket(`${API.replace(/^http/, 'ws')}/v1/rooms/${encodeURIComponent(code)}/ws?t=${encodeURIComponent(acct ? acct.token : '')}`);
+export const postEvent = (kind, data) => api('POST', '/v1/events', { kind, data });
+export const getFeed = () => api('GET', '/v1/feed').then((j) => j.feed);
+export const cheer = (id) => api('POST', `/v1/events/${encodeURIComponent(id)}/cheer`).then((j) => j.cheers);
+export const pushXp = (xp) => api('PUT', '/v1/xp', { xp });
+export const getLeague = () => api('GET', '/v1/league');
