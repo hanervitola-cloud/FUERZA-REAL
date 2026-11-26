@@ -3342,6 +3342,8 @@ async function onCamClick(e) {
 VIEWS.vs = vsView;
 
 // ---------- Start ----------
+// Installable app that also works without internet (sw.js). Only on the real site, not while developing.
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 runSplash();
 if (!S.profile) showOnboard();
 else {
