@@ -11,6 +11,7 @@ import { MOVES } from './moves.js';
 import { buildPlan as makePlan, autoSplit, timesPerWeek, SPLITS, BLOCK_WEEKS } from './plan.js';
 import { QUOTES, personalQuotes } from './quotes.js';
 import { coachReply, SUGGEST, QUICK } from './coach.js';
+import * as net from './net.js';
 import { CHALLENGES as CAM_CHALLENGES, challengeById, ruleOf, Counter, loadPose, detect, openCamera, stopCamera, drawPose, drawPoseOn } from './repcount.js';
 
 const KEY = 'es-app-v1';
@@ -736,6 +737,7 @@ const VIEWS = {
       <section class="card">
         <div class="row">${I.phone.replace('<svg', '<svg style="width:22px;height:22px;stroke:var(--red);fill:none;stroke-width:2;flex:0 0 auto"')}<span class="grow"><b>${t('reminders')}</b><br><span class="muted small">${t('remindersSub')}</span></span></div>
       </section>
+      ${acctCard()}
       <section class="card stack">
         <span class="eyebrow">${t('yourData')}</span>
         <p class="small muted">${t('dataNote')}</p>
@@ -754,6 +756,76 @@ const VIEWS = {
       <p class="muted small" style="text-align:center">${t('footer')}</p>`;
   },
 };
+// Online account: friends, ranking, live rooms, AI coach and backup. No email, no password.
+function acctCard() {
+  const A = S.acct;
+  if (!A) {
+    return `<section class="card stack acct"><span class="eyebrow">${t('acctTitle')}</span><p class="small muted">${t('acctWhy')}</p>
+      <button class="btn btn-primary btn-sm" data-act="acct-on">${t('acctOn')}</button><button class="link small" data-act="acct-restore">${t('acctHave')}</button></section>`;
+  }
+  const when = S.backupAt ? fmtDate(S.backupAt) : t('acctNever');
+  return `<section class="card stack acct"><span class="eyebrow">${t('acctTitle')}</span>
+    <div class="acct-code"><span><small>${t('acctFriendCode')}</small><b>${esc(A.code)}</b></span><button class="btn btn-sm" data-act="acct-share">${I.share}${t('share')}</button></div>
+    <div class="split"><button class="btn btn-sm" data-act="friend-add">${I.plus}${t('friendAdd')}</button><button class="btn btn-sm" data-act="friends">${t('friendsTitle')}</button></div>
+    <div class="acct-row"><span class="grow"><b>${t('backupTitle')}</b><small>${t('backupLast', { d: when })}</small></span><button class="btn btn-sm" data-act="backup-now">${t('backupNow')}</button></div>
+    <div class="split"><button class="btn btn-sm" data-act="backup-restore">${t('backupRestore')}</button><button class="btn btn-sm" data-act="acct-code">${t('acctRecovery')}</button></div>
+    <button class="link small" data-act="acct-delete" style="color:var(--red-2)">${t('acctDelete')}</button></section>`;
+}
+const backupData = () => { const { acct, chat, ...rest } = S; return rest; };
+async function backupNow(quiet) {
+  try {
+    await ensureAccount();
+    await net.pushBackup(backupData());
+    S.backupAt = Date.now();
+    save();
+    if (!quiet) { toast(t('backupDone')); if (current === 'me') render(); }
+  } catch (e) { if (!quiet) toast(t(net.isOnline() ? 'vsRankFail' : 'vsNeedNet')); }
+}
+function autoBackup() { if (S.acct && S.profile && net.isOnline() && Date.now() - (S.backupAt || 0) > 12 * 36e5) backupNow(true); }
+async function acctAction(k) {
+  if (k === 'acct-on') { try { await ensureAccount(); toast(t('acctReady')); render(); } catch (e) { toast(t('vsNeedNet')); } }
+  else if (k === 'acct-share') { vs.shareText = t('acctShareText', { code: S.acct.code }); vsSend(); }
+  else if (k === 'acct-code') {
+    openSheet(`<span class="eyebrow">${t('acctTitle')}</span><h2 style="margin-top:6px">${t('acctRecovery')}</h2><p class="muted small" style="margin:6px 0 12px">${t('acctRecoveryP')}</p>
+      <div class="vs-code"><code class="big">${esc(net.recoveryCode(S.acct.token))}</code></div><button class="btn btn-block" style="margin-top:12px" data-act="acct-copy">${t('vsCopy')}</button>`);
+  } else if (k === 'acct-copy') { vs.shareText = net.recoveryCode(S.acct.token); vsCopy(); }
+  else if (k === 'acct-restore') {
+    openSheet(`<span class="eyebrow">${t('acctTitle')}</span><h2 style="margin-top:6px">${t('acctHave')}</h2><p class="muted small" style="margin:6px 0 12px">${t('acctRestoreP')}</p>
+      <input class="vs-in" id="acctIn" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH-…"><button class="btn btn-primary btn-block" style="margin-top:12px" data-act="acct-restore-go">${t('acctRestoreGo')}</button>`);
+  } else if (k === 'acct-restore-go') {
+    try { S.acct = await net.restoreAccount($('#acctIn').value); net.setAccount(S.acct); save(); closeSheet(); toast(t('acctRestored', { name: S.acct.name })); acctAction('backup-restore'); }
+    catch (e) { toast(t(e && e.status === 401 ? 'acctBadCode' : net.isOnline() ? 'acctBadCode' : 'vsNeedNet')); }
+  } else if (k === 'backup-restore') {
+    try {
+      await ensureAccount();
+      const b = await net.pullBackup();
+      confirmSheet(t('backupRestore'), t('backupRestoreP', { d: fmtDate(b.updated) }), t('backupRestoreYes'), () => {
+        const keep = { acct: S.acct, chat: S.chat };
+        S = { ...blank(), ...b.data, ...keep, backupAt: b.updated };
+        save();
+        location.reload();
+      });
+    } catch (e) { toast(t(e && e.status === 404 ? 'backupNone' : net.isOnline() ? 'vsRankFail' : 'vsNeedNet')); }
+  } else if (k === 'backup-now') backupNow();
+  else if (k === 'friend-add') {
+    openSheet(`<span class="eyebrow">${t('friendsTitle')}</span><h2 style="margin-top:6px">${t('friendAdd')}</h2><p class="muted small" style="margin:6px 0 12px">${t('friendAddP')}</p>
+      <input class="vs-in vs-room-in" id="friendIn" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC123"><button class="btn btn-primary btn-block" style="margin-top:12px" data-act="friend-add-go">${t('friendAddGo')}</button>`);
+  } else if (k === 'friend-add-go') {
+    try { const f = await net.addFriend($('#friendIn').value); closeSheet(); toast(t('friendAdded', { name: f.name })); }
+    catch (e) { toast(t(e && e.status === 404 ? 'friendNotFound' : e && e.status === 400 ? 'friendSelf' : 'vsNeedNet')); }
+  } else if (k === 'friends') {
+    openSheet(`<span class="eyebrow">${t('acctTitle')}</span><h2 style="margin-top:6px">${t('friendsTitle')}</h2><div id="friendList" class="vs-rank"><p class="muted small">${t('vsRankLoading')}</p></div>`);
+    try {
+      const list = await net.listFriends();
+      const el = $('#friendList');
+      if (el) el.innerHTML = list.length ? `<ol>${list.map((f) => `<li><span class="grow">${esc(f.name)} <small>${esc(f.code)}</small></span><button class="icon-btn" data-act="friend-del" data-v="${esc(f.id)}" aria-label="${t('vsRemove')}">${I.minus}</button></li>`).join('')}</ol>` : `<p class="muted small">${t('friendsNone')}</p>`;
+    } catch (e) { const el = $('#friendList'); if (el) el.innerHTML = `<p class="muted small">${t('vsNeedNet')}</p>`; }
+  } else if (k === 'acct-delete') {
+    confirmSheet(t('acctDelete'), t('acctDeleteP'), t('acctDeleteYes'), async () => {
+      try { await net.deleteAccount(); S.acct = null; delete S.backupAt; net.setAccount(null); save(); toast(t('acctDeleted')); render(); } catch (e) { toast(t('vsNeedNet')); }
+    }, true);
+  }
+}
 // Workout names are saved in the language used at the time; show them in the current one when possible.
 function histName(w) {
   if (w.rounds) return t(w.rounds.mode === 'shadow' ? 'shadowName' : 'roundsName');
@@ -2040,7 +2112,8 @@ function coachCtx() {
     streak: streakWeeks(), rankName: RANKS[rankIndex(sc)].name, lag: lg ? t('g_' + lg) : '', lagGroup: lg, vsN: Object.keys((S.vs && S.vs.best) || {}).length,
   };
 }
-const chatText = (s) => esc(s).replace(/(^|\n)(Evita|Consejo|Avoid|Tip|Así se hace|How to do)([^:\n]*:)/g, '$1<b>$2$3</b>').replace(/\n/g, '<br>');
+const coachProfile = () => { const P = S.profile || {}; return { name: P.name, age: P.age, weightKg: P.bw, goal: P.goal, level: P.level, days: P.days, place: P.equipment, plan: progName() }; };
+const chatText = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/(^|\n)(Evita|Consejo|Avoid|Tip|Así se hace|How to do)([^:\n]*:)/g, '$1<b>$2$3</b>').replace(/\n/g, '<br>');
 function chatHtml() {
   const msgs = S.chat || [];
   const es = getLang() === 'es';
@@ -2049,7 +2122,7 @@ function chatHtml() {
     return `<div class="msg bot"><p>${chatText(t('coachHello', { name: S.profile.name ? ' ' + S.profile.name : '' }))}</p></div>
       <div class="chat-sug">${sug.map((s) => `<button class="chip" data-act="coach-ask" data-v="${esc(s[es ? 1 : 0])}">${esc(s[es ? 1 : 0])}</button>`).join('')}</div>`;
   }
-  return msgs.map((m) => `<div class="msg ${m.me ? 'me' : 'bot'}"><p>${chatText(m.text)}</p>${(m.acts || []).length ? `<div class="msg-acts">${m.acts.map((a) => `<button class="chip" data-act="${esc(a.act)}" data-v="${esc(a.v)}">${a.act === 'ex' || a.act === 'lesson' ? I.play : ''}${esc(a.label)}</button>`).join('')}</div>` : ''}${m.link ? `<a class="link small" href="https://earnedstrength.online${esc(m.link)}" target="_blank" rel="noopener">${t('coachReadMore')}</a>` : ''}</div>`).join('');
+  return msgs.map((m) => `<div class="msg ${m.me ? 'me' : 'bot'}"><p>${m.ai ? `<em class="ai-tag">${t('aiTag')}</em>` : ''}${chatText(m.text)}</p>${(m.acts || []).length ? `<div class="msg-acts">${m.acts.map((a) => `<button class="chip" data-act="${esc(a.act)}" data-v="${esc(a.v)}">${a.act === 'ex' || a.act === 'lesson' ? I.play : ''}${esc(a.label)}</button>`).join('')}</div>` : ''}${m.link ? `<a class="link small" href="https://earnedstrength.online${esc(m.link)}" target="_blank" rel="noopener">${t('coachReadMore')}</a>` : ''}</div>`).join('');
 }
 function chatScroll() { requestAnimationFrame(() => window.scrollTo({ top: document.body.scrollHeight, behavior: REDUCED ? 'auto' : 'smooth' })); }
 let coachBusy = false;
@@ -2063,14 +2136,24 @@ function coachAsk(text) {
   box.innerHTML = chatHtml() + '<div class="msg bot typing"><p><i></i><i></i><i></i></p></div>';
   chatScroll();
   coachBusy = true;
-  setTimeout(() => {
-    coachBusy = false;
+  setTimeout(async () => {
     const r = coachReply(text, coachCtx());
-    S.chat = [...S.chat, { me: false, text: r.text, acts: r.acts, link: r.link }].slice(-60);
+    let msg = { me: false, text: r.text, acts: r.acts, link: r.link };
+    // Pain, dizziness or feeling sick always get the careful answer written in the app. Everything else goes
+    // to the AI coach when there is internet; if it cannot answer, the app's own answer stays.
+    if (!r.urgent && net.isOnline()) {
+      try {
+        await ensureAccount();
+        const ai = await net.askAI({ lang: getLang(), messages: S.chat.slice(-8), profile: coachProfile() });
+        msg = { me: false, text: ai, acts: r.sure ? r.acts : [], link: r.sure ? r.link : undefined, ai: true };
+      } catch (e) { if (e && e.status === 429) msg.text += '\n\n' + t('coachAiLimit'); }
+    }
+    coachBusy = false;
+    S.chat = [...S.chat, msg].slice(-60);
     save();
     const b = $('#chat');
     if (b) { b.innerHTML = chatHtml(); chatScroll(); }
-  }, 550 + Math.min(900, text.length * 12));
+  }, 450);
 }
 document.addEventListener('submit', (e) => {
   if (e.target.id !== 'chatForm') return;
@@ -2330,9 +2413,13 @@ document.addEventListener('click', (e) => {
   const k = b.dataset.act, v = b.dataset.v;
   if (k === 'go') { if (v === 'sports') sportSel = null; if (v === 'home') curQuote = null; go(v); }
   else if (k === 'coach-ask') coachAsk(v);
+  else if (k.startsWith('acct-') || k.startsWith('backup-') || k.startsWith('friend')) {
+    if (k === 'friend-del') { net.removeFriend(v).then(() => acctAction('friends')).catch(() => toast(t('vsNeedNet'))); } else acctAction(k);
+  }
   else if (k === 'vs-ch') showVsChallenge(v);
   else if (k === 'vs-who') { if (sheetFn) sheetFn(); vs.who = v; showVsChallenge(vs.cid); }
   else if (k === 'vs-goal') { if (sheetFn) sheetFn(); vs.goal = v; showVsChallenge(vs.cid); }
+  else if (k === 'vs-rank') { vs.scope = v; document.querySelectorAll('.vs-rank-tabs .chip').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.v === v))); const c = challengeById(vs.cid); if (c) loadRank(c); }
   else if (k === 'vs-add') { if (sheetFn) sheetFn(); if (vs.players.length < 6) vs.players.push(''); showVsChallenge(vs.cid); }
   else if (k === 'vs-del') { if (sheetFn) sheetFn(); vs.players.splice(+v, 1); showVsChallenge(vs.cid); }
   else if (k === 'vs-start') { if (sheetFn) sheetFn(); openCam(v); }
@@ -2668,6 +2755,7 @@ function showVsChallenge(id) {
     <div class="vs-pic">${heroArt(c.ex)}</div>
     <ul class="vs-rules"><li>${I.phone}<span>${t(rule.view === 'side' ? 'vsViewSide' : 'vsViewFront')}</span></li><li>${I.target}<span>${t('vsRule_' + c.mode, { n: c.secs })}</span></li><li>${I.check}<span>${t(rule.hold ? 'vsFairHold' : 'vsFair')}</span></li></ul>
     ${b || rivals.length ? `<div class="vs-marks">${b ? `<div><small>${t('vsYourBest')}</small><b>${esc(fmtScore(c, b.n))}</b></div>` : ''}${rivals.length ? `<div><small>${t('vsToBeat')}</small><b>${esc(fmtScore(c, rivals[0].n))}</b><small>${esc(rivals[0].p)}</small></div>` : ''}</div>` : ''}
+    <h3>${t('vsRanking')}</h3><div class="chips seg vs-rank-tabs"><button class="chip" data-act="vs-rank" data-v="global" aria-pressed="${vs.scope !== 'friends'}">${t('vsRankAll')}</button><button class="chip" data-act="vs-rank" data-v="friends" aria-pressed="${vs.scope === 'friends'}">${t('vsRankFriends')}</button></div><div class="vs-rank" id="vsRank"><p class="muted small">${t('vsRankLoading')}</p></div>
     ${c.w ? `<h3>${t('vsWeight', { u: unit() })}</h3><input class="vs-in" data-vs="w" type="number" inputmode="decimal" min="0" value="${esc(vs.w)}" placeholder="${unit() === 'kg' ? '10' : '25'}">` : ''}
     <h3>${t('vsWho')}</h3>
     <div class="chips seg vs-who">${who('solo', 'vsSolo')}${who('live', 'vsLive')}${who('duel', 'vsDuel')}</div>
@@ -2680,6 +2768,19 @@ function showVsChallenge(id) {
     <label class="vs-check"><input type="checkbox" data-vs="voice" ${vs.voice ? 'checked' : ''}><span>${t('vsVoice')}</span></label>
     <button class="btn btn-primary btn-block" style="margin-top:16px" data-act="vs-start" data-v="${c.id}">${I.camera}${t(vs.who === 'live' ? 'vsCreateRoom' : 'vsStart')}</button>`);
   sheetFn = vsReadSheet;
+  loadRank(c);
+}
+async function loadRank(c) {
+  const box = () => $('#vsRank');
+  if (!net.isOnline()) { if (box()) box().innerHTML = `<p class="muted small">${t('vsNeedNet')}</p>`; return; }
+  try {
+    await ensureAccount();
+    const r = await net.getRank(c.id, vs.scope === 'friends' ? 'friends' : 'global');
+    if (!box() || vs.cid !== c.id) return;
+    box().innerHTML = r.list.length
+      ? `<ol>${r.list.slice(0, 10).map((x) => `<li class="${x.me ? 'me' : ''}"><span class="vb-pos">${x.pos}</span><span class="grow">${esc(x.name)}${x.w ? ` <small>${esc(x.w)} ${esc(x.u || '')}</small>` : ''}</span><b>${esc(fmtScore(c, x.n))}</b></li>`).join('')}</ol>${r.mine && r.mine.pos > 10 ? `<p class="small">${t('vsRankPos', { pos: r.mine.pos, total: r.total })}</p>` : ''}`
+      : `<p class="muted small">${t(vs.scope === 'friends' ? 'vsRankNoFriends' : 'vsRankEmpty')}</p>`;
+  } catch (e) { if (box()) box().innerHTML = `<p class="muted small">${t(net.isOnline() ? 'vsRankFail' : 'vsNeedNet')}</p>`; }
 }
 function vsReadSheet() {
   document.querySelectorAll('#sheet [data-vs]').forEach((el) => {
@@ -2727,71 +2828,33 @@ async function vsCopy() {
   }
 }
 
-// ---------- Live room: two phones, each counts its own person, the counts travel phone to phone ----------
-// The connection is made with WebRTC (PeerJS): a public service only introduces the two phones,
-// then the counts (and, if both want, the camera picture) go straight between them. Nothing is stored.
-const live = { on: false, host: false, peer: null, conn: null, call: null, code: '', rname: '', rn: 0, rdone: false, rres: null, meReady: false, rReady: false, rstream: null };
-const ROOM_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const roomCode = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => ROOM_CHARS[b % ROOM_CHARS.length]).join('');
-const roomPeerId = (code) => 'earnedstrength-room-' + code.toLowerCase();
-function loadPeerLib() {
-  if (window.Peer) return Promise.resolve(window.Peer);
-  return new Promise((res, rej) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';
-    s.onload = () => (window.Peer ? res(window.Peer) : rej(new Error('peer')));
-    s.onerror = () => rej(new Error('peer'));
-    document.head.appendChild(s);
-  });
+// ---------- Live room on our server: 2 to 8 phones, each counts its own person ----------
+// The room (server/src/room.js) tells every phone everyone's count. With exactly two people, the phones can
+// also show each other's camera (WebRTC, straight between the two phones; the server only passes the setup).
+const live = { on: false, host: false, ws: null, code: '', pid: '', players: [], conn: null, rname: '', rn: 0, rres: null, meReady: false, pc: null, pcPeer: '', iceQ: [], pendingRtc: [], opened: false };
+const liveOthers = () => live.players.filter((p) => p.pid !== live.pid);
+function liveSend(m) { try { if (live.ws && live.ws.readyState === 1) live.ws.send(JSON.stringify(m)); } catch (e) { /* the room closed */ } }
+function rtcClose() {
+  try { if (live.pc) live.pc.close(); } catch (e) { /* closed */ }
+  Object.assign(live, { pc: null, pcPeer: '', iceQ: [], pendingRtc: [] });
+  const rv = $('#camRivalVid');
+  if (rv) { rv.srcObject = null; rv.hidden = true; }
 }
-function liveSend(m) { try { if (live.conn && live.conn.open) live.conn.send(m); } catch (e) { /* the friend left */ } }
 function liveReset(keepRoom) {
-  Object.assign(live, { rn: 0, rdone: false, rres: null, meReady: false, rReady: false });
+  Object.assign(live, { rres: null, meReady: false });
   if (!keepRoom) {
-    try { if (live.call) live.call.close(); } catch (e) { /* closed */ }
-    try { if (live.conn) live.conn.close(); } catch (e) { /* closed */ }
-    try { if (live.peer) live.peer.destroy(); } catch (e) { /* closed */ }
-    Object.assign(live, { on: false, host: false, peer: null, conn: null, call: null, pendingCall: null, code: '', rname: '', rstream: null });
-    const rv = $('#camRivalVid');
-    if (rv) { rv.srcObject = null; rv.hidden = true; }
+    rtcClose();
+    try { if (live.ws) { live.ws.onclose = null; live.ws.close(); } } catch (e) { /* closed */ }
+    Object.assign(live, { on: false, host: false, ws: null, code: '', pid: '', players: [], conn: null, rname: '', rn: 0, opened: false });
   }
 }
-async function liveHost() {
-  liveReset();
-  live.on = true;
-  live.host = true;
-  cam.phase = 'load';
-  renderCamHud();
-  let Peer;
-  try { Peer = await loadPeerLib(); } catch (e) { return liveFail('vsLiveFail'); }
-  const tryOpen = (left) => {
-    live.code = roomCode();
-    const p = new Peer(roomPeerId(live.code), { debug: 0 });
-    live.peer = p;
-    p.on('open', () => { if (live.peer === p) camPrepare(); });
-    p.on('connection', (conn) => { if (live.conn && live.conn.open) { conn.on('open', () => conn.close()); return; } liveWire(conn); });
-    p.on('call', (call) => liveAnswer(call));
-    p.on('error', (e) => {
-      if (live.peer !== p) return;
-      if (e && e.type === 'unavailable-id' && left > 0) { p.destroy(); tryOpen(left - 1); } else if (!live.conn) liveFail('vsLiveFail');
-    });
-  };
-  tryOpen(2);
-}
-async function liveJoin(code) {
-  liveReset();
-  Object.assign(live, { on: true, host: false, code });
-  Object.assign(cam, { c: null, queue: [S.profile.name || t('you')], turn: 0, results: [], w: null, rule: null, phase: 'join' });
-  camShow();
-  renderCamHud();
-  let Peer;
-  try { Peer = await loadPeerLib(); } catch (e) { return liveFail('vsLiveFail'); }
-  const p = new Peer(undefined, { debug: 0 });
-  live.peer = p;
-  p.on('open', () => liveWire(p.connect(roomPeerId(code), { reliable: true })));
-  p.on('call', (call) => liveAnswer(call));
-  p.on('error', (e) => { if (live.peer === p && !live.conn?.open) liveFail(e && e.type === 'peer-unavailable' ? 'vsNoRoom' : 'vsLiveFail'); });
-  setTimeout(() => { if (live.peer === p && cam.phase === 'join') liveFail('vsNoRoom'); }, 15000);
+async function ensureAccount() {
+  if (S.acct && S.acct.token) { net.setAccount(S.acct); return S.acct; }
+  const a = await net.createAccount(cleanName(S.profile && S.profile.name) || 'Atleta');
+  S.acct = a;
+  save();
+  net.setAccount(a);
+  return a;
 }
 function liveFail(key) {
   if (cam.phase === 'off') return;
@@ -2799,71 +2862,122 @@ function liveFail(key) {
   cam.phase = 'error';
   renderCamHud();
 }
-function liveWire(conn) {
-  live.conn = conn;
-  conn.on('open', () => liveSend({ t: 'hi', name: cam.queue[0], v: 1 }));
-  conn.on('data', liveMsg);
-  conn.on('close', () => {
-    if (live.conn !== conn || cam.phase === 'off') return;
-    toast(t('vsLeft2', { name: live.rname || t('vsFriend') }));
+function liveConnect(code) {
+  live.code = code;
+  const ws = net.roomSocket(code);
+  live.ws = ws;
+  ws.onopen = () => { live.opened = true; };
+  ws.onmessage = (e) => { let m; try { m = JSON.parse(e.data); } catch (x) { return; } liveMsg(m); };
+  ws.onclose = () => {
+    if (live.ws !== ws || cam.phase === 'off') return;
+    if (!live.opened) return liveFail(live.host ? 'vsLiveFail' : 'vsNoRoom');
+    toast(t('vsRoomLost'));
     live.conn = null;
-    if (cam.phase === 'done' && !live.rdone) { live.rdone = true; liveMaybeEnd(); }
     renderCamHud();
-  });
+  };
+}
+async function liveHost() {
+  liveReset();
+  Object.assign(live, { on: true, host: true });
+  cam.phase = 'load';
+  renderCamHud();
+  try {
+    await ensureAccount();
+    const code = await net.newRoom(cam.c.id, cam.w, unit());
+    if (cam.phase === 'off') return;
+    liveConnect(code);
+    camPrepare();
+  } catch (e) { liveFail(net.isOnline() ? 'vsLiveFail' : 'vsNeedNet'); }
+}
+async function liveJoin(code) {
+  liveReset();
+  Object.assign(live, { on: true, host: false });
+  Object.assign(cam, { c: null, queue: [cleanName(S.profile.name) || t('you')], turn: 0, results: [], w: null, rule: null, goal: 0, phase: 'join' });
+  camShow();
+  renderCamHud();
+  try { await ensureAccount(); liveConnect(code); } catch (e) { liveFail(net.isOnline() ? 'vsLiveFail' : 'vsNeedNet'); }
 }
 function liveMsg(m) {
-  if (!m || typeof m !== 'object' || typeof m.t !== 'string') return;
-  const n = Math.max(0, Math.min(9999, Math.round(+m.n || 0)));
-  if (m.t === 'hi') {
-    live.rname = cleanName(m.name) || t('vsFriend');
-    if (live.host) {
-      liveSend({ t: 'cfg', cid: cam.c.id, w: cam.w, u: unit(), name: cam.queue[0] });
-      toast(t('vsJoined', { name: live.rname }));
-      if (vs.see && cam.stream && live.peer) { try { liveAnswer(live.peer.call(live.conn.peer, cam.stream), true); } catch (e) { /* video is optional */ } }
+  if (!m || typeof m.t !== 'string') return;
+  if (m.t === 'you') { live.pid = m.pid; if (m.host) live.host = true; return; }
+  if (m.t === 'state') {
+    const before = live.conn;
+    live.players = (Array.isArray(m.players) ? m.players : []).slice(0, 8).map((p) => ({ pid: String(p.pid), name: cleanName(p.name) || t('vsFriend'), ready: !!p.ready, n: Math.max(0, +p.n || 0), done: !!p.done, host: !!p.host }));
+    const others = liveOthers();
+    live.conn = others.length ? true : null;
+    live.rname = others.length === 1 ? others[0].name : others.length ? t('vsNPeople', { n: others.length }) : '';
+    live.rn = others.length ? Math.max(...others.map((p) => p.n)) : 0;
+    // A friend who joined: they get the challenge from the room and open their camera.
+    if (!cam.c && m.c) {
+      const c = challengeById(m.c);
+      if (!c) return liveFail('vsLiveFail');
+      const w = Number.isFinite(m.w) && m.w > 0 ? m.w : null;
+      Object.assign(cam, { c, rule: ruleOf(c), w: w && m.u !== unit() ? Math.round((m.u === 'kg' ? w * LB : w / LB) * 10) / 10 : w });
+      camPrepare();
     }
-    renderCamHud();
-  } else if (m.t === 'cfg' && !live.host) {
-    const c = challengeById(m.cid);
-    if (!c) return liveFail('vsLiveFail');
-    live.rname = cleanName(m.name) || t('vsFriend');
-    const w = Number.isFinite(m.w) && m.w > 0 && m.w < 1000 ? m.w : null;
-    Object.assign(cam, { c, rule: ruleOf(c), w: w && m.u !== unit() ? Math.round((m.u === 'kg' ? w * LB : w / LB) * 10) / 10 : w });
-    camPrepare();
-  } else if (m.t === 'ready') { live.rReady = true; liveMaybeGo(); renderLiveBar(); }
-  else if (m.t === 'go' && !live.host) { if (cam.phase === 'place') camCountdown(); }
-  else if (m.t === 'n') { live.rn = n; renderLiveBar(); }
-  else if (m.t === 'done') { live.rn = n; live.rdone = true; renderLiveBar(); liveMaybeEnd(); }
-  else if (m.t === 'again') { if (['done', 'podium'].includes(cam.phase)) { liveReset(true); camPrepare(); } }
+    if (before !== live.conn && others.length) toast(t('vsJoined', { name: others[others.length - 1].name }));
+    if (others.length !== 1 && live.pc) rtcClose();
+    if (live.host && others.length === 1 && vs.see && cam.stream && !live.pc) rtcStart(others[0].pid, true);
+    if (cam.phase === 'place' && before !== live.conn) renderCamHud(); else renderLiveBar();
+    liveMaybeEnd();
+    return;
+  }
+  if (m.t === 'go') { if (['place', 'done'].includes(cam.phase)) { if (cam.phase === 'done') camPrepare(); camCountdown(); } return; }
+  if (m.t === 'again') { if (['done', 'podium'].includes(cam.phase)) { liveReset(true); camPrepare(); } return; }
+  if (m.t === 'rtc' && m.data) rtcMsg(String(m.from), m.data);
 }
-function liveAnswer(call, mine) {
-  live.call = call;
-  if (!mine) { if (!vs.see) call.answer(); else if (cam.stream) call.answer(cam.stream); else live.pendingCall = call; }
-  call.on('stream', (st) => {
-    live.rstream = st;
+function rtcStart(peerPid, caller) {
+  const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+  Object.assign(live, { pc, pcPeer: peerPid, iceQ: [] });
+  if (cam.stream) cam.stream.getTracks().forEach((tr) => pc.addTrack(tr, cam.stream));
+  pc.onicecandidate = (e) => { if (e.candidate) liveSend({ t: 'rtc', to: peerPid, data: { ice: e.candidate } }); };
+  pc.ontrack = (e) => {
     const rv = $('#camRivalVid');
-    if (rv && vs.see) { rv.srcObject = st; rv.hidden = false; rv.play().catch(() => {}); }
-  });
+    if (rv && vs.see) { rv.srcObject = e.streams[0]; rv.hidden = false; rv.play().catch(() => {}); }
+  };
+  if (caller) pc.createOffer().then((o) => pc.setLocalDescription(o)).then(() => liveSend({ t: 'rtc', to: peerPid, data: { sdp: pc.localDescription } })).catch(() => {});
 }
-function liveMaybeGo() {
-  if (live.host && live.meReady && live.rReady && cam.phase === 'place') { liveSend({ t: 'go' }); camCountdown(); }
+async function rtcMsg(from, data) {
+  if (!vs.see) return;
+  if (!live.pc) {
+    if (!cam.stream) { live.pendingRtc.push({ from, data }); return; }
+    rtcStart(from, false);
+  }
+  const pc = live.pc;
+  try {
+    if (data.sdp) {
+      await pc.setRemoteDescription(data.sdp);
+      for (const c of live.iceQ.splice(0)) { try { await pc.addIceCandidate(c); } catch (e) { /* skip */ } }
+      if (data.sdp.type === 'offer') {
+        await pc.setLocalDescription(await pc.createAnswer());
+        liveSend({ t: 'rtc', to: from, data: { sdp: pc.localDescription } });
+      }
+    } else if (data.ice) {
+      if (pc.remoteDescription) await pc.addIceCandidate(data.ice); else live.iceQ.push(data.ice);
+    }
+  } catch (e) { /* the video is optional: counts keep working */ }
 }
 function liveMaybeEnd() {
-  if (cam.phase !== 'done' || !live.rdone || live.rres) return;
-  live.rres = { p: live.rname || t('vsFriend'), n: live.rn };
-  const me = cam.last, D = vsData();
-  D.duels = [{ c: cam.c.id, at: Date.now(), live: true, res: [{ p: me.p, n: me.n }, { p: live.rres.p, n: live.rres.n }] }, ...D.duels].slice(0, 12);
-  save();
-  if (me.n > live.rn) confetti(80);
+  if (cam.phase !== 'done' || !live.on || live.rres) return;
+  const others = liveOthers();
+  if (others.length && !others.every((p) => p.done)) return;
+  const me = cam.last;
+  live.rres = [{ p: me.p, n: me.n, me: true }, ...others.map((p) => ({ p: p.name, n: p.n }))].sort((a, b) => b.n - a.n);
+  if (others.length) {
+    const D = vsData();
+    D.duels = [{ c: cam.c.id, at: Date.now(), live: true, res: live.rres.map((r) => ({ p: r.p, n: r.n })) }, ...D.duels].slice(0, 12);
+    save();
+    if (live.rres[0].me && (!live.rres[1] || live.rres[1].n < me.n)) confetti(80);
+  }
   renderCamHud();
 }
 function renderLiveBar() {
   const el = $('#camLive');
   if (!el || !live.on) return;
-  // While the host waits, the room card already says it; the bar only shows the friend once connected.
-  const st = !live.conn ? (live.host ? '' : t('vsConnecting'))
-    : cam.phase === 'place' ? (live.meReady && live.rReady ? t('vsBothReady') : live.meReady ? t('vsWaitReady', { name: esc(live.rname) }) : t('vsJoined', { name: esc(live.rname) }))
-      : '';
-  el.innerHTML = `<em class="live-tag">${t('vsLiveTag')}</em>${live.conn ? `<b>${esc(live.rname)}</b><span class="lv-n">${cam.c ? esc(fmtScore(cam.c, live.rn)) : 0}</span>` : ''}${st ? `<small>${st}</small>` : ''}`;
+  const others = liveOthers();
+  const st = !others.length ? (live.host ? '' : t('vsConnecting'))
+    : cam.phase === 'place' ? (live.meReady && others.every((p) => p.ready) ? t('vsBothReady') : live.meReady ? t('vsWaitOthers') : t('vsGetReady')) : '';
+  el.innerHTML = `<em class="live-tag">${t('vsLiveTag')}</em>${others.slice(0, 4).map((p) => `<span class="lv-p${p.ready && cam.phase === 'place' ? ' rdy' : ''}"><b>${esc(p.name)}</b><span class="lv-n">${cam.c ? esc(fmtScore(cam.c, p.n)) : 0}</span></span>`).join('')}${others.length > 4 ? `<small>+${others.length - 4}</small>` : ''}${st ? `<small>${st}</small>` : ''}`;
 }
 
 // ---------- Video with the count drawn on it (made on the phone, never uploaded) ----------
@@ -3043,7 +3157,9 @@ async function camPrepare() {
     renderCamHud();
     startLoop();
     // Live room: once my camera is on, the friend can see me (the host calls when the friend arrives).
-    if (live.pendingCall) { const pc = live.pendingCall; live.pendingCall = null; try { pc.answer(cam.stream); } catch (x) { /* video is optional */ } }
+    // Live room: camera messages that arrived before the camera was on, or start the video as the host.
+    for (const r of live.pendingRtc.splice(0)) rtcMsg(r.from, r.data);
+    if (live.on && live.host && vs.see && !live.pc && liveOthers().length === 1) rtcStart(liveOthers()[0].pid, true);
   } catch (e) {
     if (cam.phase !== 'load') return;
     cam.err = t(e && (e.name === 'NotAllowedError' || e.name === 'SecurityError') ? 'vsCamDenied' : 'vsCamFail');
@@ -3084,7 +3200,7 @@ function camFrame(r) {
       if (!cam.readySince) cam.readySince = now;
       else if (now - cam.readySince > 900) {
         if (!live.on) camCountdown();
-        else if (!live.meReady && live.conn) { live.meReady = true; liveSend({ t: 'ready' }); renderLiveBar(); liveMaybeGo(); }
+        else if (!live.meReady && live.conn) { live.meReady = true; liveSend({ t: 'ready', v: true }); renderLiveBar(); }
       }
     } else cam.readySince = 0;
     return;
@@ -3219,6 +3335,15 @@ function camFinish() {
     if (cam.queue.length === 1 && !live.on) cam.lines.push(`<span class="cam-quote">“${esc(nextQuote())}”</span>`);
     save();
   }
+  cam.rankLine = '';
+  if (cam.turn === 0 && n > 0 && net.isOnline()) {
+    const cid = c.id;
+    ensureAccount().then(() => net.sendScore(cid, n, cam.w, unit())).then((r) => {
+      if (!r || !r.mine || cam.c !== c) return;
+      cam.rankLine = t('vsRankPos', { pos: r.mine.pos, total: r.total });
+      if (cam.phase === 'done') renderCamHud();
+    }).catch(() => {});
+  }
   cam.phase = 'done';
   if (cam.rec) cam.rec.stopAt = Date.now() + 1800;
   renderCamHud();
@@ -3277,12 +3402,14 @@ function renderCamHud() {
     const r = cam.last, more = cam.turn + 1 < cam.queue.length, R = cam.rec;
     let liveLine = '';
     if (live.on) {
-      liveLine = !live.rres ? `<p>${t('vsWaitDone', { name: esc(live.rname || t('vsFriend')) })}</p>`
-        : `<b class="vs-rec">${r.n > live.rres.n ? t('vsYouWin') : r.n === live.rres.n ? t('vsTie') : t('vsYouLose', { name: esc(live.rres.p) })}</b><p>${esc(r.p)} ${esc(fmtScore(c, r.n))} · ${esc(live.rres.p)} ${esc(fmtScore(c, live.rres.n))}</p>`;
+      const top = live.rres;
+      const tie = top && top[1] && top[0].n === top[1].n;
+      liveLine = !top ? `<p>${t('vsWaitAll')}</p>` : top.length < 2 ? ''
+        : `<b class="vs-rec">${tie ? t('vsTie') : top[0].me ? t('vsYouWin') : t('vsYouLose', { name: esc(top[0].p) })}</b><ol class="pod">${top.map((x, i) => `<li${x.me ? ' class="me"' : ''}><span>${i + 1}</span><span class="grow">${esc(x.p)}</span><b>${esc(fmtScore(c, x.n))}</b></li>`).join('')}</ol>`;
     }
     const vid = R ? (R.url ? `<video class="cam-vid" src="${R.url}" playsinline muted loop autoplay></video><div class="split"><button class="btn" data-cam="vid-save">${I.down}${t('vsSaveVid')}</button><button class="btn" data-cam="vid-share">${I.share}${t('vsShareVid')}</button></div>` : `<p class="muted small">${t('vsVidPrep')}</p>`) : '';
     mid = `<div class="cam-center cam-res">${duel ? `<span class="eyebrow">${esc(r.p)}</span>` : ''}<b class="cam-n">${esc(fmtScore(c, r.n))}</b><small class="cam-unit">${t(c.mode === 'hold' ? 'vsSeconds' : 'vsReps')}</small>
-      <span class="vs-cam">${I.camera}${t('vsCamCounted')}</span>${cam.lines.map((l) => `<p>${l}</p>`).join('')}${liveLine}${vid}</div>`;
+      <span class="vs-cam">${I.camera}${t('vsCamCounted')}</span>${cam.lines.map((l) => `<p>${l}</p>`).join('')}${cam.rankLine ? `<p class="vs-rankline">${I.trophy}${esc(cam.rankLine)}</p>` : ''}${liveLine}${vid}</div>`;
     foot = duel ? (more ? `<button class="btn btn-primary btn-block" data-cam="next">${t('vsNext', { name: esc(cam.queue[cam.turn + 1]) })}</button>` : `<button class="btn btn-primary btn-block" data-cam="podium">${I.trophy}${t('vsSeeWinner')}</button>`)
       : live.on ? `${live.host && live.conn && live.rres ? `<button class="btn btn-primary btn-block" data-cam="rematch">${I.repeat}${t('vsRematch')}</button>` : ''}<button class="btn btn-block" data-cam="close">${t('vsDone')}</button>`
         : `<button class="btn btn-primary btn-block" data-cam="share">${I.share}${t('vsShare')}</button><div class="split"><button class="btn" data-cam="again">${I.repeat}${t('vsAgain')}</button><button class="btn" data-cam="close">${t('vsDone')}</button></div>`;
@@ -3305,13 +3432,13 @@ async function onCamClick(e) {
   else if (k === 'go') {
     if (cam.phase !== 'place') return;
     cam.readySince = 0;
-    if (live.on) { if (live.host && live.conn) { liveSend({ t: 'go' }); camCountdown(); } } else camCountdown();
+    if (live.on) { if (live.host && live.conn) liveSend({ t: 'go' }); } else camCountdown();
   }
   else if (k === 'stop') camFinish();
   else if (k === 'next') { cam.turn++; recDrop(); cam.phase = 'turn'; renderCamHud(); }
   else if (k === 'podium') camPodium();
   else if (k === 'rematch') {
-    if (live.on) { liveSend({ t: 'again' }); liveReset(true); camPrepare(); return; }
+    if (live.on) { liveSend({ t: 'again' }); return; }
     Object.assign(cam, { turn: 0, results: [] });
     recDrop();
     cam.phase = 'turn';
@@ -3344,6 +3471,9 @@ VIEWS.vs = vsView;
 // ---------- Start ----------
 // Installable app that also works without internet (sw.js). Only on the real site, not while developing.
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+if (S.acct) net.setAccount(S.acct);
+setTimeout(autoBackup, 4000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') autoBackup(); });
 runSplash();
 if (!S.profile) showOnboard();
 else {

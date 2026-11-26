@@ -529,7 +529,7 @@ export function coachReply(raw, c) {
       const lines = JOINTS.filter(([keys]) => keys.some((k) => has(q, norm(k)))).map((j) => (es ? j[2] : j[1]));
       if (lines.length) text += `\n\n${lines.join('\n')}`;
     }
-    return { text, acts: [], link: urgent.k.link };
+    return { text, acts: [], link: urgent.k.link, urgent: true, sure: true };
   }
   if (hits(q, MOTIV) && (!top || top.s < 2)) {
     return { text: `${c.quote()}\n\n${say('Do just the first exercise. If you still want to stop after that, stop. You almost never will.', 'Haz solo el primer ejercicio. Si después de eso todavía quieres parar, para. Casi nunca vas a querer.')}`, acts: [{ act: 'go', v: 'home', label: say("Today's workout", 'Entreno de hoy') }] };
@@ -557,7 +557,7 @@ export function coachReply(raw, c) {
     const mine = b ? `\n${ex.bw ? say(`Your best: ${b} reps.`, `Tu mejor marca: ${b} repeticiones.`) : say(`Your estimated max: ${c.fmtW(b)} ${c.unit}.`, `Tu máximo estimado: ${c.fmtW(b)} ${c.unit}.`)}` : '';
     return {
       text: `${say('How to do', 'Así se hace')} ${nm}:\n${steps(x.steps)}${miss}${tip}${mine}`,
-      acts: [{ act: ex ? 'ex' : 'lesson', v: x.id, label: say('Watch the animation', 'Ver la animación') }],
+      acts: [{ act: ex ? 'ex' : 'lesson', v: x.id, label: say('Watch the animation', 'Ver la animación') }], sure: true,
     };
   }
 
@@ -568,7 +568,7 @@ export function coachReply(raw, c) {
       if (!list.length) break;
       return {
         text: `${say('Good exercises for that', 'Buenos ejercicios para eso')}:\n${list.map((x) => '• ' + x.names[es ? 1 : 0]).join('\n')}\n\n${say('Pick 2 or 3, do 3 or 4 sets each, twice a week, and add a little weight or reps each time.', 'Elige 2 o 3, haz 3 o 4 series de cada uno, 2 veces por semana, y súbele un poco de peso o repeticiones cada vez.')}${c.lagGroup === g ? say('\nThis is your muscle with the most room to grow: good choice.', '\nEste es tu músculo con más por crecer: buena elección.') : ''}`,
-        acts: list.slice(0, 3).map((x) => ({ act: 'ex', v: x.id, label: x.names[es ? 1 : 0] })),
+        acts: list.slice(0, 3).map((x) => ({ act: 'ex', v: x.id, label: x.names[es ? 1 : 0] })), sure: true,
       };
     }
   }
@@ -579,7 +579,7 @@ export function coachReply(raw, c) {
     // A second topic that also fits: offer it as a button.
     const second = ranked.find((x) => x.k !== k && x.k.q && x.s >= 1 && !x.k.priority);
     if (second && acts.length < 3) acts.push(ask(second.k, es));
-    return { text: k.a(cx), acts, link: k.link };
+    return { text: k.a(cx), acts, link: k.link, sure: true };
   }
 
   // Not sure: say so, and offer the closest topics instead of guessing.

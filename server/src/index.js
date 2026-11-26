@@ -119,6 +119,17 @@ async function route(req, env, cors) {
     await env.DB.prepare('UPDATE users SET name = ? WHERE id = ?').bind(name, me.id).run();
     return json({ ...me, name }, 200, cors);
   }
+  // Delete the account and everything linked to it (app stores require this to be possible from the app).
+  if (p === '/v1/me' && m === 'DELETE') {
+    await env.DB.batch([
+      env.DB.prepare('DELETE FROM friends WHERE a = ? OR b = ?').bind(me.id, me.id),
+      env.DB.prepare('DELETE FROM scores WHERE user_id = ?').bind(me.id),
+      env.DB.prepare('DELETE FROM backups WHERE user_id = ?').bind(me.id),
+      env.DB.prepare('DELETE FROM usage WHERE who = ?').bind(me.id),
+      env.DB.prepare('DELETE FROM users WHERE id = ?').bind(me.id),
+    ]);
+    return json({ ok: true }, 200, cors);
+  }
   if (p === '/v1/friends' && m === 'GET') {
     const rows = await env.DB.prepare('SELECT u.id, u.name, u.code FROM friends f JOIN users u ON u.id = f.b WHERE f.a = ? ORDER BY u.name').bind(me.id).all();
     return json({ friends: rows.results }, 200, cors);
