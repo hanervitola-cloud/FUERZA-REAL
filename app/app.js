@@ -487,6 +487,7 @@ function render() {
     : `<button class="tab" type="button" data-act="go" data-v="${id}" ${current === id ? 'aria-current="page"' : ''}>${icon}<span>${t(label)}</span></button>`).join('');
   $('#main').innerHTML = `<div class="view v-${current}">${VIEWS[current]()}</div>`;
   window.scrollTo(0, 0);
+  if (current === 'rank' && progTab === 'body') loadPhotos();
   if (current === 'rank') { mountAvatar(); const cur = $('#rankLadder .cur'); if (cur) cur.parentElement.scrollLeft = Math.max(0, cur.offsetLeft - 70); }
 }
 
@@ -550,12 +551,16 @@ const VIEWS = {
             <svg class="ring" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" class="ring-bg"/><circle cx="32" cy="32" r="27" class="ring-fg" stroke-dasharray="169.6" stroke-dashoffset="${(169.6 * (1 - p)).toFixed(1)}"/><text x="32" y="38" text-anchor="middle">${sc.total}</text></svg>
             <span><span class="eyebrow">${t('yourRank')}</span><b>${esc(RANKS[r].name)}</b><small>${next ? t('pointsTo', { n: next.at - sc.total, rank: esc(next.name) }) : t('topRank')}</small></span>
           </button>
+          ${levelPill()}
         </div>
         <img class="hero-img" src="${avatarSrc(r)}" alt="">
         <button class="icon-btn hero-chat" data-act="go" data-v="coach" aria-label="${t('coachTitle')}">${I.chat}</button>
         <button class="icon-btn hero-me" data-act="go" data-v="me" aria-label="${t('tabMe')}">${I.me}</button>
       </section>
       ${today}
+      ${weekCard()}
+      ${missionsCard()}
+      ${foodCard()}
       ${coachCard(r)}
       ${vsHomeCard()}
       ${homeTiles(thisWeek)}`;
@@ -1099,6 +1104,10 @@ function finishWorkout() {
   save();
   const after = computeScore();
   const prs = w.exercises.filter((ex) => { const old = bestFor(ex.id, prevWorkouts); return old > 0 && bestFor(ex.id, [w]) > old; });
+  const xp0 = xpTotal();
+  grow('workout', 1, true);
+  if (prs.length) grow('pr', prs.length, true);
+  const xpGain = xpTotal() - xp0, lvNow = levelOf(xpTotal());
   const muscles = [...new Set(w.exercises.flatMap((ex) => EXERCISES[ex.id].muscles))];
   const vol = workVolume(w);
   const rb = rankIndex(before.total), ra = rankIndex(after.total);
@@ -1113,6 +1122,7 @@ function finishWorkout() {
     <p class="muted">${esc(histName(w))} · ${fmtDate(w.date)}</p>
     <div class="sum-stats"><div><b>${Math.max(1, Math.round(w.dur / 60))}</b><span>${t(Math.round(w.dur / 60) <= 1 ? 'minute' : 'minutes')}</span></div><div><b>${w.exercises.reduce((sum, e) => sum + e.sets.length, 0)}</b><span>${t('setsWord')}</span></div>${vol.kg ? `<div><b>${fmtN(toDisp(vol.kg))}</b><span>${t('lifted', { u: unit() })}</span></div>` : `<div><b>${vol.reps}</b><span>${t('repsWord')}</span></div>`}</div>
     ${funLine(vol.moved, vol.est)}
+    <p class="xp-gain">${I.flame}<b>+${xpGain} XP</b><span>${t('lvlN', { n: lvNow.L })} · ${lvNow.into}/${lvNow.need}</span></p>
     <p class="sum-quote">“${esc(nextQuote())}”</p>
     ${ra > rb ? `<div class="rankup" style="--c:${RANKS[ra].color}"><span class="eyebrow">${t('rankUp')}</span><b>${esc(RANKS[ra].name)}</b><span class="muted small">${esc(rankLine(ra, RANKS[ra]))}</span></div>` : ''}
     <h3>${t('prs')}</h3>${prs.length ? `<ul>${prs.map((ex) => `<li><b>${esc(exName(ex.id))}</b>: ${t('newBest')}</li>`).join('')}</ul>` : `<p class="muted small">${t('noPrs')}</p>`}
@@ -1466,7 +1476,7 @@ function addChallenge(v) {
   if (el) el.outerHTML = challengeCard();
   const ht = $('.home-tiles');
   if (ht) ht.outerHTML = homeTiles();
-  if (n >= c.goal && c.n < c.goal) { confetti(60); vibrate([40, 30, 80]); toast(t('chToast')); } else if (v > 0) vibrate(12);
+  if (n >= c.goal && c.n < c.goal) { confetti(60); vibrate([40, 30, 80]); toast(t('chToast')); grow('daily', 1, true); } else if (v > 0) vibrate(12);
 }
 
 // ---------- Plate calculator and 1-rep max ----------
@@ -1600,6 +1610,7 @@ function logWeight(kg) {
   if (last && dayKey(last.d) === dayKey(Date.now())) { last.kg = kg; last.d = Date.now(); } else log.push({ d: Date.now(), kg });
   S.profile.bw = kg;
   save();
+  grow('weigh', 1, true);
 }
 function bodyHtml() {
   const log = bodyLog(), cur = S.profile.bw || 0, first = log[0];
@@ -1613,7 +1624,8 @@ function bodyHtml() {
       <div class="bw-add"><input type="number" inputmode="decimal" id="bwIn" placeholder="${fmtW(cur)}" aria-label="${t('bodyweight', { u: unit() })}"><button class="btn btn-primary" data-act="bw-add">${t('saveWeight')}</button></div>
     </section>
     ${log.length ? `<section class="card list-card">${[...log].reverse().slice(0, 8).map((e) => `<div class="hist"><span>${fmtDate(e.d)}</span><b>${fmtW(e.kg)} ${unit()}</b></div>`).join('')}</section>` : ''}
-    <p class="muted small empty">${t('bwNote')}</p>`;
+    <p class="muted small empty">${t('bwNote')}</p>
+    ${photosHtml()}`;
 }
 
 // ---------- Plans ----------
@@ -2131,6 +2143,7 @@ function coachAsk(text) {
   if (!text || coachBusy) return;
   S.chat = [...(S.chat || []), { me: true, text }].slice(-60);
   save();
+  grow('coach', 1, true);
   const box = $('#chat');
   if (!box) return;
   box.innerHTML = chatHtml() + '<div class="msg bot typing"><p><i></i><i></i><i></i></p></div>';
@@ -2413,6 +2426,17 @@ document.addEventListener('click', (e) => {
   const k = b.dataset.act, v = b.dataset.v;
   if (k === 'go') { if (v === 'sports') sportSel = null; if (v === 'home') curQuote = null; go(v); }
   else if (k === 'coach-ask') coachAsk(v);
+  else if (k === 'missions') showMissions();
+  else if (k === 'food-add') addFood(+v);
+  else if (k === 'food-pick') { const f = FOODS.find((x) => x[0] === v); if (f) { addFood(f[1], v); toast(`+${f[1]} g · ${t('food_' + v)}`); } }
+  else if (k === 'water-add') addWater(+v);
+  else if (k === 'food-list') showFoods();
+  else if (k === 'week-hide') { const L = lastWeek(); if (L) { S.weekSeen = L.key; save(); } const el = $('#weekCard'); if (el) el.remove(); }
+  else if (k === 'week-share') shareWeek();
+  else if (k === 'photo-add') { const f = $('#photoFile'); if (f) f.click(); }
+  else if (k === 'photo-view') showPhoto(v);
+  else if (k === 'photo-del') confirmSheet(t('photosDelete'), t('photosDeleteP'), t('photosDelete'), () => { idbDel(v).then(loadPhotos); }, true);
+  else if (k === 'photo-compare') comparePhotos();
   else if (k.startsWith('acct-') || k.startsWith('backup-') || k.startsWith('friend')) {
     if (k === 'friend-del') { net.removeFriend(v).then(() => acctAction('friends')).catch(() => toast(t('vsNeedNet'))); } else acctAction(k);
   }
@@ -2495,7 +2519,7 @@ document.addEventListener('click', (e) => {
   else if (k === 'ch-open') showChallenge();
   else if (k === 'lesson-done') {
     S.lessonsDone = S.lessonsDone || {};
-    if (S.lessonsDone[v]) delete S.lessonsDone[v]; else { S.lessonsDone[v] = Date.now(); vibrate(30); }
+    if (S.lessonsDone[v]) delete S.lessonsDone[v]; else { S.lessonsDone[v] = Date.now(); vibrate(30); grow('lesson', 1, true); }
     save();
     const on = !!S.lessonsDone[v];
     b.classList.toggle('on', on);
@@ -2552,6 +2576,7 @@ document.getElementById('sheet').addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#sheet').hidden) dismissSheet(); });
 document.addEventListener('change', (e) => {
   if (e.target.id === 'importFile') { importData(e.target.files[0]); return; }
+  if (e.target.id === 'photoFile') { addPhoto(e.target.files[0]); e.target.value = ''; return; }
   const f = e.target.dataset && e.target.dataset.field;
   if (!f) return;
   const val = e.target.value;
@@ -2626,6 +2651,232 @@ function loadDemo() {
   });
   S.workouts = [...S.workouts.filter((w) => !String(w.id).startsWith('demo')), ...made].sort((x, y) => x.date - y.date);
   save();
+}
+
+// ---------- Missions, XP and levels: small daily and weekly goals that bring you back ----------
+// Everything you do gives XP; three daily missions and three weekly missions give extra. Levels never go down.
+const XP_FOR = { workout: 50, pr: 25, camera: 20, goal: 25, lesson: 15, daily: 20, weigh: 10, coach: 5, protein: 15, water: 10, photo: 15 };
+const XP_ONCE = new Set(['weigh', 'coach', 'protein', 'water']); // these give XP once a day
+const MIS_D = [['d-train', 'workout', 1, 40], ['d-daily', 'daily', 1, 25], ['d-camera', 'camera', 1, 30], ['d-lesson', 'lesson', 1, 20],
+  ['d-protein', 'protein', 1, 25], ['d-water', 'water', 1, 20], ['d-coach', 'coach', 1, 15], ['d-weigh', 'weigh', 1, 15]];
+const MIS_W = [['w-days', 'workout', 0, 150], ['w-pr', 'pr', 1, 80], ['w-camera', 'camera', 3, 90], ['w-goal', 'goal', 1, 70], ['w-daily', 'daily', 4, 100], ['w-photo', 'photo', 1, 50]];
+const lvlAt = (L) => 50 * L * (L - 1);
+function levelOf(xp) { let L = 1; while (xp >= lvlAt(L + 1)) L++; return { L, into: xp - lvlAt(L), need: lvlAt(L + 1) - lvlAt(L) }; }
+const xpData = () => { if (!S.xp) S.xp = { total: 0, weeks: {}, once: {} }; return S.xp; };
+const xpTotal = () => xpData().total;
+// The same three missions all day for everyone with the same day (a seeded shuffle), different each day.
+function seeded(list, seed, k) {
+  const a = list.slice();
+  let x = seed % 2147483647 || 1;
+  for (let i = a.length - 1; i > 0; i--) { x = (x * 16807) % 2147483647; const j = x % (i + 1); [a[i], a[j]] = [a[j], a[i]]; }
+  return a.slice(0, k);
+}
+function missions() {
+  const day = dayKey(Date.now()), wk = dayKey(weekStart(Date.now()));
+  if (!S.mis || S.mis.day !== day) {
+    const rest = seeded(MIS_D.filter((m) => m[0] !== 'd-train'), todayIdx() * 7 + 3, 2);
+    S.mis = { ...(S.mis || {}), day, d: [MIS_D[0], ...rest].map((m) => ({ id: m[0], c: 0 })) };
+  }
+  if (S.mis.week !== wk) {
+    const rest = seeded(MIS_W.slice(1), Math.floor(todayIdx() / 7) * 13 + 5, 2);
+    S.mis.week = wk;
+    S.mis.w = [MIS_W[0], ...rest].map((m) => ({ id: m[0], c: 0 }));
+  }
+  return S.mis;
+}
+const misDef = (id) => MIS_D.find((m) => m[0] === id) || MIS_W.find((m) => m[0] === id);
+const misNeed = (def) => (def[2] || S.profile.days || 3);
+function misText(id) { const d = misDef(id); return t('m_' + id, { n: misNeed(d) }); }
+// Something happened: give XP, move missions forward, celebrate a mission or a new level.
+function grow(ev, count = 1, quiet) {
+  const X = xpData(), day = dayKey(Date.now());
+  if (XP_ONCE.has(ev)) {
+    if (X.once.day !== day) X.once = { day, list: [] };
+    if (X.once.list.includes(ev)) return;
+    X.once.list.push(ev);
+  }
+  const before = levelOf(X.total).L;
+  let gain = (XP_FOR[ev] || 0) * count;
+  const M = missions(), done = [];
+  for (const m of [...M.d, ...M.w]) {
+    const def = misDef(m.id);
+    if (!def || def[1] !== ev) continue;
+    const need = misNeed(def);
+    if (m.c >= need) continue;
+    m.c = Math.min(need, m.c + count);
+    if (m.c >= need) { gain += def[3]; done.push(m.id); }
+  }
+  X.total += gain;
+  const wk = dayKey(weekStart(Date.now()));
+  X.weeks[wk] = (X.weeks[wk] || 0) + gain;
+  const ks = Object.keys(X.weeks).sort();
+  for (const k of ks.slice(0, Math.max(0, ks.length - 12))) delete X.weeks[k];
+  save();
+  const after = levelOf(X.total).L;
+  if (after > before) { setTimeout(() => { toast(t('lvlUp', { n: after })); confetti(70); vibrate([50, 40, 90]); }, quiet ? 1200 : 0); }
+  else if (done.length) { setTimeout(() => { toast(t('misDone', { m: misText(done[0]), xp: misDef(done[0])[3] })); confetti(35); }, quiet ? 1200 : 0); }
+  else if (!quiet && gain) toast(`+${gain} XP`);
+  const mc = $('#misCard');
+  if (mc) mc.outerHTML = missionsCard();
+  const lp = $('#lvlPill');
+  if (lp) lp.outerHTML = levelPill();
+}
+function levelPill() {
+  const lv = levelOf(xpTotal());
+  return `<button class="lvl-pill" id="lvlPill" data-act="missions"><b>${t('lvlN', { n: lv.L })}</b><span class="lvl-bar"><i style="width:${Math.round((lv.into / lv.need) * 100)}%"></i></span><small>${lv.into}/${lv.need} XP</small></button>`;
+}
+function missionsCard() {
+  const M = missions();
+  const row = (m) => { const d = misDef(m.id), need = misNeed(d), ok = m.c >= need; return `<li class="${ok ? 'ok' : ''}"><i>${ok ? I.check : ''}</i><span class="grow">${esc(misText(m.id))}${need > 1 && !ok ? ` <small>${m.c}/${need}</small>` : ''}</span><em>+${d[3]}</em></li>`; };
+  return `<section class="card mis-card" id="misCard"><div class="card-head"><span class="eyebrow">${t('misToday')}</span><button class="link small" data-act="missions">${t('misWeekly')}</button></div><ul class="mis-list">${M.d.map(row).join('')}</ul></section>`;
+}
+function showMissions() {
+  const M = missions(), lv = levelOf(xpTotal());
+  const row = (m) => { const d = misDef(m.id), need = misNeed(d), ok = m.c >= need; return `<li class="${ok ? 'ok' : ''}"><i>${ok ? I.check : ''}</i><span class="grow">${esc(misText(m.id))}${need > 1 ? ` <small>${Math.min(m.c, need)}/${need}</small>` : ''}</span><em>+${d[3]}</em></li>`; };
+  openSheet(`<span class="eyebrow">${t('misTitle')}</span>
+    <div class="lvl-big"><b>${lv.L}</b><span><small>${t('lvlWord')}</small><span class="lvl-bar"><i style="width:${Math.round((lv.into / lv.need) * 100)}%"></i></span><small>${t('lvlNext', { n: lv.need - lv.into, l: lv.L + 1 })}</small></span></div>
+    <h3>${t('misToday')}</h3><ul class="mis-list">${M.d.map(row).join('')}</ul>
+    <h3>${t('misWeekly')}</h3><ul class="mis-list">${M.w.map(row).join('')}</ul>
+    <h3>${t('xpHow')}</h3><ul class="xp-how">${['workout', 'pr', 'camera', 'goal', 'daily', 'lesson', 'protein', 'water', 'photo', 'weigh'].map((k) => `<li><span>${t('xp_' + k)}</span><b>+${XP_FOR[k]}</b></li>`).join('')}</ul>`);
+}
+
+// ---------- Protein and water today ----------
+const FOODS = [['egg', 6], ['eggs2', 12], ['chicken', 31], ['beef', 26], ['tuna', 25], ['fish', 22], ['milk', 8], ['yogurt', 15], ['cheese', 7], ['beans', 15], ['shake', 24], ['tofu', 12], ['peanut', 7]];
+const proteinTarget = () => Math.round((S.profile.bw || 70) * (S.profile.goal === 'fat' ? 2.0 : 1.8) / 5) * 5;
+const waterTarget = () => Math.max(6, Math.ceil(((S.profile.bw || 70) * 0.035) / 0.25));
+function foodToday() { const k = dayKey(Date.now()); S.food = S.food || {}; if (!S.food[k]) S.food[k] = { p: 0, w: 0, log: [] }; return S.food[k]; }
+function foodCard() {
+  const f = foodToday(), pt = proteinTarget(), wt = waterTarget();
+  const pp = Math.min(1, f.p / pt), wp = Math.min(1, f.w / wt);
+  return `<section class="card food-card" id="foodCard"><div class="card-head"><span class="eyebrow">${t('foodToday')}</span><button class="link small" data-act="food-list">${t('foodMore')}</button></div>
+    <div class="food-row"><span class="food-ic">${I.flame}</span><span class="grow"><b>${t('foodProtein')}</b><span class="bar sm"><i style="width:${pp * 100}%"></i></span><small>${f.p} / ${pt} g${f.p >= pt ? ' · ✓' : ''}</small></span>
+      <span class="food-btns">${[10, 20, 30].map((g) => `<button class="btn btn-sm" data-act="food-add" data-v="${g}">+${g}</button>`).join('')}</span></div>
+    <div class="food-row"><span class="food-ic water">💧</span><span class="grow"><b>${t('foodWater')}</b><span class="bar sm"><i style="width:${wp * 100}%;background:#5AA7E6"></i></span><small>${t('foodGlasses', { n: f.w, t: wt })}${f.w >= wt ? ' · ✓' : ''}</small></span>
+      <span class="food-btns"><button class="btn btn-sm" data-act="water-add" data-v="1">+1 ${t('foodGlass')}</button></span></div>
+  </section>`;
+}
+function refreshFood() { const el = $('#foodCard'); if (el) el.outerHTML = foodCard(); const sh = $('#foodSheet'); if (sh) showFoods(); }
+function addFood(g, label) {
+  const f = foodToday(), pt = proteinTarget(), was = f.p;
+  f.p = Math.max(0, Math.min(400, f.p + g));
+  if (g > 0) f.log = [...(f.log || []), [label || '', g]].slice(-30);
+  const ks = Object.keys(S.food).sort();
+  for (const k of ks.slice(0, Math.max(0, ks.length - 30))) delete S.food[k];
+  save();
+  if (was < pt && f.p >= pt) { toast(t('foodProteinDone')); grow('protein', 1, true); vibrate([30, 20, 60]); } else if (g > 0) vibrate(10);
+  refreshFood();
+}
+function addWater(n) {
+  const f = foodToday(), wt = waterTarget(), was = f.w;
+  f.w = Math.max(0, Math.min(30, f.w + n));
+  save();
+  if (was < wt && f.w >= wt) { toast(t('foodWaterDone')); grow('water', 1, true); }
+  refreshFood();
+}
+function showFoods() {
+  const f = foodToday();
+  const html = `<span class="eyebrow">${t('foodToday')}</span><h2 style="margin-top:6px">${t('foodProtein')}: ${f.p} / ${proteinTarget()} g</h2><p class="muted small" style="margin:4px 0 12px">${t('foodHint', { n: proteinTarget() })}</p>
+    <div class="food-grid">${FOODS.map(([k, g]) => `<button class="food-item" data-act="food-pick" data-v="${k}"><b>${t('food_' + k)}</b><small>${g} g</small></button>`).join('')}</div>
+    <div class="split" style="margin-top:14px"><button class="btn btn-sm" data-act="food-add" data-v="-10">−10 g</button><button class="btn btn-sm" data-act="water-add" data-v="-1">−1 ${t('foodGlass')}</button></div>`;
+  const box = $('#foodSheet');
+  if (box && !$('#sheet').hidden) box.innerHTML = html; else openSheet(`<div id="foodSheet">${html}</div>`);
+}
+
+// ---------- Progress photos (only on this phone, in its own storage) ----------
+let photoDb = null;
+function photoStore(mode) {
+  if (!photoDb) {
+    photoDb = new Promise((res, rej) => {
+      const r = indexedDB.open('es-photos', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('photos', { keyPath: 'id' });
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+  }
+  return photoDb.then((db) => db.transaction('photos', mode).objectStore('photos'));
+}
+const idbAll = () => photoStore('readonly').then((st) => new Promise((res, rej) => { const q = st.getAll(); q.onsuccess = () => res(q.result.sort((a, b) => b.at - a.at)); q.onerror = () => rej(q.error); }));
+const idbPut = (v) => photoStore('readwrite').then((st) => new Promise((res, rej) => { const q = st.put(v); q.onsuccess = () => res(); q.onerror = () => rej(q.error); }));
+const idbDel = (id) => photoStore('readwrite').then((st) => new Promise((res, rej) => { const q = st.delete(id); q.onsuccess = () => res(); q.onerror = () => rej(q.error); }));
+const photoUrls = new Map();
+const photoUrl = (p) => { if (!photoUrls.has(p.id)) photoUrls.set(p.id, URL.createObjectURL(p.blob)); return photoUrls.get(p.id); };
+function photosHtml() {
+  return `<div class="section-title"><span class="eyebrow">${t('photosTitle')}</span><button class="link small" data-act="photo-compare" id="photoCmpBtn" hidden>${t('photosCompare')}</button></div>
+    <section class="card photos-card"><div class="photo-grid" id="photoGrid"><button class="photo-add" data-act="photo-add">${I.plus}<span>${t('photosAdd')}</span></button></div>
+    <p class="muted small">${t('photosNote')}</p><input type="file" id="photoFile" accept="image/*" hidden></section>`;
+}
+async function loadPhotos() {
+  try {
+    const list = await idbAll();
+    const g = $('#photoGrid');
+    if (!g) return;
+    g.innerHTML = `<button class="photo-add" data-act="photo-add">${I.plus}<span>${t('photosAdd')}</span></button>` + list.map((p) => `<button class="photo-th" data-act="photo-view" data-v="${esc(p.id)}"><img src="${photoUrl(p)}" alt=""><small>${fmtDate(p.at)}</small></button>`).join('');
+    const b = $('#photoCmpBtn');
+    if (b) b.hidden = list.length < 2;
+  } catch (e) { /* this browser keeps no photos */ }
+}
+async function addPhoto(file) {
+  if (!file) return;
+  try {
+    const img = await createImageBitmap(file);
+    const k = Math.min(1, 1280 / Math.max(img.width, img.height));
+    const cv = document.createElement('canvas');
+    cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+    cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+    const blob = await new Promise((res) => cv.toBlob(res, 'image/jpeg', 0.82));
+    await idbPut({ id: Date.now().toString(36), at: Date.now(), kg: S.profile.bw || 0, blob });
+    grow('photo', 1, true);
+    toast(t('photosSaved'));
+    loadPhotos();
+  } catch (e) { toast(t('photosFail')); }
+}
+async function showPhoto(id) {
+  const p = (await idbAll()).find((x) => x.id === id);
+  if (!p) return;
+  openSheet(`<span class="eyebrow">${t('photosTitle')}</span><h2 style="margin-top:6px">${fmtDate(p.at)}</h2>${p.kg ? `<p class="muted">${fmtW(p.kg)} ${unit()}</p>` : ''}
+    <img class="photo-big" src="${photoUrl(p)}" alt=""><button class="btn btn-block" style="margin-top:12px;color:var(--red-2)" data-act="photo-del" data-v="${esc(p.id)}">${I.trash}${t('photosDelete')}</button>`);
+}
+async function comparePhotos() {
+  const list = await idbAll();
+  if (list.length < 2) return;
+  const a = list[list.length - 1], b = list[0];
+  const days = Math.round((b.at - a.at) / DAY);
+  openSheet(`<span class="eyebrow">${t('photosCompare')}</span><h2 style="margin-top:6px">${t('photosDays', { n: days })}</h2>
+    <div class="cmp" id="cmpBox"><img src="${photoUrl(a)}" alt=""><div class="cmp-top" id="cmpTop"><img src="${photoUrl(b)}" alt=""></div><input type="range" min="0" max="100" value="50" id="cmpRange" aria-label="${t('photosCompare')}"></div>
+    <div class="cmp-labels"><span>${fmtDate(a.at)}${a.kg ? ' · ' + fmtW(a.kg) + ' ' + unit() : ''}</span><span>${fmtDate(b.at)}${b.kg ? ' · ' + fmtW(b.kg) + ' ' + unit() : ''}</span></div>`);
+  sheetFn = () => { const r = $('#cmpRange'), top = $('#cmpTop'); if (r && top) top.style.clipPath = `inset(0 0 0 ${r.value}%)`; };
+  sheetFn();
+}
+
+// ---------- Last week in one card ----------
+function lastWeek() {
+  const end = weekStart(Date.now()), start = end - 7 * DAY;
+  const ws = S.workouts.filter((w) => w.date >= start && w.date < end && w.exercises);
+  if (!ws.length) return null;
+  const before = S.workouts.filter((w) => w.date < start);
+  let prs = 0;
+  const seen = new Set();
+  for (const w of ws) for (const ex of w.exercises) {
+    if (seen.has(ex.id)) continue;
+    const old = bestFor(ex.id, before), now = bestFor(ex.id, ws);
+    if (old > 0 && now > old) { prs++; seen.add(ex.id); }
+  }
+  return { key: dayKey(start), n: ws.length, sets: ws.reduce((a, w) => a + w.exercises.reduce((s, e) => s + e.sets.length, 0), 0), mins: Math.round(ws.reduce((a, w) => a + (w.dur || 0), 0) / 60), prs, xp: (xpData().weeks || {})[dayKey(start)] || 0 };
+}
+function weekCard() {
+  const day = (new Date().getDay() + 6) % 7;
+  if (day > 2) return '';
+  const L = lastWeek();
+  if (!L || (S.weekSeen === L.key)) return '';
+  return `<section class="card week-card" id="weekCard"><div class="card-head"><span class="eyebrow">${t('weekTitle')}</span><button class="icon-btn sm" data-act="week-hide" aria-label="${t('close')}">${I.close}</button></div>
+    <div class="week-stats"><div><b>${L.n}</b><small>${t('weekWorkouts')}</small></div><div><b>${L.sets}</b><small>${t('setsWord')}</small></div><div><b>${L.prs}</b><small>${t('weekPrs')}</small></div><div><b>${L.xp}</b><small>XP</small></div></div>
+    <p class="small muted">${t(L.n >= (S.profile.days || 3) ? 'weekGood' : 'weekPush', { n: L.n, g: S.profile.days || 3 })}</p>
+    <button class="btn btn-sm btn-block" data-act="week-share">${I.share}${t('share')}</button></section>`;
+}
+async function shareWeek() {
+  const L = lastWeek();
+  if (!L) return;
+  openShare(await makeCard({ eyebrow: t('weekTitle'), title: t('weekCardTitle'), stats: [[L.n, t('weekWorkouts')], [L.sets, t('setsWord')], [L.prs, t('weekPrs')]], r: rankIndex(computeScore().total) }));
 }
 
 // ---------- Compete: camera challenges between friends ----------
@@ -3315,6 +3566,8 @@ function camFinish() {
   if (live.on) liveSend({ t: 'done', n });
   // Personal records belong to the phone's owner: alone, live, or the first name in a duel.
   if (cam.turn === 0) {
+    grow('camera', 1, true);
+    if (cam.goal && n >= cam.goal) grow('goal', 1, true);
     const prev = D.best[c.id];
     if (n > 0 && (!prev || n > prev.n)) { D.best[c.id] = { n, cam: true, w: cam.w, at: Date.now() }; cam.lines.push(`<b class="vs-rec">${t('vsRecord')}</b>`); confetti(50); }
     else if (prev) cam.lines.push(t('vsPrev', { n: fmtScore(c, prev.n) }));
