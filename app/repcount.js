@@ -144,6 +144,60 @@ const RULES = {
     },
     start: (v) => v < 32, mid: (v) => v > 72, part: (v) => v > 50,
   },
+  // Bench press, incline press and skull crushers (lying, seen from the side): the elbow bends and straightens.
+  bench: { view: 'side', half: 'hDeeper', read: elbowSide(), start: (v) => v > 150, mid: (v) => v < 100, part: (v) => v < 130 },
+  // Deadlifts: the hips fold (shoulder-hip-knee closes) and open again until standing tall.
+  hinge: {
+    view: 'side', half: 'hDeeper',
+    read(lm, ar) {
+      const J = best(lm, ['s', 'h', 'k']);
+      if (!seen(lm, J, ['s', 'h', 'k'])) return null;
+      return { v: angle(lm, J.s, J.h, J.k, ar), ok: true };
+    },
+    start: (v) => v > 155, mid: (v) => v < 115, part: (v) => v < 138,
+  },
+  // Bent-over row: torso leaning forward, the elbow pulls the weight to the body.
+  row: {
+    view: 'side', half: 'hHigher',
+    read: elbowSide((lm, J, ar) => { const bent = tilt(lm, J.h, J.s, ar) < 55; return { ok: bent, hint: bent ? null : 'hBendOver' }; }),
+    start: (v) => v > 145, mid: (v) => v < 100, part: (v) => v < 125,
+  },
+  // Seated cable row: the same pull, sitting up.
+  pull: { view: 'side', half: 'hHigher', read: elbowSide(), start: (v) => v > 145, mid: (v) => v < 100, part: (v) => v < 125 },
+  // Triceps pushdown: starts bent, ends with the arm straight.
+  pushdown: { view: 'side', half: 'hFull', read: elbowSide(), start: (v) => v < 112, mid: (v) => v > 155, part: (v) => v > 135 },
+  // Leg press: knees come toward the chest and push back out.
+  legpress: {
+    view: 'side', half: 'hDeeper',
+    read(lm, ar) {
+      const J = best(lm, ['h', 'k', 'a']);
+      if (!seen(lm, J, ['h', 'k', 'a'])) return null;
+      return { v: angle(lm, J.h, J.k, J.a, ar), ok: true };
+    },
+    start: (v) => v > 148, mid: (v) => v < 100, part: (v) => v < 128,
+  },
+  // Leg extension (seated): from bent knees to straight legs.
+  legext: {
+    view: 'side', half: 'hFull',
+    read(lm, ar) {
+      const J = best(lm, ['h', 'k', 'a']);
+      if (!seen(lm, J, ['h', 'k', 'a'])) return null;
+      return { v: angle(lm, J.h, J.k, J.a, ar), ok: true };
+    },
+    start: (v) => v < 105, mid: (v) => v > 155, part: (v) => v > 135,
+  },
+  // Lat pulldown (from the front): the bar comes down past the chin and goes back up with straight arms.
+  pulldown: {
+    view: 'front', half: 'hDeeper',
+    read(lm, ar) {
+      const sides = both(lm, ['s', 'e', 'w']);
+      if (!sides.length || vis(lm, 0) < 0.5) return null;
+      const el = avg(sides.map((J) => angle(lm, J.s, J.e, J.w, ar)));
+      const wy = avg(sides.map((J) => lm[J.w].y));
+      return { v: el, down: wy > lm[0].y + 0.02, up: wy < lm[0].y - 0.05, ok: true };
+    },
+    phase: (m) => (m.down && m.v < 110 ? 'mid' : m.up && m.v > 140 ? 'start' : m.v < 125 ? 'part' : null),
+  },
   // Planks: time only counts while the body stays straight and close to the floor.
   plank: {
     view: 'side', hold: true,
@@ -171,14 +225,30 @@ export const CHALLENGES = [
   { id: 'cdmax', ex: 'chair-dip', rule: 'dip', mode: 'max', place: 'home' },
   { id: 'lrmax', ex: 'leg-raise', rule: 'legraise', mode: 'max', place: 'home' },
   { id: 'plank', ex: 'plank', rule: 'plank', mode: 'hold', place: 'home' },
+  // heavy: barbell lifts where the sheet reminds to use safeties or a spotter.
+  { id: 'bp', ex: 'bench-press', rule: 'bench', mode: 'max', place: 'gym', w: true, heavy: true },
+  { id: 'sqb', ex: 'squat', rule: 'squat', mode: 'max', place: 'gym', w: true, heavy: true },
+  { id: 'dl', ex: 'deadlift', rule: 'hinge', mode: 'max', place: 'gym', w: true, heavy: true },
   { id: 'pull', ex: 'pull-up', rule: 'pullup', mode: 'max', place: 'gym' },
   { id: 'chin', ex: 'chin-up', rule: 'pullup', mode: 'max', place: 'gym' },
   { id: 'dip', ex: 'parallel-dip', rule: 'dip', mode: 'max', place: 'gym' },
-  { id: 'hlr', ex: 'hanging-leg-raise', rule: 'legraise', mode: 'max', place: 'gym' },
+  { id: 'ibp', ex: 'incline-bench-press', rule: 'bench', mode: 'max', place: 'gym', w: true, heavy: true },
+  { id: 'ohp', ex: 'overhead-press', rule: 'press', mode: 'max', place: 'gym', w: true },
+  { id: 'row60', ex: 'barbell-row', rule: 'row', mode: 'time', secs: 60, place: 'gym', w: true },
+  { id: 'lpd60', ex: 'lat-pulldown', rule: 'pulldown', mode: 'time', secs: 60, place: 'gym', w: true },
+  { id: 'crow60', ex: 'cable-row', rule: 'pull', mode: 'time', secs: 60, place: 'gym', w: true },
+  { id: 'lp', ex: 'leg-press', rule: 'legpress', mode: 'max', place: 'gym', w: true },
+  { id: 'ht', ex: 'hip-thrust', rule: 'bridge', mode: 'max', place: 'gym', w: true },
+  { id: 'rdl60', ex: 'romanian-deadlift', rule: 'hinge', mode: 'time', secs: 60, place: 'gym', w: true },
+  { id: 'bss60', ex: 'bulgarian-split-squat', rule: 'lunge', mode: 'time', secs: 60, place: 'gym', w: true },
+  { id: 'gs60', ex: 'goblet-squat', rule: 'squat', mode: 'time', secs: 60, place: 'gym', w: true },
   { id: 'cu60', ex: 'barbell-curl', rule: 'curl', mode: 'time', secs: 60, place: 'gym', w: true },
   { id: 'sp60', ex: 'db-shoulder-press', rule: 'press', mode: 'time', secs: 60, place: 'gym', w: true },
   { id: 'lat60', ex: 'lateral-raise', rule: 'raise', mode: 'time', secs: 60, place: 'gym', w: true },
-  { id: 'gs60', ex: 'goblet-squat', rule: 'squat', mode: 'time', secs: 60, place: 'gym', w: true },
+  { id: 'tp60', ex: 'triceps-pushdown', rule: 'pushdown', mode: 'time', secs: 60, place: 'gym', w: true },
+  { id: 'sk60', ex: 'skull-crusher', rule: 'bench', mode: 'time', secs: 60, place: 'gym', w: true },
+  { id: 'le60', ex: 'leg-extension', rule: 'legext', mode: 'time', secs: 60, place: 'gym', w: true },
+  { id: 'hlr', ex: 'hanging-leg-raise', rule: 'legraise', mode: 'max', place: 'gym' },
 ];
 export const challengeById = (id) => CHALLENGES.find((c) => c.id === id);
 export const ruleOf = (c) => RULES[c.rule];

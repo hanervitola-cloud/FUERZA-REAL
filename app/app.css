@@ -1166,3 +1166,30 @@ button,.card-tap,.chip,.tab,.lib-item{-webkit-user-select:none;user-select:none;
 .cam-res .split .btn{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.18);color:#fff;padding:10px 8px;font-size:13.5px}
 .cam-res .btn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2}
 .cam-hud.ph-done .cam-center{justify-content:start;overflow-y:auto;padding-top:14px}
+
+/* Coach screen: the chat fills the screen and the input stays at the bottom without fixed positioning */
+.v-coach{display:flex;flex-direction:column;min-height:calc(100dvh - var(--tabs-h) - var(--safe-b) - 40px)}
+.v-coach .chat{flex:1;padding-bottom:6px}
+.chat-dock{position:sticky;bottom:calc(var(--tabs-h) + var(--safe-b) + 18px);z-index:21;display:grid;gap:10px;margin:0 -16px;padding:10px 16px 0;background:linear-gradient(180deg,transparent,rgba(0,0,0,.55) 30%)}
+.chat-dock .chat-quick{position:static;margin:0 -16px;padding:0 16px;max-width:none;bottom:auto}
+.chat-dock .chat-bar{position:static;max-width:none;margin:0;bottom:auto;left:auto;right:auto}
+
+/* Compete, round 3: personal goal and cheering */
+.vs-goal{display:flex;align-items:center;gap:10px}
+.vs-goal .vs-in{width:120px;text-align:center;font-family:var(--display);font-size:30px;height:54px}
+.vs-goal span{color:var(--muted);font-size:14px}
+.vs-goal-chips{margin-top:8px;flex-wrap:wrap}
+.vs-safe{display:flex;gap:8px;align-items:flex-start;margin:12px 0 0;padding:10px 12px;border-radius:12px;background:rgba(232,184,74,.1);border:.5px solid rgba(232,184,74,.35);font-size:13px;line-height:1.4}
+.vs-safe svg{width:17px;height:17px;flex:0 0 auto;stroke:#E8B84A;fill:none;stroke-width:2;margin-top:1px}
+.cam-goalbox{display:grid;justify-items:center;gap:5px;margin-top:10px;width:min(240px,62vw)}
+.cam-gbar{width:100%;height:8px;border-radius:99px;background:rgba(255,255,255,.18);overflow:hidden}
+.cam-gbar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#E2463B,#E8B84A);transition:width .3s}
+.cam-goalbox small{font-size:13px;font-weight:700;color:rgba(255,255,255,.88);text-shadow:0 1px 6px rgba(0,0,0,.7)}
+.cam-cheer{margin-top:14px;min-height:30px;font-size:22px;font-weight:900;color:#fff;text-align:center;text-shadow:0 2px 14px rgba(0,0,0,.85);opacity:0}
+.cam-cheer.show{animation:cheerIn 1.6s ease forwards}
+.cam-cheer.big{font-size:32px;color:#E8B84A}
+@keyframes cheerIn{0%{opacity:0;transform:scale(.7)}12%{opacity:1;transform:scale(1.08)}22%{transform:scale(1)}80%{opacity:1}100%{opacity:0}}
+.vs-goal-done{color:#8FE0AE;font-size:19px}
+.vs-goal-miss{color:#FFD08A;font-size:16px}
+.cam-quote{display:block;font-style:italic;color:rgba(255,255,255,.82);font-size:14.5px;line-height:1.45;max-width:300px}
+@media (prefers-reduced-motion:reduce){.cam-cheer.show{animation-duration:2.4s}}

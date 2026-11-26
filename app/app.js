@@ -484,7 +484,7 @@ function render() {
   $('#tabs').innerHTML = TABS.map(([id, label, icon]) => id === 'build'
     ? `<button class="tab tab-main" type="button" data-act="builder"><span class="tab-fab">${icon}</span><span>${t('fabLabel')}</span></button>`
     : `<button class="tab" type="button" data-act="go" data-v="${id}" ${current === id ? 'aria-current="page"' : ''}>${icon}<span>${t(label)}</span></button>`).join('');
-  $('#main').innerHTML = `<div class="view">${VIEWS[current]()}</div>`;
+  $('#main').innerHTML = `<div class="view v-${current}">${VIEWS[current]()}</div>`;
   window.scrollTo(0, 0);
   if (current === 'rank') { mountAvatar(); const cur = $('#rankLadder .cur'); if (cur) cur.parentElement.scrollLeft = Math.max(0, cur.offsetLeft - 70); }
 }
@@ -702,8 +702,8 @@ const VIEWS = {
       <span class="coach-av"><img src="${avatarSrc(r)}" alt=""><i></i></span><div class="grow"><h1 class="h2">${t('coachTitle')}</h1><p class="muted small">${t('coachOnline')}</p></div>
       ${(S.chat || []).length ? `<button class="link small" data-act="coach-clear">${t('coachClear')}</button>` : ''}</header>
       <div class="chat" id="chat">${chatHtml()}</div>
-      <div class="chat-quick">${QUICK.map((q) => `<button class="chip" data-act="coach-ask" data-v="${esc(q[getLang() === 'es' ? 3 : 2])}">${esc(q[getLang() === 'es' ? 1 : 0])}</button>`).join('')}</div>
-      <form class="chat-bar" id="chatForm" autocomplete="off"><input id="chatIn" type="text" enterkeyhint="send" maxlength="300" placeholder="${t('coachPlaceholder')}" aria-label="${t('coachPlaceholder')}"><button class="chat-send" type="submit" aria-label="${t('coachSend')}">${I.send}</button></form>`;
+      <div class="chat-dock"><div class="chat-quick">${QUICK.map((q) => `<button class="chip" data-act="coach-ask" data-v="${esc(q[getLang() === 'es' ? 3 : 2])}">${esc(q[getLang() === 'es' ? 1 : 0])}</button>`).join('')}</div>
+      <form class="chat-bar" id="chatForm" autocomplete="off"><input id="chatIn" type="text" enterkeyhint="send" maxlength="300" placeholder="${t('coachPlaceholder')}" aria-label="${t('coachPlaceholder')}"><button class="chat-send" type="submit" aria-label="${t('coachSend')}">${I.send}</button></form></div>`;
   },
 
   me() {
@@ -2028,12 +2028,17 @@ function coachCtx() {
   if (!coachData || coachData.lang !== getLang()) {
     coachData = {
       lang: getLang(),
-      exercises: Object.keys(EXERCISES).map((id) => { const x = exText(id, EXERCISES[id]); return { id, names: exNames(id, EXERCISES[id]), steps: x.steps, mistakes: x.mistakes, tip: x.tip, group: STANDARDS[id] && STANDARDS[id][0] }; }),
+      exercises: Object.keys(EXERCISES).map((id) => { const x = exText(id, EXERCISES[id]); return { id, names: exNames(id, EXERCISES[id]), steps: x.steps, mistakes: x.mistakes, tip: x.tip, group: STANDARDS[id] && STANDARDS[id][0], bw: !!EXERCISES[id].bw }; }),
       lessons: LESSONS.map((l) => ({ id: l.id, names: [l.en.name, l.es.name], steps: L(l).steps, mistakes: L(l).mistakes, tip: L(l).tip })),
     };
   }
   const P = S.profile || {};
-  return { ...coachData, es: getLang() === 'es', name: P.name || '', weightKg: P.bw || 0, kcal: coachKcal(), days: P.days, score: computeScore().total, nextDay: dayName(nextDay()), quote: nextQuote };
+  const sc = computeScore().total, lg = laggingGroup();
+  return {
+    ...coachData, es: getLang() === 'es', name: P.name || '', weightKg: P.bw || 0, kcal: coachKcal(), days: P.days, score: sc, nextDay: dayName(nextDay()), quote: nextQuote,
+    age: P.age || 0, best: (id) => (EXERCISES[id] ? bestFor(id) : 0), fmtW, unit: unit(), week: S.workouts.filter((w) => w.date >= weekStart(Date.now())).length,
+    streak: streakWeeks(), rankName: RANKS[rankIndex(sc)].name, lag: lg ? t('g_' + lg) : '', lagGroup: lg, vsN: Object.keys((S.vs && S.vs.best) || {}).length,
+  };
 }
 const chatText = (s) => esc(s).replace(/(^|\n)(Evita|Consejo|Avoid|Tip|Así se hace|How to do)([^:\n]*:)/g, '$1<b>$2$3</b>').replace(/\n/g, '<br>');
 function chatHtml() {
@@ -2327,6 +2332,7 @@ document.addEventListener('click', (e) => {
   else if (k === 'coach-ask') coachAsk(v);
   else if (k === 'vs-ch') showVsChallenge(v);
   else if (k === 'vs-who') { if (sheetFn) sheetFn(); vs.who = v; showVsChallenge(vs.cid); }
+  else if (k === 'vs-goal') { if (sheetFn) sheetFn(); vs.goal = v; showVsChallenge(vs.cid); }
   else if (k === 'vs-add') { if (sheetFn) sheetFn(); if (vs.players.length < 6) vs.players.push(''); showVsChallenge(vs.cid); }
   else if (k === 'vs-del') { if (sheetFn) sheetFn(); vs.players.splice(+v, 1); showVsChallenge(vs.cid); }
   else if (k === 'vs-start') { if (sheetFn) sheetFn(); openCam(v); }
@@ -2540,7 +2546,13 @@ function loadDemo() {
 // You can record a video with your count and record drawn on it; it is saved only on your phone.
 // Friends compete three ways: a duel passing the same phone, live on two phones (each phone counts its own
 // person and the other's count arrives in real time), or a challenge code/link that carries your score.
-const vs = { who: 'solo', players: ['', ''], w: '', rival: null, cid: null, rec: true, see: true };
+const vs = { who: 'solo', players: ['', ''], w: '', rival: null, cid: null, rec: true, see: true, voice: true, goal: '', goalFor: null };
+// Short shouts while you train (never the same twice in a row).
+const HYPE = [['Keep going!', '¡Sigue así!'], ['One more!', '¡Una más!'], ['You can do it!', '¡Tú puedes!'], ['Do not stop now!', '¡No pares ahora!'],
+  ['This is discipline!', '¡Esto es disciplina!'], ['Stronger than yesterday!', '¡Más fuerte que ayer!'], ['Push!', '¡Empuja!'], ['Finish strong!', '¡Termina fuerte!'],
+  ['Nobody will do it for you!', '¡Nadie lo va a hacer por ti!'], ['That is how it is done!', '¡Así se hace!'], ['Breathe and keep going!', '¡Respira y sigue!'], ['Earn it!', '¡Gánatelo!'],
+  ['Your body can, your mind decides!', '¡Tu cuerpo puede, tu mente decide!'], ['Every rep counts!', '¡Cada repetición cuenta!']];
+const goalDefault = (c) => { const b = vsData().best[c.id], g = (vsData().goals || {})[c.id]; return g || (b ? b.n + 1 : c.mode === 'hold' ? 60 : c.mode === 'time' ? 20 : 10); };
 const vsData = () => { if (!S.vs) S.vs = { best: {}, rivals: [], duels: [] }; return S.vs; };
 const chMode = (c) => (c.mode === 'time' ? t('mTime', { n: c.secs }) : t(c.mode === 'hold' ? 'mHold' : 'mMax'));
 const chTitle = (c) => `${exName(c.ex)} · ${chMode(c)}`;
@@ -2648,6 +2660,10 @@ function showVsChallenge(id) {
   if (!vs.players[0]) vs.players[0] = S.profile.name || '';
   const rivals = D.rivals.filter((r) => r.c === c.id).sort((x, y) => y.n - x.n);
   const who = (k, label) => `<button class="chip" data-act="vs-who" data-v="${k}" aria-pressed="${vs.who === k}">${t(label)}</button>`;
+  if (vs.goalFor !== id) { vs.goal = String(goalDefault(c)); vs.goalFor = id; }
+  const gs = b ? [b.n + 1, b.n + 3, b.n + 5] : c.mode === 'hold' ? [30, 60, 90] : c.mode === 'time' ? [15, 25, 35] : [5, 10, 20];
+  const goalBox = vs.who === 'solo' ? `<h3>${t('vsGoalT')}</h3><div class="vs-goal"><input class="vs-in" data-vs="goal" type="number" inputmode="numeric" min="1" max="999" value="${esc(vs.goal)}"><span>${t(c.mode === 'hold' ? 'vsSeconds' : 'vsReps')}</span></div>
+    <div class="chips vs-goal-chips">${gs.map((n) => `<button class="chip" data-act="vs-goal" data-v="${n}" aria-pressed="${String(n) === String(vs.goal)}">${c.mode === 'hold' ? fmtSecs(n) : n}</button>`).join('')}</div><p class="muted small">${t(b ? 'vsGoalHintBest' : 'vsGoalHint', { n: b ? fmtScore(c, b.n) : '' })}</p>` : '';
   openSheet(`<span class="eyebrow">${t('vsChallenge')}</span><h2 style="margin-top:6px">${esc(exName(c.ex))}</h2><p class="muted">${chMode(c)}</p>
     <div class="vs-pic">${heroArt(c.ex)}</div>
     <ul class="vs-rules"><li>${I.phone}<span>${t(rule.view === 'side' ? 'vsViewSide' : 'vsViewFront')}</span></li><li>${I.target}<span>${t('vsRule_' + c.mode, { n: c.secs })}</span></li><li>${I.check}<span>${t(rule.hold ? 'vsFairHold' : 'vsFair')}</span></li></ul>
@@ -2658,7 +2674,10 @@ function showVsChallenge(id) {
     ${vs.who === 'duel' ? `<div class="vs-players">${vs.players.map((p, i) => `<div class="vs-pl"><span>${i + 1}</span><input class="vs-in" data-vs="p${i}" maxlength="16" value="${esc(p)}" placeholder="${t('vsPlayerN', { n: i + 1 })}" autocomplete="off">${i > 1 ? `<button class="icon-btn" data-act="vs-del" data-v="${i}" aria-label="${t('vsRemove')}">${I.minus}</button>` : ''}</div>`).join('')}
       ${vs.players.length < 6 ? `<button class="link small vs-add" data-act="vs-add">${I.plus}${t('vsAddPlayer')}</button>` : ''}<p class="muted small">${t('vsDuelHow')}</p></div>` : ''}
     ${vs.who === 'live' ? `<p class="muted small vs-live-how">${t('vsLiveHow')}</p><label class="vs-check"><input type="checkbox" data-vs="see" ${vs.see ? 'checked' : ''}><span>${t('vsSeeRival')}</span></label>` : ''}
+    ${goalBox}
+    ${c.heavy ? `<p class="vs-safe">${I.info}<span>${t('vsHeavy')}</span></p>` : ''}
     <label class="vs-check"><input type="checkbox" data-vs="rec" ${vs.rec ? 'checked' : ''}><span>${t('vsRec')}</span></label>
+    <label class="vs-check"><input type="checkbox" data-vs="voice" ${vs.voice ? 'checked' : ''}><span>${t('vsVoice')}</span></label>
     <button class="btn btn-primary btn-block" style="margin-top:16px" data-act="vs-start" data-v="${c.id}">${I.camera}${t(vs.who === 'live' ? 'vsCreateRoom' : 'vsStart')}</button>`);
   sheetFn = vsReadSheet;
 }
@@ -2668,6 +2687,8 @@ function vsReadSheet() {
     if (k === 'w') vs.w = el.value;
     else if (k === 'rec') vs.rec = el.checked;
     else if (k === 'see') vs.see = el.checked;
+    else if (k === 'voice') vs.voice = el.checked;
+    else if (k === 'goal') vs.goal = el.value;
     else if (k[0] === 'p') vs.players[+k.slice(1)] = el.value.slice(0, 16);
   });
 }
@@ -2928,6 +2949,15 @@ function recFrame(lm) {
     g.fillStyle = newRec ? '#E8B84A' : 'rgba(255,255,255,.85)';
     const recTxt = newRec ? t('vsNewRecordCaps') : prevBest != null ? t('vsRecordN', { n: fmtScore(c, prevBest) }) : '';
     if (recTxt) g.fillText(recTxt, 4.6 * u, H - 39 * u);
+    if (cam.goal) {
+      g.font = `800 ${3.6 * u}px Inter, sans-serif`;
+      g.fillStyle = cam.goalHit ? '#8FE0AE' : 'rgba(255,255,255,.85)';
+      g.fillText(cam.goalHit ? t('vsGoalHitCaps') : t('vsGoalN', { n: fmtScore(c, cam.goal) }), 4.6 * u, H - 44.5 * u);
+    }
+    if (cam.cheer && now - cam.cheer.at < 1500) {
+      g.textAlign = 'center'; g.font = `800 ${(cam.cheer.big ? 7 : 5.2) * u}px Inter, sans-serif`;
+      g.fillStyle = cam.cheer.big ? '#E8B84A' : '#fff'; g.fillText(cam.cheer.msg, W / 2, H * 0.36); g.textAlign = 'left';
+    }
     if (cam.phase === 'go' && c.mode === 'time') {
       g.textAlign = 'right'; g.font = `${14 * u}px "Bebas Neue", sans-serif`; g.fillStyle = '#fff';
       g.fillText(`${Math.max(0, Math.ceil((cam.end - now) / 1000))}s`, W - 4 * u, H - 6 * u); g.textAlign = 'left';
@@ -2988,7 +3018,9 @@ function openCam(id) {
   if (vs.who === 'duel' && names.length < 2) { toast(t('vsNeedNames')); return; }
   closeSheet();
   unlockAudio();
-  Object.assign(cam, { c, queue: names, turn: 0, results: [], w: c.w && num(vs.w) > 0 ? Math.round(num(vs.w) * 10) / 10 : null, rule: ruleOf(c) });
+  const goal = vs.who === 'solo' ? Math.round(num(vs.goal)) : 0;
+  Object.assign(cam, { c, queue: names, turn: 0, results: [], w: c.w && num(vs.w) > 0 ? Math.round(num(vs.w) * 10) / 10 : null, rule: ruleOf(c), goal: goal > 0 && goal < 1000 ? goal : 0 });
+  if (cam.goal) { const D = vsData(); D.goals = { ...(D.goals || {}), [c.id]: cam.goal }; save(); }
   camShow();
   if (vs.who === 'live') { liveHost(); return; }
   liveReset();
@@ -3069,7 +3101,7 @@ function camFrame(r) {
     } else if (now - cam.start > 10000) { camFinish(); return; }
     const secs = Math.floor(cam.held / 1000);
     setText('#camN', fmtSecs(secs));
-    if (live.on && secs !== cam.lastSent) { cam.lastSent = secs; liveSend({ t: 'n', n: secs }); }
+    if (secs !== cam.lastSent) { cam.lastSent = secs; if (live.on) liveSend({ t: 'n', n: secs }); camCheer(secs); }
     return;
   }
   if (r.ev === 'rep') {
@@ -3081,8 +3113,42 @@ function camFrame(r) {
     toneAt(880, 0, 0.08, 0.2);
     vibrate(25);
     if (live.on) liveSend({ t: 'n', n: cam.n });
+    camCheer(cam.n);
   } else if (r.ev === 'half') { setText('#camHint', t(rule.half || 'hDeeper')); cam.flashT = now; toneAt(220, 0, 0.12, 0.15); }
   if (now - cam.flashT > 1600) setText('#camHint', !r.seen ? t('hWhole') : !r.ok && r.hint ? t(r.hint) : '');
+}
+// Goal progress and shouts: halfway, almost there, goal reached, and a random shout every few reps.
+function camCheer(score) {
+  const g = cam.goal, hold = cam.rule.hold;
+  let msg = '';
+  if (g) {
+    if (score >= g && !cam.goalHit) {
+      cam.goalHit = true;
+      cheerShow(t('vsGoalHit'), true);
+      confetti(70);
+      bell(2);
+      vibrate([80, 60, 80]);
+    } else if (!cam.goalHit) {
+      if (!cam.saidHalf && score >= Math.ceil(g / 2)) { cam.saidHalf = true; msg = t('vsHalf'); }
+      else if (!cam.saidNear && g - score <= Math.max(1, Math.round(g * 0.15)) && g - score > 0) { cam.saidNear = true; msg = t('vsAlmost', { n: hold ? fmtSecs(g - score) : g - score }); }
+    }
+    const bar = $('#camGbar');
+    if (bar) bar.style.width = `${Math.min(100, (score / g) * 100)}%`;
+    setText('#camGoal', cam.goalHit ? (score === g ? t('vsGoalJust') : t('vsGoalPlus', { n: hold ? fmtSecs(score - g) : score - g })) : t('vsGoalLeft', { n: hold ? fmtSecs(g - score) : g - score, g: hold ? fmtSecs(g) : g }));
+  }
+  if (!msg && score > 0 && !(g && score === g) && (hold ? score % 15 === 0 : score % 5 === 0)) {
+    let i;
+    do { i = Math.floor(Math.random() * HYPE.length); } while (HYPE.length > 1 && i === cam.hypeLast);
+    cam.hypeLast = i;
+    msg = HYPE[i][getLang() === 'es' ? 1 : 0];
+  }
+  if (msg) cheerShow(msg);
+}
+function cheerShow(msg, big) {
+  const el = $('#camCheer');
+  if (el) { el.textContent = msg; el.className = `cam-cheer${big ? ' big' : ''}`; void el.offsetWidth; el.classList.add('show'); }
+  cam.cheer = { msg, at: Date.now(), big: !!big };
+  if (vs.voice) say(msg);
 }
 // Clock for the timed and non-stop modes.
 function camClock() {
@@ -3113,8 +3179,9 @@ function camCountdown() {
 function camGo() {
   const now = Date.now(), best = vsData().best[cam.c.id];
   cam.counter.reset();
-  Object.assign(cam, { phase: 'go', n: 0, held: 0, start: now, lastRep: now, lastT: 0, badSince: 0, flashT: 0, lastBeep: 0, lastSent: -1, recBase: cam.turn === 0 && best ? best.n : null, end: cam.c.mode === 'time' ? now + cam.c.secs * 1000 : 0 });
+  Object.assign(cam, { phase: 'go', n: 0, held: 0, start: now, lastRep: now, lastT: 0, badSince: 0, flashT: 0, lastBeep: 0, lastSent: -1, goalHit: false, saidHalf: false, saidNear: false, cheer: null, recBase: cam.turn === 0 && best ? best.n : null, end: cam.c.mode === 'time' ? now + cam.c.secs * 1000 : 0 });
   renderCamHud();
+  if (cam.goal) camCheer(0);
   clearInterval(cam.iv);
   cam.iv = setInterval(camClock, 200);
   camClock();
@@ -3139,6 +3206,17 @@ function camFinish() {
     if (top && cam.queue.length === 1 && !live.on) {
       cam.lines.push(n > top.n ? t('vsWon', { name: esc(top.p), n: fmtScore(c, top.n) }) : n === top.n ? t('vsTieWith', { name: esc(top.p) }) : t('vsShort', { d: c.mode === 'hold' ? fmtSecs(top.n - n) : top.n - n, name: esc(top.p) }));
     }
+    if (cam.goal) {
+      const g = cam.goal, hold = c.mode === 'hold';
+      if (n >= g) {
+        const next = n + 1;
+        cam.lines.unshift(`<b class="vs-goal-done">${t('vsGoalDone', { g: hold ? fmtSecs(g) : g })}</b>`);
+        cam.lines.push(t('vsNextGoal', { n: hold ? fmtSecs(next) : next }));
+        D.goals = { ...(D.goals || {}), [c.id]: next };
+        vs.goalFor = null;
+      } else cam.lines.unshift(`<b class="vs-goal-miss">${t('vsGoalMiss', { d: hold ? fmtSecs(g - n) : g - n, g: hold ? fmtSecs(g) : g })}</b>`);
+    }
+    if (cam.queue.length === 1 && !live.on) cam.lines.push(`<span class="cam-quote">“${esc(nextQuote())}”</span>`);
     save();
   }
   cam.phase = 'done';
@@ -3193,7 +3271,7 @@ function renderCamHud() {
     mid = '<div class="cam-center"><b class="cam-big" id="camBig">3</b></div>';
   } else if (ph === 'go') {
     const hold = cam.rule.hold;
-    mid = `<div class="cam-count"><b class="cam-n" id="camN">${hold ? '0:00' : '0'}</b><small class="cam-unit">${t(hold ? 'vsSeconds' : 'vsReps')}</small><span class="cam-t" id="camT"></span><span class="cam-hint" id="camHint"></span></div>`;
+    mid = `<div class="cam-count"><b class="cam-n" id="camN">${hold ? '0:00' : '0'}</b><small class="cam-unit">${t(hold ? 'vsSeconds' : 'vsReps')}</small>${cam.goal ? '<div class="cam-goalbox"><div class="cam-gbar"><i id="camGbar"></i></div><small id="camGoal"></small></div>' : ''}<span class="cam-t" id="camT"></span><span class="cam-cheer" id="camCheer"></span><span class="cam-hint" id="camHint"></span></div>`;
     foot = `<button class="btn btn-block" data-cam="stop">${t('vsStop')}</button>`;
   } else if (ph === 'done') {
     const r = cam.last, more = cam.turn + 1 < cam.queue.length, R = cam.rec;
