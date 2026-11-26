@@ -9,7 +9,7 @@ import { exFigure, lessonFigure } from './figures.js';
 import { bodySvg } from './bodymap.js';
 import { MOVES } from './moves.js';
 import { buildPlan as makePlan, autoSplit, timesPerWeek, SPLITS, BLOCK_WEEKS } from './plan.js';
-import { QUOTES, personalQuotes } from './quotes.js';
+import { QUOTES, PROGRESS_QUOTES, personalQuotes } from './quotes.js';
 import { coachReply, SUGGEST, QUICK } from './coach.js';
 import * as net from './net.js';
 import { CHALLENGES as CAM_CHALLENGES, challengeById, ruleOf, Counter, loadPose, detect, openCamera, stopCamera, drawPose, drawPoseOn } from './repcount.js';
@@ -459,6 +459,7 @@ document.getElementById('onboard').addEventListener('click', (e) => {
 // ---------- Views ----------
 const TABS = [['home', 'tabHome', I.home], ['train', 'tabTrain', I.list], ['build', 'fabLabel', I.train], ['sports', 'tabSports', I.gloves], ['rank', 'tabProgress', I.rank]];
 let current = 'home';
+let lastView = '';
 let learnTab = 'quiz';
 let sportSel = null;
 let trainTab = 'routines';
@@ -485,7 +486,9 @@ function render() {
   $('#tabs').innerHTML = TABS.map(([id, label, icon]) => id === 'build'
     ? `<button class="tab tab-main" type="button" data-act="builder"><span class="tab-fab">${icon}</span><span>${t('fabLabel')}</span></button>`
     : `<button class="tab" type="button" data-act="go" data-v="${id}" ${current === id ? 'aria-current="page"' : ''}>${icon}<span>${t(label)}</span></button>`).join('');
-  $('#main').innerHTML = `<div class="view v-${current}">${VIEWS[current]()}</div>`;
+  const fresh = current !== lastView;
+  lastView = current;
+  $('#main').innerHTML = `<div class="view v-${current}${fresh ? ' enter' : ''}">${VIEWS[current]()}</div>`;
   window.scrollTo(0, 0);
   if (current === 'rank' && progTab === 'body') loadPhotos();
   if (current === 'rank') { mountAvatar(); const cur = $('#rankLadder .cur'); if (cur) cur.parentElement.scrollLeft = Math.max(0, cur.offsetLeft - 70); }
@@ -2077,6 +2080,17 @@ function nextQuote() {
   save();
   return pick[1];
 }
+// A progress line at random, never the same one until all of them have been shown.
+function progressQuote() {
+  const es = getLang() === 'es';
+  let seen = S.qseenP || [];
+  let fresh = PROGRESS_QUOTES.map((q, i) => i).filter((i) => !seen.includes(i));
+  if (!fresh.length) { seen = []; fresh = PROGRESS_QUOTES.map((q, i) => i); }
+  const i = fresh[Math.floor(Math.random() * fresh.length)];
+  S.qseenP = [...seen, i].slice(-(PROGRESS_QUOTES.length - 1));
+  save();
+  return PROGRESS_QUOTES[i][es ? 1 : 0];
+}
 let curQuote = null;
 // Where your trend is taking you: based on your last four weeks, never a promise.
 function projection() {
@@ -2437,6 +2451,8 @@ document.addEventListener('click', (e) => {
   else if (k === 'photo-view') showPhoto(v);
   else if (k === 'photo-del') confirmSheet(t('photosDelete'), t('photosDeleteP'), t('photosDelete'), () => { idbDel(v).then(loadPhotos); }, true);
   else if (k === 'photo-compare') comparePhotos();
+  else if (k === 'ba-pick') { ba[b.dataset.k] = v; comparePhotos(); }
+  else if (k === 'ba-share') shareBeforeAfter();
   else if (k.startsWith('acct-') || k.startsWith('backup-') || k.startsWith('friend')) {
     if (k === 'friend-del') { net.removeFriend(v).then(() => acctAction('friends')).catch(() => toast(t('vsNeedNet'))); } else acctAction(k);
   }
@@ -2686,6 +2702,8 @@ function missions() {
 }
 const misDef = (id) => MIS_D.find((m) => m[0] === id) || MIS_W.find((m) => m[0] === id);
 const misNeed = (def) => (def[2] || S.profile.days || 3);
+const MIS_IC = { workout: 'train', daily: 'target', camera: 'camera', lesson: 'gloves', protein: 'flame', coach: 'chat', weigh: 'gauge', pr: 'trophy', goal: 'trophy', photo: 'camera' };
+const misIcon = (def) => (def[1] === 'water' ? '<span class="mi-drop">💧</span>' : I[MIS_IC[def[1]]] || '');
 function misText(id) { const d = misDef(id); return t('m_' + id, { n: misNeed(d) }); }
 // Something happened: give XP, move missions forward, celebrate a mission or a new level.
 function grow(ev, count = 1, quiet) {
@@ -2727,12 +2745,12 @@ function levelPill() {
 }
 function missionsCard() {
   const M = missions();
-  const row = (m) => { const d = misDef(m.id), need = misNeed(d), ok = m.c >= need; return `<li class="${ok ? 'ok' : ''}"><i>${ok ? I.check : ''}</i><span class="grow">${esc(misText(m.id))}${need > 1 && !ok ? ` <small>${m.c}/${need}</small>` : ''}</span><em>+${d[3]}</em></li>`; };
+  const row = (m) => { const d = misDef(m.id), need = misNeed(d), ok = m.c >= need; return `<li class="${ok ? 'ok' : ''}"><i>${ok ? I.check : misIcon(d)}</i><span class="grow">${esc(misText(m.id))}${need > 1 && !ok ? ` <small>${m.c}/${need}</small>` : ''}</span><em>+${d[3]}</em></li>`; };
   return `<section class="card mis-card" id="misCard"><div class="card-head"><span class="eyebrow">${t('misToday')}</span><button class="link small" data-act="missions">${t('misWeekly')}</button></div><ul class="mis-list">${M.d.map(row).join('')}</ul></section>`;
 }
 function showMissions() {
   const M = missions(), lv = levelOf(xpTotal());
-  const row = (m) => { const d = misDef(m.id), need = misNeed(d), ok = m.c >= need; return `<li class="${ok ? 'ok' : ''}"><i>${ok ? I.check : ''}</i><span class="grow">${esc(misText(m.id))}${need > 1 ? ` <small>${Math.min(m.c, need)}/${need}</small>` : ''}</span><em>+${d[3]}</em></li>`; };
+  const row = (m) => { const d = misDef(m.id), need = misNeed(d), ok = m.c >= need; return `<li class="${ok ? 'ok' : ''}"><i>${ok ? I.check : misIcon(d)}</i><span class="grow">${esc(misText(m.id))}${need > 1 ? ` <small>${Math.min(m.c, need)}/${need}</small>` : ''}</span><em>+${d[3]}</em></li>`; };
   openSheet(`<span class="eyebrow">${t('misTitle')}</span>
     <div class="lvl-big"><b>${lv.L}</b><span><small>${t('lvlWord')}</small><span class="lvl-bar"><i style="width:${Math.round((lv.into / lv.need) * 100)}%"></i></span><small>${t('lvlNext', { n: lv.need - lv.into, l: lv.L + 1 })}</small></span></div>
     <h3>${t('misToday')}</h3><ul class="mis-list">${M.d.map(row).join('')}</ul>
@@ -2801,7 +2819,7 @@ const idbDel = (id) => photoStore('readwrite').then((st) => new Promise((res, re
 const photoUrls = new Map();
 const photoUrl = (p) => { if (!photoUrls.has(p.id)) photoUrls.set(p.id, URL.createObjectURL(p.blob)); return photoUrls.get(p.id); };
 function photosHtml() {
-  return `<div class="section-title"><span class="eyebrow">${t('photosTitle')}</span><button class="link small" data-act="photo-compare" id="photoCmpBtn" hidden>${t('photosCompare')}</button></div>
+  return `<div class="section-title"><span class="eyebrow">${t('photosTitle')}</span><button class="link small" data-act="photo-compare" id="photoCmpBtn" hidden>${t('baTitle')}</button></div>
     <section class="card photos-card"><div class="photo-grid" id="photoGrid"><button class="photo-add" data-act="photo-add">${I.plus}<span>${t('photosAdd')}</span></button></div>
     <p class="muted small">${t('photosNote')}</p><input type="file" id="photoFile" accept="image/*" hidden></section>`;
 }
@@ -2826,8 +2844,14 @@ async function addPhoto(file) {
     const blob = await new Promise((res) => cv.toBlob(res, 'image/jpeg', 0.82));
     await idbPut({ id: Date.now().toString(36), at: Date.now(), kg: S.profile.bw || 0, blob });
     grow('photo', 1, true);
-    toast(t('photosSaved'));
     loadPhotos();
+    const all = await idbAll(), first = all[all.length - 1];
+    const day = first ? Math.max(1, Math.round((Date.now() - first.at) / DAY) + 1) : 1;
+    openSheet(`<div class="photo-saved"><span class="ps-ic">${I.check}</span><span class="eyebrow">${t('photosSaved')}</span><h2>${t('photosDayN', { n: day })}</h2>
+      <p class="ps-quote">“${esc(progressQuote())}”</p>
+      ${all.length >= 2 ? `<button class="btn btn-primary btn-block" data-act="photo-compare">${t('baTitle')}</button>` : `<p class="muted small">${t('photosNext')}</p>`}
+      <button class="btn btn-block" style="margin-top:10px" data-act="close-sheet">${t('done')}</button></div>`);
+    confetti(30);
   } catch (e) { toast(t('photosFail')); }
 }
 async function showPhoto(id) {
@@ -2836,18 +2860,78 @@ async function showPhoto(id) {
   openSheet(`<span class="eyebrow">${t('photosTitle')}</span><h2 style="margin-top:6px">${fmtDate(p.at)}</h2>${p.kg ? `<p class="muted">${fmtW(p.kg)} ${unit()}</p>` : ''}
     <img class="photo-big" src="${photoUrl(p)}" alt=""><button class="btn btn-block" style="margin-top:12px;color:var(--red-2)" data-act="photo-del" data-v="${esc(p.id)}">${I.trash}${t('photosDelete')}</button>`);
 }
+// Before and after: pick the two photos, slide between them, and make a picture to share.
+const ba = { a: null, b: null };
 async function comparePhotos() {
   const list = await idbAll();
-  if (list.length < 2) return;
-  const a = list[list.length - 1], b = list[0];
-  const days = Math.round((b.at - a.at) / DAY);
-  openSheet(`<span class="eyebrow">${t('photosCompare')}</span><h2 style="margin-top:6px">${t('photosDays', { n: days })}</h2>
-    <div class="cmp" id="cmpBox"><img src="${photoUrl(a)}" alt=""><div class="cmp-top" id="cmpTop"><img src="${photoUrl(b)}" alt=""></div><input type="range" min="0" max="100" value="50" id="cmpRange" aria-label="${t('photosCompare')}"></div>
-    <div class="cmp-labels"><span>${fmtDate(a.at)}${a.kg ? ' · ' + fmtW(a.kg) + ' ' + unit() : ''}</span><span>${fmtDate(b.at)}${b.kg ? ' · ' + fmtW(b.kg) + ' ' + unit() : ''}</span></div>`);
+  if (list.length < 2) { toast(t('photosNeed2')); return; }
+  if (!list.some((p) => p.id === ba.a)) ba.a = list[list.length - 1].id;
+  if (!list.some((p) => p.id === ba.b) || ba.b === ba.a) ba.b = list[0].id;
+  const A = list.find((p) => p.id === ba.a), B = list.find((p) => p.id === ba.b);
+  const [x, y] = A.at <= B.at ? [A, B] : [B, A];
+  const days = Math.max(0, Math.round((y.at - x.at) / DAY));
+  const strip = (which) => `<div class="ba-strip">${list.map((p) => `<button class="ba-th${ba[which] === p.id ? ' on' : ''}" data-act="ba-pick" data-k="${which}" data-v="${esc(p.id)}"><img src="${photoUrl(p)}" alt=""><small>${fmtDate(p.at)}</small></button>`).join('')}</div>`;
+  const kg = x.kg && y.kg ? y.kg - x.kg : null;
+  const html = `<span class="eyebrow">${t('baTitle')}</span><h2 style="margin-top:6px">${t('photosDays', { n: days })}${kg != null && Math.abs(kg) >= 0.1 ? ` · ${kg > 0 ? '+' : '−'}${fmtW(Math.abs(kg))} ${unit()}` : ''}</h2>
+    <div class="cmp" id="cmpBox"><img src="${photoUrl(x)}" alt=""><div class="cmp-top" id="cmpTop"><img src="${photoUrl(y)}" alt=""></div><span class="cmp-tag l">${t('baBefore')}</span><span class="cmp-tag r">${t('baAfter')}</span><input type="range" min="0" max="100" value="50" id="cmpRange" aria-label="${t('baTitle')}"></div>
+    <h3>${t('baBefore')}</h3>${strip('a')}<h3>${t('baAfter')}</h3>${strip('b')}
+    <button class="btn btn-primary btn-block" style="margin-top:16px" data-act="ba-share">${I.share}${t('baShare')}</button>
+    <p class="muted small" style="margin-top:10px">${t('baNote')}</p>`;
+  const box = $('#baSheet');
+  if (box && !$('#sheet').hidden) box.innerHTML = html; else openSheet(`<div id="baSheet">${html}</div>`);
   sheetFn = () => { const r = $('#cmpRange'), top = $('#cmpTop'); if (r && top) top.style.clipPath = `inset(0 0 0 ${r.value}%)`; };
   sheetFn();
 }
-
+const roundRect = (g, x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
+// Draws a picture so it fills the box without stretching (cuts the edges if needed).
+function drawCover(g, img, x, y, w, h) {
+  const k = Math.max(w / img.width, h / img.height), sw = w / k, sh = h / k;
+  g.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, x, y, w, h);
+}
+async function shareBeforeAfter() {
+  const list = await idbAll();
+  const A = list.find((p) => p.id === ba.a), B = list.find((p) => p.id === ba.b);
+  if (!A || !B) return;
+  const [x, y] = A.at <= B.at ? [A, B] : [B, A];
+  const W = 1080, H = 1350, cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const g = cv.getContext('2d');
+  try { await Promise.all([document.fonts.load('120px "Bebas Neue"'), document.fonts.load('700 32px Inter'), document.fonts.load('italic 500 34px Inter')]); } catch (e) { /* fonts optional */ }
+  g.fillStyle = '#0E1012'; g.fillRect(0, 0, W, H);
+  let gr = g.createRadialGradient(W / 2, 760, 40, W / 2, 760, 760);
+  gr.addColorStop(0, 'rgba(200,68,59,.42)'); gr.addColorStop(1, 'rgba(200,68,59,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  try { const logo = await loadImg('icons/logo-512.png'); g.save(); roundRect(g, 60, 52, 96, 96, 22); g.clip(); g.drawImage(logo, 60, 52, 96, 96); g.restore(); } catch (e) { /* no logo */ }
+  g.textBaseline = 'alphabetic';
+  g.font = '58px "Bebas Neue", sans-serif'; g.fillStyle = '#EDEAE4'; g.fillText('EARNED', 178, 118);
+  const ew = g.measureText('EARNED ').width; g.fillStyle = '#E2463B'; g.fillText('STRENGTH', 178 + ew, 118);
+  g.textAlign = 'right'; g.font = '700 30px Inter, sans-serif'; g.fillStyle = '#93999E'; g.fillText(t('baTitle').toUpperCase(), W - 60, 112); g.textAlign = 'left';
+  const imgs = await Promise.all([loadImg(photoUrl(x)), loadImg(photoUrl(y))]);
+  const pw = 465, ph = 620, top = 190;
+  [[imgs[0], 60, x, t('baBefore')], [imgs[1], W - 60 - pw, y, t('baAfter')]].forEach(([im, px, p, label], i) => {
+    g.save(); roundRect(g, px, top, pw, ph, 28); g.clip(); drawCover(g, im, px, top, pw, ph);
+    const sh = g.createLinearGradient(0, top + ph - 160, 0, top + ph); sh.addColorStop(0, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,.75)');
+    g.fillStyle = sh; g.fillRect(px, top + ph - 160, pw, 160); g.restore();
+    g.fillStyle = i ? '#E2463B' : 'rgba(20,22,26,.85)'; roundRect(g, px + 20, top + 20, i ? 210 : 170, 56, 28); g.fill();
+    g.font = '44px "Bebas Neue", sans-serif'; g.fillStyle = '#fff'; g.fillText(label.toUpperCase(), px + 40, top + 63);
+    g.font = '700 30px Inter, sans-serif'; g.fillStyle = '#fff'; g.fillText(fmtDate(p.at), px + 24, top + ph - 58);
+    if (p.kg) { g.font = '600 28px Inter, sans-serif'; g.fillStyle = 'rgba(255,255,255,.8)'; g.fillText(`${fmtW(p.kg)} ${unit()}`, px + 24, top + ph - 22); }
+  });
+  const days = Math.max(0, Math.round((y.at - x.at) / DAY));
+  g.textAlign = 'center';
+  g.font = '110px "Bebas Neue", sans-serif'; g.fillStyle = '#F4EEE4'; g.fillText(t('baDaysBig', { n: days }).toUpperCase(), W / 2, top + ph + 120);
+  if (x.kg && y.kg && Math.abs(y.kg - x.kg) >= 0.1) { g.font = '700 34px Inter, sans-serif'; g.fillStyle = '#E8806F'; g.fillText(`${y.kg > x.kg ? '+' : '−'}${fmtW(Math.abs(y.kg - x.kg))} ${unit()}`, W / 2, top + ph + 172); }
+  // A different line each time.
+  const quote = `“${progressQuote()}”`;
+  g.font = 'italic 500 36px Inter, sans-serif'; g.fillStyle = '#EDEAE4';
+  const words = quote.split(' '); let line = '', yy = top + ph + 245; const lines = [];
+  for (const wd of words) { const test = line ? line + ' ' + wd : wd; if (g.measureText(test).width > W - 200 && line) { lines.push(line); line = wd; } else line = test; }
+  if (line) lines.push(line);
+  for (const l of lines.slice(0, 3)) { g.fillText(l, W / 2, yy); yy += 48; }
+  g.font = '600 28px Inter, sans-serif'; g.fillStyle = '#93999E'; g.fillText('earnedstrength.online', W / 2, H - 48);
+  g.textAlign = 'left';
+  openShare(await new Promise((res) => cv.toBlob(res, 'image/png')));
+}
 // ---------- Last week in one card ----------
 function lastWeek() {
   const end = weekStart(Date.now()), start = end - 7 * DAY;
