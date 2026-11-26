@@ -11,7 +11,7 @@ import { MOVES } from './moves.js';
 import { buildPlan as makePlan, autoSplit, timesPerWeek, SPLITS, BLOCK_WEEKS } from './plan.js';
 import { QUOTES, personalQuotes } from './quotes.js';
 import { coachReply, SUGGEST, QUICK } from './coach.js';
-import { CHALLENGES as CAM_CHALLENGES, challengeById, ruleOf, Counter, loadPose, detect, openCamera, stopCamera, drawPose } from './repcount.js';
+import { CHALLENGES as CAM_CHALLENGES, challengeById, ruleOf, Counter, loadPose, detect, openCamera, stopCamera, drawPose, drawPoseOn } from './repcount.js';
 
 const KEY = 'es-app-v1';
 const DAY = 864e5;
@@ -2329,7 +2329,17 @@ document.addEventListener('click', (e) => {
   else if (k === 'vs-who') { if (sheetFn) sheetFn(); vs.who = v; showVsChallenge(vs.cid); }
   else if (k === 'vs-add') { if (sheetFn) sheetFn(); if (vs.players.length < 6) vs.players.push(''); showVsChallenge(vs.cid); }
   else if (k === 'vs-del') { if (sheetFn) sheetFn(); vs.players.splice(+v, 1); showVsChallenge(vs.cid); }
-  else if (k === 'vs-start') { if (sheetFn) sheetFn(); openCam(v, b.dataset.tap === '1'); }
+  else if (k === 'vs-start') { if (sheetFn) sheetFn(); openCam(v); }
+  else if (k === 'vs-join') showVsJoin();
+  else if (k === 'vs-join-go') {
+    if (sheetFn) sheetFn();
+    const code = ($('#vsRoomIn').value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (code.length !== 6) { toast(t('vsNoRoom')); return; }
+    vs.joinCode = '';
+    closeSheet();
+    unlockAudio();
+    liveJoin(code);
+  }
   else if (k === 'vs-code') showVsCode();
   else if (k === 'vs-code-add') { const r = vsParse($('#vsCodeIn').value); if (!r) toast(t('vsCodeBad')); else { addRival(r); closeSheet(); toast(t('vsCodeOk', { name: r.p })); go('vs'); } }
   else if (k === 'vs-copy') vsCopy();
@@ -2526,21 +2536,24 @@ function loadDemo() {
 }
 
 // ---------- Compete: camera challenges between friends ----------
-// The camera counts the reps on the phone (repcount.js): the picture is never saved or sent anywhere.
-// Friends compete two ways: a duel passing the same phone, or a challenge code/link that carries your score.
-const vs = { who: 'solo', players: ['', ''], w: '', rival: null, cid: null };
+// Only the camera counts (repcount.js): there is no button to add reps, so nobody can cheat by tapping.
+// You can record a video with your count and record drawn on it; it is saved only on your phone.
+// Friends compete three ways: a duel passing the same phone, live on two phones (each phone counts its own
+// person and the other's count arrives in real time), or a challenge code/link that carries your score.
+const vs = { who: 'solo', players: ['', ''], w: '', rival: null, cid: null, rec: true, see: true };
 const vsData = () => { if (!S.vs) S.vs = { best: {}, rivals: [], duels: [] }; return S.vs; };
 const chMode = (c) => (c.mode === 'time' ? t('mTime', { n: c.secs }) : t(c.mode === 'hold' ? 'mHold' : 'mMax'));
 const chTitle = (c) => `${exName(c.ex)} · ${chMode(c)}`;
 const fmtScore = (c, n) => (c.mode === 'hold' ? fmtSecs(n) : String(n));
 const scoreWord = (c, n) => (c.mode === 'hold' ? fmtSecs(n) : t(n === 1 ? 'vsRep1' : 'vsRepsN', { n }));
+const cleanName = (s) => String(s || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 16);
 
 // Challenge codes: the score travels inside the code itself, so no server is needed.
 const b64u = (s) => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const unb64u = (s) => decodeURIComponent(escape(atob(s.replace(/-/g, '+').replace(/_/g, '/'))));
 const codeCheck = (s) => { let h = 7; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) % 1679616; return h.toString(36).padStart(4, '0'); };
 function vsCode(r) {
-  const o = { c: r.c, n: r.n, m: r.cam ? 1 : 0, p: (r.p || '').slice(0, 20), d: Math.floor(Date.now() / DAY) };
+  const o = { c: r.c, n: r.n, m: 1, p: (r.p || '').slice(0, 20), d: Math.floor(Date.now() / DAY) };
   if (r.w) { o.w = r.w; o.u = unit(); }
   const raw = b64u(JSON.stringify(o));
   return 'ES1' + raw + codeCheck(raw);
@@ -2554,7 +2567,7 @@ function vsParse(text) {
     const o = JSON.parse(unb64u(raw));
     if (!challengeById(o.c) || !Number.isFinite(o.n) || o.n < 0 || o.n > 9999) return null;
     const w = Number.isFinite(o.w) && o.w > 0 && o.w < 1000 ? Math.round(o.w * 10) / 10 : null;
-    return { c: o.c, n: Math.round(o.n), cam: o.m === 1, p: String(o.p || '').replace(/[\u0000-\u001f]/g, '').slice(0, 20) || t('vsFriend'), w, u: w ? (o.u === 'kg' ? 'kg' : 'lb') : null, at: Date.now() };
+    return { c: o.c, n: Math.round(o.n), cam: o.m === 1, p: cleanName(o.p) || t('vsFriend'), w, u: w ? (o.u === 'kg' ? 'kg' : 'lb') : null, at: Date.now() };
   } catch (e) { return null; }
 }
 function addRival(r) {
@@ -2563,9 +2576,15 @@ function addRival(r) {
   vs.rival = r;
   save();
 }
-// A challenge link opened from a message: #reto=<code>
+// Links opened from a message: #reto=<code> (a score to beat) or #vivo=<room> (join a live room).
 function takeChallengeLink() {
   const h = location.hash;
+  if (h.startsWith('#vivo=')) {
+    vs.joinCode = h.slice(6).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+    history.replaceState(null, '', '#vs');
+    setTimeout(() => { if (S.profile) showVsJoin(); }, 300);
+    return true;
+  }
   if (!h.startsWith('#reto=')) return false;
   const r = vsParse(h.slice(6));
   history.replaceState(null, '', '#vs');
@@ -2586,27 +2605,31 @@ function vsView() {
   const tile = (c) => { const b = D.best[c.id]; return `<button class="vs-tile" data-act="vs-ch" data-v="${c.id}"><span class="vs-th">${vsArt(c.ex)}</span><span class="vs-tt"><b>${esc(exName(c.ex))}</b><small>${chMode(c)}${b ? ` · ${t('vsBestShort', { n: fmtScore(c, b.n) })}` : ''}</small></span></button>`; };
   const rc = vs.rival && challengeById(vs.rival.c);
   const incoming = rc ? `<section class="card vs-incoming"><span class="eyebrow">${t('vsIncoming')}</span>
-    <p><b>${esc(vs.rival.p)}</b> ${t('vsDid', { what: esc(scoreWord(rc, vs.rival.n)), ch: esc(chTitle(rc)) })}${vs.rival.w ? ` (${vs.rival.w} ${vs.rival.u})` : ''}${vs.rival.cam ? ` <span class="vs-cam">${I.check}${t('vsCamShort')}</span>` : ''}</p>
+    <p><b>${esc(vs.rival.p)}</b> ${t('vsDid', { what: esc(scoreWord(rc, vs.rival.n)), ch: esc(chTitle(rc)) })}${vs.rival.w ? ` (${vs.rival.w} ${vs.rival.u})` : ''}</p>
     <button class="btn btn-primary btn-block" data-act="vs-ch" data-v="${rc.id}">${t('vsBeat', { name: esc(vs.rival.p) })}</button></section>` : '';
   const byC = {};
   for (const r of D.rivals) if (challengeById(r.c)) (byC[r.c] = byC[r.c] || []).push(r);
   const boards = Object.entries(byC).map(([cid, rs]) => {
     const c = challengeById(cid), me = D.best[cid];
-    const rows = [...rs.map((r) => ({ p: r.p, n: r.n, cam: r.cam })), ...(me ? [{ p: S.profile.name || t('you'), n: me.n, cam: me.cam, me: true }] : [])].sort((a, b) => b.n - a.n);
+    const rows = [...rs.map((r) => ({ p: r.p, n: r.n })), ...(me ? [{ p: S.profile.name || t('you'), n: me.n, me: true }] : [])].sort((a, b) => b.n - a.n);
     return `<section class="card vs-board"><div class="vb-head"><b>${esc(chTitle(c))}</b><button class="btn btn-sm" data-act="vs-ch" data-v="${cid}">${t('vsPlay')}</button></div>
-      <ol>${rows.map((x, i) => `<li class="${x.me ? 'me' : ''}"><span class="vb-pos">${i + 1}</span><span class="grow">${esc(x.p)}${x.me ? ` <small>(${t('you')})</small>` : ''}</span>${x.cam ? `<i class="vs-ok" title="${t('vsCamShort')}">${I.camera}</i>` : ''}<b>${esc(fmtScore(c, x.n))}</b></li>`).join('')}</ol></section>`;
+      <ol>${rows.map((x, i) => `<li class="${x.me ? 'me' : ''}"><span class="vb-pos">${i + 1}</span><span class="grow">${esc(x.p)}${x.me ? ` <small>(${t('you')})</small>` : ''}</span><b>${esc(fmtScore(c, x.n))}</b></li>`).join('')}</ol></section>`;
   }).join('');
   const duels = D.duels.slice(0, 4).map((d) => {
     const c = challengeById(d.c);
     if (!c || !d.res.length) return '';
     const top = [...d.res].sort((a, b) => b.n - a.n);
     const tie = top[1] && top[1].n === top[0].n;
-    return `<div class="vs-duel"><span class="grow"><b>${esc(chTitle(c))}</b><small>${fmtDate(d.at)} · ${top.map((r) => `${esc(r.p)} ${esc(fmtScore(c, r.n))}`).join(' · ')}</small></span><span class="vs-win">${I.trophy}${tie ? t('vsTie') : esc(top[0].p)}</span></div>`;
+    return `<div class="vs-duel"><span class="grow"><b>${d.live ? `<em class="live-tag">${t('vsLiveTag')}</em> ` : ''}${esc(chTitle(c))}</b><small>${fmtDate(d.at)} · ${top.map((r) => `${esc(r.p)} ${esc(fmtScore(c, r.n))}`).join(' · ')}</small></span><span class="vs-win">${I.trophy}${tie ? t('vsTie') : esc(top[0].p)}</span></div>`;
   }).join('');
   return `<header class="top me-top"><button class="icon-btn" data-act="go" data-v="home" aria-label="${t('back')}">${I.back}</button><div class="grow"><p class="eyebrow">${t('vsEyebrow')}</p><h1>${t('vsTitle')}</h1></div></header>
     <section class="vs-hero"><div class="grow"><b>${t('vsHeroT')}</b><p>${t('vsHeroP')}</p></div><span class="vs-hero-ic">${I.camera}</span></section>
     ${incoming}
-    <div class="vs-ways"><div class="vs-way">${I.phone}<b>${t('vsWayDuel')}</b><small>${t('vsWayDuelSub')}</small></div><div class="vs-way">${I.share}<b>${t('vsWayLink')}</b><small>${t('vsWayLinkSub')}</small></div></div>
+    <section class="card list-card vs-ways">
+      <div class="vs-way"><span class="vw-ic">${I.phone}</span><span class="grow"><b>${t('vsWayDuel')}</b><small>${t('vsWayDuelSub')}</small></span></div>
+      <button class="vs-way" data-act="vs-join"><span class="vw-ic live">${I.camera}</span><span class="grow"><b>${t('vsWayLive')}</b><small>${t('vsWayLiveSub')}</small></span>${I.chev}</button>
+      <button class="vs-way" data-act="vs-code"><span class="vw-ic">${I.share}</span><span class="grow"><b>${t('vsWayLink')}</b><small>${t('vsWayLinkSub')}</small></span>${I.chev}</button>
+    </section>
     <div class="section-title"><span class="eyebrow">${t('vsHome')}</span></div>
     <div class="vs-grid">${CAM_CHALLENGES.filter((c) => c.place === 'home').map(tile).join('')}</div>
     <div class="section-title"><span class="eyebrow">${t('vsGym')}</span></div>
@@ -2624,35 +2647,49 @@ function showVsChallenge(id) {
   const D = vsData(), b = D.best[c.id], rule = ruleOf(c);
   if (!vs.players[0]) vs.players[0] = S.profile.name || '';
   const rivals = D.rivals.filter((r) => r.c === c.id).sort((x, y) => y.n - x.n);
+  const who = (k, label) => `<button class="chip" data-act="vs-who" data-v="${k}" aria-pressed="${vs.who === k}">${t(label)}</button>`;
   openSheet(`<span class="eyebrow">${t('vsChallenge')}</span><h2 style="margin-top:6px">${esc(exName(c.ex))}</h2><p class="muted">${chMode(c)}</p>
     <div class="vs-pic">${heroArt(c.ex)}</div>
     <ul class="vs-rules"><li>${I.phone}<span>${t(rule.view === 'side' ? 'vsViewSide' : 'vsViewFront')}</span></li><li>${I.target}<span>${t('vsRule_' + c.mode, { n: c.secs })}</span></li><li>${I.check}<span>${t(rule.hold ? 'vsFairHold' : 'vsFair')}</span></li></ul>
     ${b || rivals.length ? `<div class="vs-marks">${b ? `<div><small>${t('vsYourBest')}</small><b>${esc(fmtScore(c, b.n))}</b></div>` : ''}${rivals.length ? `<div><small>${t('vsToBeat')}</small><b>${esc(fmtScore(c, rivals[0].n))}</b><small>${esc(rivals[0].p)}</small></div>` : ''}</div>` : ''}
     ${c.w ? `<h3>${t('vsWeight', { u: unit() })}</h3><input class="vs-in" data-vs="w" type="number" inputmode="decimal" min="0" value="${esc(vs.w)}" placeholder="${unit() === 'kg' ? '10' : '25'}">` : ''}
     <h3>${t('vsWho')}</h3>
-    <div class="chips seg"><button class="chip" data-act="vs-who" data-v="solo" aria-pressed="${vs.who === 'solo'}">${t('vsSolo')}</button><button class="chip" data-act="vs-who" data-v="duel" aria-pressed="${vs.who === 'duel'}">${t('vsDuel')}</button></div>
+    <div class="chips seg vs-who">${who('solo', 'vsSolo')}${who('live', 'vsLive')}${who('duel', 'vsDuel')}</div>
     ${vs.who === 'duel' ? `<div class="vs-players">${vs.players.map((p, i) => `<div class="vs-pl"><span>${i + 1}</span><input class="vs-in" data-vs="p${i}" maxlength="16" value="${esc(p)}" placeholder="${t('vsPlayerN', { n: i + 1 })}" autocomplete="off">${i > 1 ? `<button class="icon-btn" data-act="vs-del" data-v="${i}" aria-label="${t('vsRemove')}">${I.minus}</button>` : ''}</div>`).join('')}
       ${vs.players.length < 6 ? `<button class="link small vs-add" data-act="vs-add">${I.plus}${t('vsAddPlayer')}</button>` : ''}<p class="muted small">${t('vsDuelHow')}</p></div>` : ''}
-    <button class="btn btn-primary btn-block" style="margin-top:16px" data-act="vs-start" data-v="${c.id}">${I.camera}${t('vsStart')}</button>
-    <button class="link other-btn" data-act="vs-start" data-v="${c.id}" data-tap="1">${t('vsNoCam')}</button>`);
-  sheetFn = () => {
-    document.querySelectorAll('#sheet [data-vs]').forEach((el) => {
-      if (el.dataset.vs === 'w') vs.w = el.value;
-      else vs.players[+el.dataset.vs.slice(1)] = el.value.slice(0, 16);
-    });
-  };
+    ${vs.who === 'live' ? `<p class="muted small vs-live-how">${t('vsLiveHow')}</p><label class="vs-check"><input type="checkbox" data-vs="see" ${vs.see ? 'checked' : ''}><span>${t('vsSeeRival')}</span></label>` : ''}
+    <label class="vs-check"><input type="checkbox" data-vs="rec" ${vs.rec ? 'checked' : ''}><span>${t('vsRec')}</span></label>
+    <button class="btn btn-primary btn-block" style="margin-top:16px" data-act="vs-start" data-v="${c.id}">${I.camera}${t(vs.who === 'live' ? 'vsCreateRoom' : 'vsStart')}</button>`);
+  sheetFn = vsReadSheet;
+}
+function vsReadSheet() {
+  document.querySelectorAll('#sheet [data-vs]').forEach((el) => {
+    const k = el.dataset.vs;
+    if (k === 'w') vs.w = el.value;
+    else if (k === 'rec') vs.rec = el.checked;
+    else if (k === 'see') vs.see = el.checked;
+    else if (k[0] === 'p') vs.players[+k.slice(1)] = el.value.slice(0, 16);
+  });
 }
 function showVsCode() {
   openSheet(`<span class="eyebrow">${t('vsChallenge')}</span><h2 style="margin-top:6px">${t('vsCodeTitle')}</h2>
     <textarea class="vs-code-in" id="vsCodeIn" rows="4" placeholder="ES1…" autocomplete="off" spellcheck="false"></textarea>
     <button class="btn btn-primary btn-block" style="margin-top:12px" data-act="vs-code-add">${t('vsCodeAdd')}</button>`);
 }
+function showVsJoin() {
+  openSheet(`<span class="eyebrow">${t('vsWayLive')}</span><h2 style="margin-top:6px">${t('vsJoinTitle')}</h2><p class="muted small" style="margin:6px 0 12px">${t('vsJoinP')}</p>
+    <input class="vs-in vs-room-in" id="vsRoomIn" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC123" value="${esc(vs.joinCode || '')}">
+    <label class="vs-check"><input type="checkbox" data-vs="see" ${vs.see ? 'checked' : ''}><span>${t('vsSeeRival')}</span></label>
+    <label class="vs-check"><input type="checkbox" data-vs="rec" ${vs.rec ? 'checked' : ''}><span>${t('vsRec')}</span></label>
+    <button class="btn btn-primary btn-block" style="margin-top:12px" data-act="vs-join-go">${t('vsJoin')}</button>
+    <p class="muted small" style="margin-top:12px">${t('vsLiveNote')}</p>`);
+  sheetFn = vsReadSheet;
+}
 function vsShareSheet(r) {
   const c = challengeById(r.c), code = vsCode(r);
   const link = `https://earnedstrength.online/app/#reto=${code}`;
   const what = scoreWord(c, r.n) + (r.w ? ` (${r.w} ${unit()})` : '');
-  const text = t('vsShareText', { name: r.p || t('vsFriend'), what, ch: chTitle(c), link, code });
-  vs.shareText = text;
+  vs.shareText = t('vsShareText', { name: r.p || t('vsFriend'), what, ch: chTitle(c), link, code });
   openSheet(`<span class="eyebrow">${t('vsShare')}</span><h2 style="margin-top:6px">${t('vsShareTitle')}</h2><p class="muted small" style="margin:6px 0 12px">${t('vsShareP')}</p>
     <div class="vs-code"><b>${esc(what)}</b><small>${esc(chTitle(c))}</small><code>${esc(code)}</code></div>
     <div class="split" style="margin-top:14px"><button class="btn" data-act="vs-copy">${t('vsCopy')}</button><button class="btn btn-primary" data-act="vs-send">${I.share}${t('share')}</button></div>`);
@@ -2669,8 +2706,263 @@ async function vsCopy() {
   }
 }
 
+// ---------- Live room: two phones, each counts its own person, the counts travel phone to phone ----------
+// The connection is made with WebRTC (PeerJS): a public service only introduces the two phones,
+// then the counts (and, if both want, the camera picture) go straight between them. Nothing is stored.
+const live = { on: false, host: false, peer: null, conn: null, call: null, code: '', rname: '', rn: 0, rdone: false, rres: null, meReady: false, rReady: false, rstream: null };
+const ROOM_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const roomCode = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => ROOM_CHARS[b % ROOM_CHARS.length]).join('');
+const roomPeerId = (code) => 'earnedstrength-room-' + code.toLowerCase();
+function loadPeerLib() {
+  if (window.Peer) return Promise.resolve(window.Peer);
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';
+    s.onload = () => (window.Peer ? res(window.Peer) : rej(new Error('peer')));
+    s.onerror = () => rej(new Error('peer'));
+    document.head.appendChild(s);
+  });
+}
+function liveSend(m) { try { if (live.conn && live.conn.open) live.conn.send(m); } catch (e) { /* the friend left */ } }
+function liveReset(keepRoom) {
+  Object.assign(live, { rn: 0, rdone: false, rres: null, meReady: false, rReady: false });
+  if (!keepRoom) {
+    try { if (live.call) live.call.close(); } catch (e) { /* closed */ }
+    try { if (live.conn) live.conn.close(); } catch (e) { /* closed */ }
+    try { if (live.peer) live.peer.destroy(); } catch (e) { /* closed */ }
+    Object.assign(live, { on: false, host: false, peer: null, conn: null, call: null, pendingCall: null, code: '', rname: '', rstream: null });
+    const rv = $('#camRivalVid');
+    if (rv) { rv.srcObject = null; rv.hidden = true; }
+  }
+}
+async function liveHost() {
+  liveReset();
+  live.on = true;
+  live.host = true;
+  cam.phase = 'load';
+  renderCamHud();
+  let Peer;
+  try { Peer = await loadPeerLib(); } catch (e) { return liveFail('vsLiveFail'); }
+  const tryOpen = (left) => {
+    live.code = roomCode();
+    const p = new Peer(roomPeerId(live.code), { debug: 0 });
+    live.peer = p;
+    p.on('open', () => { if (live.peer === p) camPrepare(); });
+    p.on('connection', (conn) => { if (live.conn && live.conn.open) { conn.on('open', () => conn.close()); return; } liveWire(conn); });
+    p.on('call', (call) => liveAnswer(call));
+    p.on('error', (e) => {
+      if (live.peer !== p) return;
+      if (e && e.type === 'unavailable-id' && left > 0) { p.destroy(); tryOpen(left - 1); } else if (!live.conn) liveFail('vsLiveFail');
+    });
+  };
+  tryOpen(2);
+}
+async function liveJoin(code) {
+  liveReset();
+  Object.assign(live, { on: true, host: false, code });
+  Object.assign(cam, { c: null, queue: [S.profile.name || t('you')], turn: 0, results: [], w: null, rule: null, phase: 'join' });
+  camShow();
+  renderCamHud();
+  let Peer;
+  try { Peer = await loadPeerLib(); } catch (e) { return liveFail('vsLiveFail'); }
+  const p = new Peer(undefined, { debug: 0 });
+  live.peer = p;
+  p.on('open', () => liveWire(p.connect(roomPeerId(code), { reliable: true })));
+  p.on('call', (call) => liveAnswer(call));
+  p.on('error', (e) => { if (live.peer === p && !live.conn?.open) liveFail(e && e.type === 'peer-unavailable' ? 'vsNoRoom' : 'vsLiveFail'); });
+  setTimeout(() => { if (live.peer === p && cam.phase === 'join') liveFail('vsNoRoom'); }, 15000);
+}
+function liveFail(key) {
+  if (cam.phase === 'off') return;
+  cam.err = t(key);
+  cam.phase = 'error';
+  renderCamHud();
+}
+function liveWire(conn) {
+  live.conn = conn;
+  conn.on('open', () => liveSend({ t: 'hi', name: cam.queue[0], v: 1 }));
+  conn.on('data', liveMsg);
+  conn.on('close', () => {
+    if (live.conn !== conn || cam.phase === 'off') return;
+    toast(t('vsLeft2', { name: live.rname || t('vsFriend') }));
+    live.conn = null;
+    if (cam.phase === 'done' && !live.rdone) { live.rdone = true; liveMaybeEnd(); }
+    renderCamHud();
+  });
+}
+function liveMsg(m) {
+  if (!m || typeof m !== 'object' || typeof m.t !== 'string') return;
+  const n = Math.max(0, Math.min(9999, Math.round(+m.n || 0)));
+  if (m.t === 'hi') {
+    live.rname = cleanName(m.name) || t('vsFriend');
+    if (live.host) {
+      liveSend({ t: 'cfg', cid: cam.c.id, w: cam.w, u: unit(), name: cam.queue[0] });
+      toast(t('vsJoined', { name: live.rname }));
+      if (vs.see && cam.stream && live.peer) { try { liveAnswer(live.peer.call(live.conn.peer, cam.stream), true); } catch (e) { /* video is optional */ } }
+    }
+    renderCamHud();
+  } else if (m.t === 'cfg' && !live.host) {
+    const c = challengeById(m.cid);
+    if (!c) return liveFail('vsLiveFail');
+    live.rname = cleanName(m.name) || t('vsFriend');
+    const w = Number.isFinite(m.w) && m.w > 0 && m.w < 1000 ? m.w : null;
+    Object.assign(cam, { c, rule: ruleOf(c), w: w && m.u !== unit() ? Math.round((m.u === 'kg' ? w * LB : w / LB) * 10) / 10 : w });
+    camPrepare();
+  } else if (m.t === 'ready') { live.rReady = true; liveMaybeGo(); renderLiveBar(); }
+  else if (m.t === 'go' && !live.host) { if (cam.phase === 'place') camCountdown(); }
+  else if (m.t === 'n') { live.rn = n; renderLiveBar(); }
+  else if (m.t === 'done') { live.rn = n; live.rdone = true; renderLiveBar(); liveMaybeEnd(); }
+  else if (m.t === 'again') { if (['done', 'podium'].includes(cam.phase)) { liveReset(true); camPrepare(); } }
+}
+function liveAnswer(call, mine) {
+  live.call = call;
+  if (!mine) { if (!vs.see) call.answer(); else if (cam.stream) call.answer(cam.stream); else live.pendingCall = call; }
+  call.on('stream', (st) => {
+    live.rstream = st;
+    const rv = $('#camRivalVid');
+    if (rv && vs.see) { rv.srcObject = st; rv.hidden = false; rv.play().catch(() => {}); }
+  });
+}
+function liveMaybeGo() {
+  if (live.host && live.meReady && live.rReady && cam.phase === 'place') { liveSend({ t: 'go' }); camCountdown(); }
+}
+function liveMaybeEnd() {
+  if (cam.phase !== 'done' || !live.rdone || live.rres) return;
+  live.rres = { p: live.rname || t('vsFriend'), n: live.rn };
+  const me = cam.last, D = vsData();
+  D.duels = [{ c: cam.c.id, at: Date.now(), live: true, res: [{ p: me.p, n: me.n }, { p: live.rres.p, n: live.rres.n }] }, ...D.duels].slice(0, 12);
+  save();
+  if (me.n > live.rn) confetti(80);
+  renderCamHud();
+}
+function renderLiveBar() {
+  const el = $('#camLive');
+  if (!el || !live.on) return;
+  // While the host waits, the room card already says it; the bar only shows the friend once connected.
+  const st = !live.conn ? (live.host ? '' : t('vsConnecting'))
+    : cam.phase === 'place' ? (live.meReady && live.rReady ? t('vsBothReady') : live.meReady ? t('vsWaitReady', { name: esc(live.rname) }) : t('vsJoined', { name: esc(live.rname) }))
+      : '';
+  el.innerHTML = `<em class="live-tag">${t('vsLiveTag')}</em>${live.conn ? `<b>${esc(live.rname)}</b><span class="lv-n">${cam.c ? esc(fmtScore(cam.c, live.rn)) : 0}</span>` : ''}${st ? `<small>${st}</small>` : ''}`;
+}
+
+// ---------- Video with the count drawn on it (made on the phone, never uploaded) ----------
+const REC_TYPES = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+function recDrop() {
+  const R = cam.rec;
+  cam.rec = null;
+  if (!R) return;
+  try { if (R.mr.state !== 'inactive') R.mr.stop(); } catch (e) { /* stopped */ }
+  if (R.url) URL.revokeObjectURL(R.url);
+}
+function recStart() {
+  recDrop();
+  const v = $('#camVideo');
+  if (!vs.rec || !window.MediaRecorder || !v || !v.videoWidth) return;
+  const k = 960 / Math.max(v.videoWidth, v.videoHeight);
+  const rc = document.createElement('canvas');
+  rc.width = Math.round((v.videoWidth * k) / 2) * 2;
+  rc.height = Math.round((v.videoHeight * k) / 2) * 2;
+  const type = REC_TYPES.find((x) => MediaRecorder.isTypeSupported(x));
+  let mr;
+  try { mr = new MediaRecorder(rc.captureStream(30), type ? { mimeType: type, videoBitsPerSecond: 3000000 } : undefined); } catch (e) { return; }
+  const R = { rc, g: rc.getContext('2d'), mr, chunks: [], url: null, blob: null, ext: 'webm', stopAt: 0, lm: null };
+  mr.ondataavailable = (e) => { if (e.data && e.data.size) R.chunks.push(e.data); };
+  mr.onstop = () => {
+    if (cam.rec !== R) return;
+    R.blob = new Blob(R.chunks, { type: mr.mimeType || type || 'video/webm' });
+    R.ext = /mp4/.test(R.blob.type) ? 'mp4' : 'webm';
+    R.url = URL.createObjectURL(R.blob);
+    if (['done', 'podium'].includes(cam.phase)) renderCamHud();
+  };
+  cam.rec = R;
+  recFrame(null);
+  mr.start(500);
+}
+function recFrame(lm) {
+  const R = cam.rec, v = $('#camVideo'), c = cam.c;
+  if (!R || R.url || !v || !v.videoWidth || !c) return;
+  if (lm) R.lm = lm;
+  const { rc, g } = R, W = rc.width, H = rc.height, u = Math.min(W, H) / 100, now = Date.now();
+  const hold = cam.rule.hold, who = cam.queue[cam.turn] || '';
+  g.save();
+  if (cam.facing === 'user') { g.translate(W, 0); g.scale(-1, 1); }
+  g.drawImage(v, 0, 0, W, H);
+  if (R.lm && cam.phase !== 'done') drawPoseOn(g, R.lm, W, H, true);
+  g.restore();
+  let gr = g.createLinearGradient(0, 0, 0, H * 0.24);
+  gr.addColorStop(0, 'rgba(0,0,0,.72)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, W, H * 0.24);
+  gr = g.createLinearGradient(0, H * 0.55, 0, H);
+  gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.82)');
+  g.fillStyle = gr; g.fillRect(0, H * 0.55, W, H * 0.45);
+  g.textBaseline = 'top';
+  g.font = `${7 * u}px "Bebas Neue", sans-serif`; g.fillStyle = '#EDEAE4'; g.fillText('EARNED', 4 * u, 4 * u);
+  g.fillStyle = '#E2463B'; g.fillText('STRENGTH', 4 * u + g.measureText('EARNED ').width, 4 * u);
+  g.textAlign = 'right';
+  g.font = `800 ${4 * u}px Inter, sans-serif`; g.fillStyle = '#fff'; g.fillText(exName(c.ex), W - 4 * u, 4 * u);
+  g.font = `600 ${3.2 * u}px Inter, sans-serif`; g.fillStyle = 'rgba(255,255,255,.78)';
+  g.fillText(`${chMode(c)}${cam.w ? ' · ' + cam.w + ' ' + unit() : ''} · ${who}`, W - 4 * u, 9.4 * u);
+  g.textAlign = 'left';
+  // Live rival in the corner.
+  if (live.on && live.conn) {
+    g.textAlign = 'right'; g.textBaseline = 'top';
+    g.font = `800 ${3.4 * u}px Inter, sans-serif`; g.fillStyle = '#FF6B5E'; g.fillText(`● ${t('vsLiveTag')} · ${live.rname}`, W - 4 * u, 15 * u);
+    g.font = `${13 * u}px "Bebas Neue", sans-serif`; g.fillStyle = '#fff'; g.fillText(fmtScore(c, live.rn), W - 4 * u, 19.5 * u);
+    g.textAlign = 'left';
+  }
+  g.textBaseline = 'alphabetic';
+  if (cam.phase === 'count') {
+    g.textAlign = 'center'; g.font = `${40 * u}px "Bebas Neue", sans-serif`; g.fillStyle = '#fff';
+    g.fillText(String(cam.cdNum || ''), W / 2, H / 2 + 14 * u); g.textAlign = 'left';
+  }
+  const score = hold ? Math.floor(cam.held / 1000) : cam.n;
+  const best = cam.turn === 0 ? vsData().best[c.id] : null;
+  const prevBest = cam.recBase != null ? cam.recBase : best ? best.n : null;
+  if (cam.phase === 'go' || cam.phase === 'done') {
+    g.font = `${28 * u}px "Bebas Neue", sans-serif`; g.fillStyle = '#fff';
+    g.fillText(fmtScore(c, score), 4 * u, H - 10 * u);
+    g.font = `800 ${3.4 * u}px Inter, sans-serif`; g.fillStyle = 'rgba(255,255,255,.82)';
+    g.fillText(t(hold ? 'vsSeconds' : 'vsReps').toUpperCase(), 4.6 * u, H - 5 * u);
+    const newRec = cam.turn === 0 && score > 0 && (prevBest == null || score > prevBest);
+    g.font = `800 ${4 * u}px Inter, sans-serif`;
+    g.fillStyle = newRec ? '#E8B84A' : 'rgba(255,255,255,.85)';
+    const recTxt = newRec ? t('vsNewRecordCaps') : prevBest != null ? t('vsRecordN', { n: fmtScore(c, prevBest) }) : '';
+    if (recTxt) g.fillText(recTxt, 4.6 * u, H - 39 * u);
+    if (cam.phase === 'go' && c.mode === 'time') {
+      g.textAlign = 'right'; g.font = `${14 * u}px "Bebas Neue", sans-serif`; g.fillStyle = '#fff';
+      g.fillText(`${Math.max(0, Math.ceil((cam.end - now) / 1000))}s`, W - 4 * u, H - 6 * u); g.textAlign = 'left';
+    }
+    if (cam.phase === 'go' && cam.flashT && now - cam.flashT < 1400) {
+      g.textAlign = 'center'; g.font = `800 ${5 * u}px Inter, sans-serif`; g.fillStyle = '#FFD08A';
+      g.fillText(t('vsNoCount'), W / 2, H * 0.5); g.textAlign = 'left';
+    }
+    if (cam.phase === 'done') {
+      g.textAlign = 'right'; g.font = `800 ${3.6 * u}px Inter, sans-serif`; g.fillStyle = '#8FE0AE';
+      g.fillText(`✓ ${t('vsCamCounted')}`, W - 4 * u, H - 6 * u); g.textAlign = 'left';
+    }
+  }
+  if (R.stopAt && now >= R.stopAt && R.mr.state !== 'inactive') { try { R.mr.stop(); } catch (e) { /* stopped */ } }
+}
+async function recSave() {
+  const R = cam.rec;
+  if (!R || !R.url) return;
+  const a = document.createElement('a');
+  a.href = R.url;
+  a.download = `earned-strength-${cam.c.id}-${cam.last ? cam.last.n : 0}.${R.ext}`;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+async function recShare() {
+  const R = cam.rec;
+  if (!R || !R.blob) return;
+  const file = new File([R.blob], `earned-strength-${cam.c.id}.${R.ext}`, { type: R.blob.type });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text: 'Earned Strength' }); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  recSave();
+}
+
 // ---------- The camera screen ----------
-const cam = { c: null, phase: 'off', tap: false, stream: null, counter: null, raf: 0, iv: 0, cd: 0, n: 0, start: 0, end: 0, lastRep: 0, held: 0, lastT: 0, badSince: 0, readySince: 0, queue: [], turn: 0, results: [], facing: 'user', err: '', lock: null, lastVT: -1, flashT: 0, w: null, lines: [], last: null };
+const cam = { c: null, phase: 'off', stream: null, counter: null, raf: 0, iv: 0, cd: 0, n: 0, start: 0, end: 0, lastRep: 0, held: 0, lastT: 0, badSince: 0, readySince: 0, queue: [], turn: 0, results: [], facing: 'user', err: '', lock: null, lastVT: -1, flashT: 0, w: null, lines: [], last: null, rule: null, rec: null, cdNum: 0, recBase: null };
 function camEl() {
   let el = $('#cam');
   if (!el) {
@@ -2678,30 +2970,35 @@ function camEl() {
     el.id = 'cam';
     el.className = 'cam';
     el.hidden = true;
-    el.innerHTML = '<div class="cam-stage" id="camStage"><video id="camVideo" playsinline muted></video><canvas id="camCanvas"></canvas></div><div class="cam-hud" id="camHud"></div>';
+    el.innerHTML = '<div class="cam-stage" id="camStage"><video id="camVideo" playsinline muted></video><canvas id="camCanvas"></canvas></div><video class="cam-rival" id="camRivalVid" playsinline muted hidden></video><div class="cam-hud" id="camHud"></div>';
     document.body.appendChild(el);
     el.addEventListener('click', onCamClick);
   }
   return el;
 }
-function openCam(id, tap) {
+function camShow() {
+  camEl().hidden = false;
+  document.body.style.overflow = 'hidden';
+  try { if (navigator.wakeLock && !cam.lock) navigator.wakeLock.request('screen').then((l) => { cam.lock = l; }).catch(() => {}); } catch (e) { /* the screen may turn off */ }
+}
+function openCam(id) {
   const c = challengeById(id);
   if (!c) return;
-  const names = vs.who === 'duel' ? vs.players.map((p) => p.trim()).filter(Boolean) : [S.profile.name || t('you')];
+  const names = vs.who === 'duel' ? vs.players.map(cleanName).filter(Boolean) : [cleanName(S.profile.name) || t('you')];
   if (vs.who === 'duel' && names.length < 2) { toast(t('vsNeedNames')); return; }
   closeSheet();
   unlockAudio();
-  Object.assign(cam, { c, tap: !!tap, queue: names, turn: 0, results: [], w: c.w && num(vs.w) > 0 ? Math.round(num(vs.w) * 10) / 10 : null, rule: ruleOf(c) });
-  camEl().hidden = false;
-  document.body.style.overflow = 'hidden';
-  try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then((l) => { cam.lock = l; }).catch(() => {}); } catch (e) { /* the screen may turn off */ }
+  Object.assign(cam, { c, queue: names, turn: 0, results: [], w: c.w && num(vs.w) > 0 ? Math.round(num(vs.w) * 10) / 10 : null, rule: ruleOf(c) });
+  camShow();
+  if (vs.who === 'live') { liveHost(); return; }
+  liveReset();
   if (names.length > 1) { cam.phase = 'turn'; renderCamHud(); } else camPrepare();
 }
 async function camPrepare() {
   cam.counter = new Counter(cam.rule);
-  Object.assign(cam, { n: 0, held: 0, readySince: 0, badSince: 0 });
-  $('#camStage').classList.toggle('off', cam.tap);
-  if (cam.tap) { cam.phase = 'place'; renderCamHud(); return; }
+  Object.assign(cam, { n: 0, held: 0, readySince: 0, badSince: 0, recBase: null });
+  live.meReady = false;
+  recDrop();
   if (cam.stream) { cam.phase = 'place'; renderCamHud(); startLoop(); return; }
   cam.phase = 'load';
   renderCamHud();
@@ -2713,6 +3010,8 @@ async function camPrepare() {
     cam.phase = 'place';
     renderCamHud();
     startLoop();
+    // Live room: once my camera is on, the friend can see me (the host calls when the friend arrives).
+    if (live.pendingCall) { const pc = live.pendingCall; live.pendingCall = null; try { pc.answer(cam.stream); } catch (x) { /* video is optional */ } }
   } catch (e) {
     if (cam.phase !== 'load') return;
     cam.err = t(e && (e.name === 'NotAllowedError' || e.name === 'SecurityError') ? 'vsCamDenied' : 'vsCamFail');
@@ -2727,13 +3026,17 @@ function startLoop() {
     const v = $('#camVideo');
     if (!v || v.readyState < 2 || v.currentTime === cam.lastVT) return;
     cam.lastVT = v.currentTime;
+    const active = ['place', 'count', 'go'].includes(cam.phase);
     let lm = null;
-    try { lm = detect(v); } catch (e) { lm = null; }
-    const cv = $('#camCanvas');
-    if (cv.width !== v.videoWidth) { cv.width = v.videoWidth; cv.height = v.videoHeight; }
-    const r = cam.counter.update(lm, v.videoWidth / v.videoHeight);
-    drawPose(cv, lm, r.seen && r.ok);
-    camFrame(r);
+    if (active) {
+      try { lm = detect(v); } catch (e) { lm = null; }
+      const cv = $('#camCanvas');
+      if (cv.width !== v.videoWidth) { cv.width = v.videoWidth; cv.height = v.videoHeight; }
+      const r = cam.counter.update(lm, v.videoWidth / v.videoHeight);
+      drawPose(cv, lm, r.seen && r.ok);
+      camFrame(r);
+    }
+    if (cam.rec && !cam.rec.url && (active || cam.rec.stopAt)) recFrame(lm);
   };
   step();
 }
@@ -2743,8 +3046,15 @@ function camFrame(r) {
   if (cam.phase === 'place') {
     const inPos = r.seen && r.ok && (rule.hold || r.ph === 'start');
     setText('#camStatus', !r.seen ? t('hWhole') : !r.ok ? t(r.hint || 'hStartPos') : inPos ? t('hReady') : t('hStartPos'));
-    $('#camStatus') && $('#camStatus').classList.toggle('good', inPos);
-    if (inPos) { if (!cam.readySince) cam.readySince = now; else if (now - cam.readySince > 900) camCountdown(); } else cam.readySince = 0;
+    const st = $('#camStatus');
+    if (st) st.classList.toggle('good', inPos);
+    if (inPos) {
+      if (!cam.readySince) cam.readySince = now;
+      else if (now - cam.readySince > 900) {
+        if (!live.on) camCountdown();
+        else if (!live.meReady && live.conn) { live.meReady = true; liveSend({ t: 'ready' }); renderLiveBar(); liveMaybeGo(); }
+      }
+    } else cam.readySince = 0;
     return;
   }
   if (cam.phase !== 'go') return;
@@ -2757,7 +3067,9 @@ function camFrame(r) {
       setText('#camHint', t(r.seen ? r.hint || 'hHips' : 'hWhole'));
       if (now - cam.badSince > 2000) { camFinish(); return; }
     } else if (now - cam.start > 10000) { camFinish(); return; }
-    setText('#camN', fmtSecs(Math.floor(cam.held / 1000)));
+    const secs = Math.floor(cam.held / 1000);
+    setText('#camN', fmtSecs(secs));
+    if (live.on && secs !== cam.lastSent) { cam.lastSent = secs; liveSend({ t: 'n', n: secs }); }
     return;
   }
   if (r.ev === 'rep') {
@@ -2768,14 +3080,14 @@ function camFrame(r) {
     if (el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
     toneAt(880, 0, 0.08, 0.2);
     vibrate(25);
+    if (live.on) liveSend({ t: 'n', n: cam.n });
   } else if (r.ev === 'half') { setText('#camHint', t(rule.half || 'hDeeper')); cam.flashT = now; toneAt(220, 0, 0.12, 0.15); }
   if (now - cam.flashT > 1600) setText('#camHint', !r.seen ? t('hWhole') : !r.ok && r.hint ? t(r.hint) : '');
 }
-// Clock for the timed and non-stop modes (runs with or without camera).
+// Clock for the timed and non-stop modes.
 function camClock() {
   if (cam.phase !== 'go') return;
   const now = Date.now(), c = cam.c;
-  if (cam.tap && cam.rule.hold) { cam.held = now - cam.start; setText('#camN', fmtSecs(Math.floor(cam.held / 1000))); }
   if (c.mode === 'time') {
     const left = Math.max(0, Math.ceil((cam.end - now) / 1000));
     setText('#camT', t('vsLeft', { n: left }));
@@ -2783,25 +3095,25 @@ function camClock() {
     if (now >= cam.end) camFinish();
   } else if (c.mode === 'max') {
     const idle = now - cam.lastRep, limit = cam.n ? 8000 : 20000;
-    const left = Math.ceil((limit - idle) / 1000);
-    setText('#camT', idle > 3000 ? t('vsIdle', { n: Math.max(0, left) }) : '');
+    setText('#camT', idle > 3000 ? t('vsIdle', { n: Math.max(0, Math.ceil((limit - idle) / 1000)) }) : '');
     if (idle > limit) camFinish();
-  } else setText('#camT', cam.tap ? '' : t('vsHoldNote'));
+  } else setText('#camT', t('vsHoldNote'));
 }
 function camCountdown() {
   cam.phase = 'count';
   renderCamHud();
+  recStart();
   let k = 3;
   const tick = () => {
     if (cam.phase !== 'count') return;
-    if (k > 0) { setText('#camBig', String(k)); toneAt(660, 0, 0.12); k--; cam.cd = setTimeout(tick, 900); } else { toneAt(990, 0, 0.35); say(t('vsGo')); camGo(); }
+    if (k > 0) { cam.cdNum = k; setText('#camBig', String(k)); toneAt(660, 0, 0.12); k--; cam.cd = setTimeout(tick, 900); } else { toneAt(990, 0, 0.35); say(t('vsGo')); camGo(); }
   };
   tick();
 }
 function camGo() {
-  const now = Date.now();
+  const now = Date.now(), best = vsData().best[cam.c.id];
   cam.counter.reset();
-  Object.assign(cam, { phase: 'go', n: 0, held: 0, start: now, lastRep: now, lastT: 0, badSince: 0, flashT: 0, lastBeep: 0, end: cam.c.mode === 'time' ? now + cam.c.secs * 1000 : 0 });
+  Object.assign(cam, { phase: 'go', n: 0, held: 0, start: now, lastRep: now, lastT: 0, badSince: 0, flashT: 0, lastBeep: 0, lastSent: -1, recBase: cam.turn === 0 && best ? best.n : null, end: cam.c.mode === 'time' ? now + cam.c.secs * 1000 : 0 });
   renderCamHud();
   clearInterval(cam.iv);
   cam.iv = setInterval(camClock, 200);
@@ -2812,29 +3124,31 @@ function camFinish() {
   clearInterval(cam.iv);
   const c = cam.c, D = vsData(), who = cam.queue[cam.turn];
   const n = c.mode === 'hold' ? Math.floor(cam.held / 1000) : cam.n;
-  const res = { p: who, n, cam: !cam.tap };
+  const res = { p: who, n, cam: true };
   cam.results.push(res);
   cam.last = res;
   cam.lines = [];
   bell(1);
-  // Personal records belong to the phone's owner: alone, or the first name in a duel.
+  if (live.on) liveSend({ t: 'done', n });
+  // Personal records belong to the phone's owner: alone, live, or the first name in a duel.
   if (cam.turn === 0) {
     const prev = D.best[c.id];
-    if (n > 0 && (!prev || n > prev.n)) { D.best[c.id] = { n, cam: !cam.tap, w: cam.w, at: Date.now() }; cam.lines.push(`<b class="vs-rec">${t('vsRecord')}</b>`); confetti(50); }
+    if (n > 0 && (!prev || n > prev.n)) { D.best[c.id] = { n, cam: true, w: cam.w, at: Date.now() }; cam.lines.push(`<b class="vs-rec">${t('vsRecord')}</b>`); confetti(50); }
     else if (prev) cam.lines.push(t('vsPrev', { n: fmtScore(c, prev.n) }));
     const top = D.rivals.filter((r) => r.c === c.id).sort((x, y) => y.n - x.n)[0];
-    if (top && cam.queue.length === 1) {
+    if (top && cam.queue.length === 1 && !live.on) {
       cam.lines.push(n > top.n ? t('vsWon', { name: esc(top.p), n: fmtScore(c, top.n) }) : n === top.n ? t('vsTieWith', { name: esc(top.p) }) : t('vsShort', { d: c.mode === 'hold' ? fmtSecs(top.n - n) : top.n - n, name: esc(top.p) }));
     }
     save();
   }
   cam.phase = 'done';
-  cancelAnimationFrame(cam.raf);
+  if (cam.rec) cam.rec.stopAt = Date.now() + 1800;
   renderCamHud();
+  liveMaybeEnd();
 }
 function camPodium() {
   const D = vsData();
-  D.duels = [{ c: cam.c.id, at: Date.now(), res: cam.results.map((r) => ({ p: r.p, n: r.n, cam: r.cam })) }, ...D.duels].slice(0, 12);
+  D.duels = [{ c: cam.c.id, at: Date.now(), res: cam.results.map((r) => ({ p: r.p, n: r.n })) }, ...D.duels].slice(0, 12);
   save();
   cam.phase = 'podium';
   renderCamHud();
@@ -2845,6 +3159,8 @@ function closeCam() {
   cancelAnimationFrame(cam.raf);
   clearInterval(cam.iv);
   clearTimeout(cam.cd);
+  recDrop();
+  liveReset();
   stopCamera(cam.stream);
   cam.stream = null;
   try { if (cam.lock) cam.lock.release(); } catch (e) { /* already released */ }
@@ -2855,44 +3171,52 @@ function closeCam() {
   if (current === 'vs') render();
 }
 function renderCamHud() {
-  const c = cam.c, el = $('#camHud'), who = cam.queue[cam.turn], duel = cam.queue.length > 1;
+  const c = cam.c, el = $('#camHud'), who = cam.queue[cam.turn], duel = cam.queue.length > 1, ph = cam.phase;
   const top = `<div class="cam-top"><button class="icon-btn" data-cam="close" aria-label="${t('close')}">${I.close}</button>
-    <span class="cam-title"><b>${esc(exName(c.ex))}</b><small>${chMode(c)}${cam.w ? ` · ${cam.w} ${unit()}` : ''}${duel ? ` · ${esc(who)}` : ''}</small></span>
-    ${!cam.tap && cam.stream && ['place', 'turn'].includes(cam.phase) ? `<button class="icon-btn" data-cam="flip" aria-label="${t('vsFlip')}">${I.rotate}</button>` : '<span style="width:40px"></span>'}</div>`;
+    <span class="cam-title"><b>${c ? esc(exName(c.ex)) : t('vsWayLive')}</b><small>${c ? chMode(c) : ''}${cam.w ? ` · ${cam.w} ${unit()}` : ''}${duel ? ` · ${esc(who)}` : ''}${live.on && live.code ? ` · ${t('vsRoom', { code: live.code })}` : ''}</small></span>
+    ${cam.stream && ['place', 'turn'].includes(ph) ? `<button class="icon-btn" data-cam="flip" aria-label="${t('vsFlip')}">${I.rotate}</button>` : '<span style="width:40px"></span>'}</div>
+    ${live.on && c ? '<div class="cam-live" id="camLive"></div>' : ''}`;
   let mid = '', foot = '';
-  const ph = cam.phase;
   if (ph === 'turn') {
     mid = `<div class="cam-center"><span class="eyebrow">${t('vsTurnOf')}</span><b class="cam-who">${esc(who)}</b><p>${t('vsTurnP', { n: cam.turn + 1, total: cam.queue.length })}</p></div>`;
     foot = `<button class="btn btn-primary btn-block" data-cam="ready">${t('vsImReady')}</button>`;
-  } else if (ph === 'load') {
-    mid = `<div class="cam-center"><span class="cam-spin"></span><p>${t('vsLoading')}</p></div>`;
+  } else if (ph === 'load' || ph === 'join') {
+    mid = `<div class="cam-center"><span class="cam-spin"></span><p>${t(ph === 'join' ? 'vsConnecting' : 'vsLoading')}</p></div>`;
   } else if (ph === 'error') {
     mid = `<div class="cam-center"><span class="cam-ic">${I.camera}</span><p>${esc(cam.err)}</p></div>`;
-    foot = `<button class="btn btn-primary btn-block" data-cam="tap">${t('vsTapMode')}</button><button class="btn btn-block" data-cam="close">${t('close')}</button>`;
+    foot = `<button class="btn btn-block" data-cam="close">${t('close')}</button>`;
   } else if (ph === 'place') {
-    mid = cam.tap ? `<div class="cam-center"><span class="cam-ic">${I.target}</span><p>${t(cam.rule.hold ? 'vsTapHoldHow' : 'vsTapHow')}</p></div>`
-      : `<div class="cam-place"><b id="camStatus">${t('hWhole')}</b><small>${t(cam.rule.view === 'side' ? 'vsViewSide' : 'vsViewFront')}</small></div>`;
-    foot = `<button class="btn ${cam.tap ? 'btn-primary' : ''} btn-block" data-cam="go">${t(cam.tap ? 'vsStartTap' : 'vsStartNow')}</button>`;
+    const room = live.on && live.host && !live.conn ? `<div class="cam-room"><small>${t('vsWaitFriend')}</small><b>${esc(live.code)}</b><button class="btn btn-sm btn-primary" data-cam="room-share">${I.share}${t('vsSendCode')}</button></div>` : '';
+    mid = `${room}<div class="cam-place"><b id="camStatus">${t('hWhole')}</b><small>${t(cam.rule.view === 'side' ? 'vsViewSide' : 'vsViewFront')}</small></div>`;
+    foot = live.on ? (live.host && live.conn ? `<button class="btn btn-block" data-cam="go">${t('vsStartNow')}</button>` : '') : `<button class="btn btn-block" data-cam="go">${t('vsStartNow')}</button>`;
   } else if (ph === 'count') {
     mid = '<div class="cam-center"><b class="cam-big" id="camBig">3</b></div>';
   } else if (ph === 'go') {
     const hold = cam.rule.hold;
     mid = `<div class="cam-count"><b class="cam-n" id="camN">${hold ? '0:00' : '0'}</b><small class="cam-unit">${t(hold ? 'vsSeconds' : 'vsReps')}</small><span class="cam-t" id="camT"></span><span class="cam-hint" id="camHint"></span></div>`;
-    foot = cam.tap && !hold ? `<button class="cam-tap" data-cam="plus">+1</button><button class="btn btn-block" data-cam="stop">${t('vsStop')}</button>` : `<button class="btn btn-block" data-cam="stop">${t('vsStop')}</button>`;
+    foot = `<button class="btn btn-block" data-cam="stop">${t('vsStop')}</button>`;
   } else if (ph === 'done') {
-    const r = cam.last, more = cam.turn + 1 < cam.queue.length;
+    const r = cam.last, more = cam.turn + 1 < cam.queue.length, R = cam.rec;
+    let liveLine = '';
+    if (live.on) {
+      liveLine = !live.rres ? `<p>${t('vsWaitDone', { name: esc(live.rname || t('vsFriend')) })}</p>`
+        : `<b class="vs-rec">${r.n > live.rres.n ? t('vsYouWin') : r.n === live.rres.n ? t('vsTie') : t('vsYouLose', { name: esc(live.rres.p) })}</b><p>${esc(r.p)} ${esc(fmtScore(c, r.n))} · ${esc(live.rres.p)} ${esc(fmtScore(c, live.rres.n))}</p>`;
+    }
+    const vid = R ? (R.url ? `<video class="cam-vid" src="${R.url}" playsinline muted loop autoplay></video><div class="split"><button class="btn" data-cam="vid-save">${I.down}${t('vsSaveVid')}</button><button class="btn" data-cam="vid-share">${I.share}${t('vsShareVid')}</button></div>` : `<p class="muted small">${t('vsVidPrep')}</p>`) : '';
     mid = `<div class="cam-center cam-res">${duel ? `<span class="eyebrow">${esc(r.p)}</span>` : ''}<b class="cam-n">${esc(fmtScore(c, r.n))}</b><small class="cam-unit">${t(c.mode === 'hold' ? 'vsSeconds' : 'vsReps')}</small>
-      <span class="vs-cam ${r.cam ? '' : 'off'}">${r.cam ? I.camera + t('vsCamCounted') : t('vsTapShort')}</span>${cam.lines.map((l) => `<p>${l}</p>`).join('')}</div>`;
+      <span class="vs-cam">${I.camera}${t('vsCamCounted')}</span>${cam.lines.map((l) => `<p>${l}</p>`).join('')}${liveLine}${vid}</div>`;
     foot = duel ? (more ? `<button class="btn btn-primary btn-block" data-cam="next">${t('vsNext', { name: esc(cam.queue[cam.turn + 1]) })}</button>` : `<button class="btn btn-primary btn-block" data-cam="podium">${I.trophy}${t('vsSeeWinner')}</button>`)
-      : `<button class="btn btn-primary btn-block" data-cam="share">${I.share}${t('vsShare')}</button><div class="split"><button class="btn" data-cam="again">${I.repeat}${t('vsAgain')}</button><button class="btn" data-cam="close">${t('vsDone')}</button></div>`;
+      : live.on ? `${live.host && live.conn && live.rres ? `<button class="btn btn-primary btn-block" data-cam="rematch">${I.repeat}${t('vsRematch')}</button>` : ''}<button class="btn btn-block" data-cam="close">${t('vsDone')}</button>`
+        : `<button class="btn btn-primary btn-block" data-cam="share">${I.share}${t('vsShare')}</button><div class="split"><button class="btn" data-cam="again">${I.repeat}${t('vsAgain')}</button><button class="btn" data-cam="close">${t('vsDone')}</button></div>`;
   } else if (ph === 'podium') {
     const res = [...cam.results].sort((a, b) => b.n - a.n), tie = res[1] && res[1].n === res[0].n;
     mid = `<div class="cam-center cam-pod"><span class="cam-trophy">${I.trophy}</span><span class="eyebrow">${t(tie ? 'vsTie' : 'vsWinner')}</span><b class="cam-who">${tie ? res.filter((r) => r.n === res[0].n).map((r) => esc(r.p)).join(' · ') : esc(res[0].p)}</b>
-      <ol class="pod">${res.map((r, i) => `<li><span>${i + 1}</span><span class="grow">${esc(r.p)}</span>${r.cam ? `<i>${I.camera}</i>` : ''}<b>${esc(fmtScore(c, r.n))}</b></li>`).join('')}</ol></div>`;
+      <ol class="pod">${res.map((r, i) => `<li><span>${i + 1}</span><span class="grow">${esc(r.p)}</span><b>${esc(fmtScore(c, r.n))}</b></li>`).join('')}</ol></div>`;
     foot = `<button class="btn btn-primary btn-block" data-cam="rematch">${I.repeat}${t('vsRematch')}</button><button class="btn btn-block" data-cam="close">${t('vsDone')}</button>`;
   }
   el.className = `cam-hud ph-${ph}`;
   el.innerHTML = top + mid + `<div class="cam-foot">${foot}</div>`;
+  renderLiveBar();
 }
 async function onCamClick(e) {
   const b = e.target.closest('[data-cam]');
@@ -2900,15 +3224,29 @@ async function onCamClick(e) {
   const k = b.dataset.cam;
   if (k === 'close') closeCam();
   else if (k === 'ready') camPrepare();
-  else if (k === 'tap') { cam.tap = true; camPrepare(); }
-  else if (k === 'go') { if (cam.tap || cam.phase === 'place') { cam.readySince = 0; camCountdown(); } }
+  else if (k === 'go') {
+    if (cam.phase !== 'place') return;
+    cam.readySince = 0;
+    if (live.on) { if (live.host && live.conn) { liveSend({ t: 'go' }); camCountdown(); } } else camCountdown();
+  }
   else if (k === 'stop') camFinish();
-  else if (k === 'plus') { if (cam.phase === 'go') { cam.n++; cam.lastRep = Date.now(); setText('#camN', String(cam.n)); vibrate(15); toneAt(880, 0, 0.06, 0.15); } }
-  else if (k === 'next') { cam.turn++; cam.phase = 'turn'; renderCamHud(); }
+  else if (k === 'next') { cam.turn++; recDrop(); cam.phase = 'turn'; renderCamHud(); }
   else if (k === 'podium') camPodium();
-  else if (k === 'rematch') { Object.assign(cam, { turn: 0, results: [] }); cam.phase = 'turn'; renderCamHud(); }
+  else if (k === 'rematch') {
+    if (live.on) { liveSend({ t: 'again' }); liveReset(true); camPrepare(); return; }
+    Object.assign(cam, { turn: 0, results: [] });
+    recDrop();
+    cam.phase = 'turn';
+    renderCamHud();
+  }
   else if (k === 'again') camPrepare();
-  else if (k === 'share') { const r = cam.last; closeCam(); vsShareSheet({ c: cam.c.id, n: r.n, cam: r.cam, p: S.profile.name || t('vsFriend'), w: cam.w }); }
+  else if (k === 'share') { const r = cam.last; const cid = cam.c.id, w = cam.w; closeCam(); vsShareSheet({ c: cid, n: r.n, p: cleanName(S.profile.name) || t('vsFriend'), w }); }
+  else if (k === 'vid-save') recSave();
+  else if (k === 'vid-share') recShare();
+  else if (k === 'room-share') {
+    vs.shareText = t('vsRoomShare', { ch: chTitle(cam.c), code: live.code, link: `https://earnedstrength.online/app/#vivo=${live.code}` });
+    vsSend();
+  }
   else if (k === 'flip') {
     cam.facing = cam.facing === 'user' ? 'environment' : 'user';
     stopCamera(cam.stream);

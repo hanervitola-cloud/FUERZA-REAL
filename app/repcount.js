@@ -247,10 +247,14 @@ export async function openCamera(video, facing = 'user') {
 }
 export function stopCamera(stream) { try { if (stream) stream.getTracks().forEach((tr) => tr.stop()); } catch (e) { /* already stopped */ } }
 
-// Skeleton over the camera picture: bones in white, joints in red; gray when the body is not in position.
+// Skeleton over the camera picture: bones in white, joints in red; faded when the body is not in position.
 export function drawPose(cv, lm, good) {
-  const g = cv.getContext('2d'), w = cv.width, h = cv.height;
-  g.clearRect(0, 0, w, h);
+  const g = cv.getContext('2d');
+  g.clearRect(0, 0, cv.width, cv.height);
+  drawPoseOn(g, lm, cv.width, cv.height, good);
+}
+// The same skeleton on any canvas (also used for the recorded video).
+export function drawPoseOn(g, lm, w, h, good) {
   if (!lm) return;
   g.lineWidth = Math.max(3, w / 160);
   g.lineCap = 'round';

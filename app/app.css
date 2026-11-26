@@ -1131,3 +1131,38 @@ button,.card-tap,.chip,.tab,.lib-item{-webkit-user-select:none;user-select:none;
 .pod li b{font-family:var(--display);font-weight:400;font-size:26px;line-height:1}
 .pod i svg{width:15px;height:15px;stroke:var(--ok);fill:none;stroke-width:2}
 @media (prefers-reduced-motion:reduce){.cam-n.pop{animation:none}.cam-spin{animation-duration:2s}}
+
+/* Compete, round 2: ways list, live room, recorded video */
+.vs-ways{display:block;padding:4px 0}
+.vs-way{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;text-align:left;border:0;background:none;border-radius:0;border-bottom:.5px solid var(--border)}
+.vs-way:last-child{border-bottom:0}
+.vs-way b{display:block;font-size:14.5px;font-weight:700;margin:0}
+.vs-way small{display:block;font-size:12.5px;color:var(--muted);line-height:1.35;margin-top:1px}
+.vs-way>svg{margin:0}
+.vw-ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto;background:rgba(255,255,255,.06)}
+.vw-ic svg{width:20px;height:20px;stroke:var(--red-2);fill:none;stroke-width:2;margin:0}
+.vw-ic.live{background:rgba(226,70,59,.18)}
+.vs-who{flex-wrap:wrap}
+.vs-check{display:flex;gap:10px;align-items:flex-start;margin-top:12px;font-size:14px;line-height:1.35;cursor:pointer}
+.vs-check input{width:20px;height:20px;flex:0 0 auto;accent-color:var(--red);margin-top:1px}
+.vs-live-how{margin-top:10px}
+.vs-room-in{height:58px;text-align:center;font-family:var(--display);font-size:34px;letter-spacing:.18em;text-transform:uppercase}
+.live-tag{display:inline-flex;align-items:center;gap:5px;font-style:normal;font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#fff;background:#E2463B;border-radius:6px;padding:2px 6px;vertical-align:middle}
+.live-tag::before{content:'';width:6px;height:6px;border-radius:50%;background:#fff;animation:liveDot 1.2s ease-in-out infinite}
+@keyframes liveDot{50%{opacity:.25}}
+.cam-live{align-self:center;display:flex;align-items:center;gap:8px;margin-top:10px;padding:6px 12px;border-radius:99px;background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);max-width:100%}
+.cam-live:empty{display:none}
+.cam-live b{font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.cam-live .lv-n{font-family:var(--display);font-size:28px;line-height:1;color:#FFB3A8}
+.cam-live small{font-size:12px;color:rgba(255,255,255,.8)}
+.cam-room{align-self:center;display:grid;justify-items:center;gap:6px;margin-top:18px;padding:14px 18px;border-radius:20px;background:rgba(0,0,0,.6);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);text-align:center}
+.cam-room small{font-size:13px;color:rgba(255,255,255,.8)}
+.cam-room b{font-family:var(--display);font-weight:400;font-size:52px;line-height:1;letter-spacing:.14em;user-select:all;-webkit-user-select:all}
+.cam-rival{position:absolute;right:12px;bottom:calc(92px + var(--safe-b));width:30%;max-width:150px;aspect-ratio:3/4;object-fit:cover;border-radius:16px;border:2px solid rgba(226,70,59,.8);box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:2;transform:scaleX(-1);background:#111}
+.cam-rival[hidden]{display:none}
+.cam-hud{z-index:3}
+.cam-vid{width:min(260px,70vw);max-height:30vh;border-radius:16px;margin-top:10px;background:#000;object-fit:contain}
+.cam-res .split{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:min(320px,84vw);margin-top:8px}
+.cam-res .split .btn{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.18);color:#fff;padding:10px 8px;font-size:13.5px}
+.cam-res .btn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2}
+.cam-hud.ph-done .cam-center{justify-content:start;overflow-y:auto;padding-top:14px}
