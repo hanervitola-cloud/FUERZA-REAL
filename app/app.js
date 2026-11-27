@@ -579,6 +579,7 @@ const VIEWS = {
         <button class="icon-btn hero-me" data-act="go" data-v="me" aria-label="${t('tabMe')}">${I.me}</button>
       </section>
       ${today}
+      ${progHomeCard()}
       ${weekCard()}
       ${missionsCard()}
       ${foodCard()}
@@ -595,8 +596,10 @@ const VIEWS = {
       const p = program(), lvl = LEVELS.find((l) => l.id === S.profile.level), nd = nextDay().id, mine = S.routines || [];
       body = `
       <button class="card card-tap build-cta" data-act="builder"><span class="bc-ic">${I.plus}</span><span class="grow"><b>${t('buildBtnBig')}</b><small>${t('buildSub')}</small></span>${I.chev}</button>
+      <div class="section-title"><span class="eyebrow">${t('progsTitle')}</span></div>
+      ${progCards()}
       ${musclesCard()}
-      <div class="section-title"><span class="eyebrow">${t('myRoutines')}</span></div>
+      <div class="section-title"><span class="eyebrow">${t('myRoutines')}</span><button class="link small" data-act="rt-import">${t('rtImportBtn')}</button></div>
       ${mine.length ? `<section class="card list-card">${mine.map((x) => `<div class="rt"><button class="rt-main" data-act="rt-info" data-v="${x.id}"><b>${esc(x.name)}</b><small>${t(x.items.length === 1 ? 'nExShort1' : 'nExShort', { n: x.items.length })} · ${t('place_' + (x.place || 'gym'))}</small></button><button class="btn btn-sm btn-primary" data-act="rt-start" data-v="${x.id}" aria-label="${t('start')}">${I.play}</button></div>`).join('')}</section>`
         : `<p class="muted small empty">${t('noRoutines')}</p>`}
       <div class="section-title"><span class="eyebrow">${t('yourPlan')}</span></div>
@@ -1720,7 +1723,8 @@ function showRoutine(id) {
   openSheet(`<span class="eyebrow">${t('myRoutines')}</span><h2 style="margin-top:6px">${esc(r.name)}</h2>
     <p class="muted small">${t('place_' + (r.place || 'gym'))} · ${t(r.items.length === 1 ? 'nExShort1' : 'nExShort', { n: r.items.length })}</p>
     <div class="card list-card" style="margin-top:14px">${r.items.map(([eid, sets, reps], i) => `<button class="lib-item" data-act="ex" data-v="${eid}"><span class="pn-fig">${exThumb(eid)}<i>${i + 1}</i></span><span class="grow"><b>${esc(exName(eid))}</b></span><span class="sr">${sets} × ${repsLabel(eid, reps)}</span></button>`).join('')}</div>
-    <div class="split" style="margin-top:16px"><button class="btn" data-act="rt-del" data-v="${r.id}" style="color:var(--red-2)">${I.trash}${t('delWorkout')}</button><button class="btn btn-primary" data-act="rt-start" data-v="${r.id}">${I.play}${t('start')}</button></div>`);
+    <div class="split" style="margin-top:16px"><button class="btn" data-act="rt-del" data-v="${r.id}" style="color:var(--red-2)">${I.trash}${t('delWorkout')}</button><button class="btn btn-primary" data-act="rt-start" data-v="${r.id}">${I.play}${t('start')}</button></div>
+    <button class="btn btn-block" style="margin-top:10px" data-act="rt-share" data-v="${r.id}">${I.share}${t('rtShare')}</button>`);
 }
 function startRoutine(id) {
   const r = (S.routines || []).find((x) => x.id === id);
@@ -2380,6 +2384,7 @@ function badges() {
     B('habit', 'bStreak3', st, 3, I.flame), B('habit', 'bStreak8', st, 8, I.flame), B('habit', 'bLvl5', lv, 5, I.up), B('habit', 'bLvl10', lv, 10, I.up), B('habit', 'bLvl20', lv, 20, I.up),
     B('habit', 'bMission10', cnt('mission'), 10, I.check), B('habit', 'bProtein7', cnt('protein'), 7, I.flame), B('habit', 'bWater7', cnt('water'), 7, I.flame),
     B('habit', 'bPhoto', cnt('photo'), 1, I.camera), B('habit', 'bPhoto5', cnt('photo'), 5, I.camera),
+    B('habit', 'bProgDay10', cnt('program'), 10, I.target), B('habit', 'bProgDone', cnt('programDone'), 1, I.trophy),
     B('friends', 'bFriend', cnt('friend'), 1, I.me), B('friends', 'bFriend5', cnt('friend'), 5, I.me), B('friends', 'bLesson10', lessons, 10, I.gloves), B('friends', 'bRounds5', rounds, 5, I.bell),
   ];
 }
@@ -2504,6 +2509,12 @@ document.addEventListener('click', (e) => {
   else if (k === 'rm-save') saveRemind();
   else if (k === 'rm-test') testRemind();
   else if (k === 'warm') openWarm(v);
+  else if (k === 'prog') showProgram(v);
+  else if (k === 'prog-start' || k === 'prog-reset' || k === 'prog-done' || k === 'prog-test') progAction(k, v);
+  else if (k === 'rt-share') shareRoutine(v);
+  else if (k === 'rt-import') showRoutineImport();
+  else if (k === 'rt-import-go') importRoutine();
+  else if (k === 'meal-add') { const m = MEALS.find((x) => x[0] === v); if (m) { addFood(m[1], v); toast(`+${m[1]} g · ${t('meal_' + v)}`); } }
   else if (k === 'fr-cheer') { b.disabled = true; b.classList.add('on'); vibrate(15); net.cheer(v).then((n) => { const s = b.querySelector('span'); if (s) s.textContent = n; }).catch(() => { b.disabled = false; b.classList.remove('on'); toast(t('vsNeedNet')); }); }
   else if (k === 'food-add') addFood(+v);
   else if (k === 'food-pick') { const f = FOODS.find((x) => x[0] === v); if (f) { addFood(f[1], v); toast(`+${f[1]} g · ${t('food_' + v)}`); } }
@@ -2812,6 +2823,176 @@ function stuckCard() {
     <button class="btn btn-sm" data-act="coach-ask" data-v="${esc(t('stuckAsk'))}">${I.chat}${t('stuckCoach')}</button></section>`;
 }
 
+// ---------- Programs: several weeks, one task a day ----------
+// 30 days of push-ups or squats, your first pull-up in 6 weeks, abs in 4 weeks. One day per calendar day;
+// the last day is a test with the camera.
+const PROGS = [
+  { id: 'push30', ex: 'push-up', days: 30, test: 'pumax' },
+  { id: 'squat30', ex: 'bw-squat', days: 30, test: 'sq60' },
+  { id: 'pull6', ex: 'pull-up', days: 42, test: 'pull' },
+  { id: 'abs4', ex: 'plank', days: 28, test: 'plank' },
+];
+const progById = (id) => PROGS.find((p) => p.id === id);
+const lvlFactor = () => ({ beginner: 0.7, comeback: 0.8, intermediate: 1, advanced: 1.3 }[S.profile.level] || 0.85);
+// What day d (1..days) asks for: { rest } or { test } or { items: [[exercise, [reps or seconds per set], note]] }.
+function progDay(p, d) {
+  const f = lvlFactor(), r5 = (x) => Math.max(5, Math.round(x / 5) * 5);
+  if (d === p.days) return { test: true };
+  if (p.id === 'push30' || p.id === 'squat30') {
+    if (d % 4 === 0) return { rest: true };
+    const base = Math.max(3, Math.round((p.id === 'push30' ? 5 + d * 0.55 : 12 + d * 1.1) * f));
+    return { items: [[p.ex, [base, base, Math.max(2, base - 1), Math.max(2, base - 2)], '']] };
+  }
+  if (p.id === 'pull6') {
+    if (![1, 3, 5].includes(((d - 1) % 7) + 1)) return { rest: true };
+    const w = Math.ceil(d / 7);
+    return { items: [['inverted-row', [6 + w, 6 + w, 5 + w], ''], ['pull-up', [2 + Math.floor(w / 2), 2 + Math.floor(w / 2), 2 + Math.floor(w / 2)], 'prNeg'], ['pull-up', [r5(15 + 5 * w), r5(15 + 5 * w)], 'prHang']] };
+  }
+  if (d % 4 === 0) return { rest: true };
+  return { items: [['plank', [r5((20 + d * 2.5) * f), r5((20 + d * 2.5) * f), r5((20 + d * 2.5) * f)], ''], ['crunch', [10 + d, 10 + d], ''], ['leg-raise', [6 + Math.floor(d / 2), 6 + Math.floor(d / 2)], '']] };
+}
+const progState = (id) => (S.programs || {})[id];
+const progNext = (id) => { const st = progState(id); return st ? st.done.length + 1 : 1; };
+function progCards() {
+  return `<div class="prog-grid">${PROGS.map((p) => {
+    const st = progState(p.id), n = st ? st.done.length : 0;
+    return `<button class="prog-card" data-act="prog" data-v="${p.id}"><span class="pc-art">${vsArt(p.ex)}</span><b>${t('prog_' + p.id)}</b><small>${st ? (n >= p.days ? t('progDoneShort') : t('progDayN', { n: n + 1, total: p.days })) : t('progLen', { n: p.days })}</small>${st ? `<span class="bar sm"><i style="width:${Math.round((n / p.days) * 100)}%"></i></span>` : ''}</button>`;
+  }).join('')}</div>`;
+}
+// Home: the program you are doing, if today's day is still open.
+function progHomeCard() {
+  const active = S.progActive && progById(S.progActive), st = active && progState(active.id);
+  if (!st || st.done.length >= active.days || st.last === dayKey(Date.now())) return '';
+  const d = st.done.length + 1, day = progDay(active, d);
+  return `<button class="card card-tap prog-home" data-act="prog" data-v="${active.id}"><span class="ph-ring" style="--p:${Math.round((st.done.length / active.days) * 100)}%"><b>${d}</b><small>/${active.days}</small></span><span class="grow"><span class="eyebrow">${t('prog_' + active.id)}</span><b>${day.rest ? t('progRest') : day.test ? t('progTest') : t('progToday')}</b></span>${I.chev}</button>`;
+}
+function itemText(ex, sets) {
+  const def = EXERCISES[ex];
+  return sets.map((v) => (def && def.timed ? fmtSecs(v) : v)).join(' · ');
+}
+function showProgram(id) {
+  const p = progById(id);
+  if (!p) return;
+  const st = progState(id), today = dayKey(Date.now());
+  const next = progNext(id), doneAll = st && st.done.length >= p.days, waiting = st && st.last === today && !doneAll;
+  const grid = Array.from({ length: p.days }, (_, i) => { const d = i + 1, info = progDay(p, d), ok = st && st.done.includes(d); return `<i class="${ok ? 'ok' : ''}${info.rest ? ' rest' : ''}${info.test ? ' test' : ''}${st && d === next && !doneAll ? ' now' : ''}">${info.test ? '★' : ''}</i>`; }).join('');
+  const day = progDay(p, Math.min(next, p.days));
+  const task = doneAll ? `<div class="prog-task done"><b>${t('progAllDone')}</b><p class="muted small">${t('progAllDoneP')}</p></div>`
+    : waiting ? `<div class="prog-task"><b>${t('progWait')}</b><p class="muted small">${t('progWaitP', { n: next })}</p></div>`
+      : day.rest ? `<div class="prog-task"><b>${t('progRest')}</b><p class="muted small">${t('progRestP')}</p></div>`
+        : day.test ? `<div class="prog-task"><b>${t('progTest')}</b><p class="muted small">${t('progTestP')}</p></div>`
+          : `<div class="prog-task"><b>${t('progDayN', { n: next, total: p.days })}</b><ul>${day.items.map(([ex, sets, note]) => `<li><button class="link" data-act="ex" data-v="${ex}">${esc(exName(ex))}</button>${note ? ` <small>(${t(note)})</small>` : ''}<span>${itemText(ex, sets)}</span></li>`).join('')}</ul><p class="muted small">${t('progRestSets')}</p></div>`;
+  const actions = !st ? `<button class="btn btn-primary btn-block" data-act="prog-start" data-v="${id}">${I.play}${t('progStart')}</button>`
+    : doneAll ? `<button class="btn btn-block" data-act="prog-reset" data-v="${id}">${I.repeat}${t('progAgain')}</button>`
+      : waiting ? ''
+        : day.test ? `<button class="btn btn-primary btn-block" data-act="prog-test" data-v="${id}">${I.camera}${t('progTestBtn')}</button><button class="link other-btn" data-act="prog-done" data-v="${id}">${t('progTestManual')}</button>`
+          : `<button class="btn btn-primary btn-block" data-act="prog-done" data-v="${id}">${I.check}${t(day.rest ? 'progRestDone' : 'progDoneBtn')}</button>`;
+  openSheet(`<span class="eyebrow">${t('progEyebrow')}</span><h2 style="margin-top:6px">${t('prog_' + id)}</h2><p class="muted small">${t('progAbout_' + id)}</p>
+    <div class="prog-days">${grid}</div>${task}${actions}
+    ${st && !doneAll ? `<button class="link small" style="margin-top:10px" data-act="prog-reset" data-v="${id}">${t('progRestart')}</button>` : ''}`);
+}
+function progAction(k, id) {
+  const p = progById(id);
+  if (!p) return;
+  S.programs = S.programs || {};
+  if (k === 'prog-start' || k === 'prog-reset') {
+    S.programs[id] = { start: Date.now(), done: [], last: '' };
+    S.progActive = id;
+    save();
+    showProgram(id);
+    if (k === 'prog-start') toast(t('progStarted'));
+    if (current === 'home' || current === 'train') render();
+    return;
+  }
+  if (!S.programs[id]) return;
+  if (k === 'prog-done') {
+    const d = progMark(id);
+    if (!d) return;
+    if (d >= p.days) { confetti(100); toast(t('progFinished')); checkBadges(); } else { confetti(35); toast(t('progDayDone', { n: d })); }
+    showProgram(id);
+    if (current === 'home' || current === 'train') render();
+  } else if (k === 'prog-test') {
+    // The last day: the camera challenge, alone, with a goal of beating your best.
+    vs.who = 'solo';
+    const b = vsData().best[p.test];
+    vs.goal = String(b ? b.n + 1 : p.test === 'plank' ? 60 : p.test === 'pull' ? 1 : p.test === 'sq60' ? 30 : 20);
+    vs.goalFor = p.test;
+    vs.prog = id;
+    showVsChallenge(p.test);
+  }
+}
+// Marks today's day as done. Returns the day number, or 0 if today was already done.
+function progMark(id) {
+  const p = progById(id), st = progState(id);
+  if (!p || !st) return 0;
+  const d = st.done.length + 1;
+  if (d > p.days || st.last === dayKey(Date.now())) return 0;
+  st.done.push(d);
+  st.last = dayKey(Date.now());
+  S.progActive = id;
+  if (d >= p.days) { S.cnt = S.cnt || {}; S.cnt.programDone = (S.cnt.programDone || 0) + 1; }
+  save();
+  grow('program', 1, true);
+  return d;
+}
+// Called when a camera challenge ends: if it was the program's test day, that day counts as done.
+function progCamDone(cid) {
+  const id = vs.prog;
+  vs.prog = null;
+  const p = id && progById(id), st = p && progState(id);
+  if (!st || p.test !== cid || st.done.length + 1 !== p.days) return '';
+  return progMark(id) ? `<b class="vs-goal-done">${t('progFinished')}</b>` : '';
+}
+
+// ---------- Meal ideas with protein ----------
+const MEALS = [['eggs', 25], ['chicken', 40], ['tuna', 35], ['oats', 22], ['yogurt', 25], ['beans', 18], ['beef', 35], ['shake', 30], ['lentils', 20], ['fish', 30], ['arepa', 20], ['tofu', 22]];
+function mealsHtml() {
+  return `<h3>${t('mealsTitle')}</h3><div class="meals">${MEALS.map(([k, g]) => `<div class="meal"><span class="grow"><b>${t('meal_' + k)}</b><small>${t('mealI_' + k)}</small></span><button class="btn btn-sm" data-act="meal-add" data-v="${k}">+${g} g</button></div>`).join('')}</div>`;
+}
+
+// ---------- Share a routine with a code ----------
+function routineCode(r) {
+  const raw = b64u(JSON.stringify({ n: r.name.slice(0, 40), p: r.place || 'gym', i: r.items.slice(0, 15) }));
+  return 'ESR' + raw + codeCheck(raw);
+}
+function parseRoutine(text) {
+  const s = String(text || '').trim().replace(/^[\s\S]*?(ESR[A-Za-z0-9_-]+)[\s\S]*$/, '$1');
+  if (!/^ESR[A-Za-z0-9_-]{12,3000}$/.test(s)) return null;
+  const raw = s.slice(3, -4);
+  if (codeCheck(raw) !== s.slice(-4)) return null;
+  try {
+    const o = JSON.parse(unb64u(raw));
+    const items = (Array.isArray(o.i) ? o.i : []).filter((x) => Array.isArray(x) && EXERCISES[x[0]] && +x[1] >= 1 && +x[1] <= 10 && /^[0-9]{1,3}(-[0-9]{1,3})?$/.test(String(x[2])))
+      .map((x) => [x[0], Math.round(+x[1]), String(x[2])]).slice(0, 15);
+    if (!items.length) return null;
+    return { name: String(o.n || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 40) || t('rtImportedName'), place: ['gym', 'dumbbells', 'bodyweight'].includes(o.p) ? o.p : 'gym', items };
+  } catch (e) { return null; }
+}
+function shareRoutine(id) {
+  const r = (S.routines || []).find((x) => x.id === id);
+  if (!r) return;
+  const code = routineCode(r);
+  vs.shareText = t('rtShareText', { name: r.name, code, link: `https://earnedstrength.online/app/#rutina=${code}` });
+  openSheet(`<span class="eyebrow">${t('myRoutines')}</span><h2 style="margin-top:6px">${t('rtShareTitle')}</h2><p class="muted small" style="margin:6px 0 12px">${t('rtShareP')}</p>
+    <div class="vs-code"><b>${esc(r.name)}</b><small>${t(r.items.length === 1 ? 'nExShort1' : 'nExShort', { n: r.items.length })}</small><code>${esc(code)}</code></div>
+    <div class="split" style="margin-top:14px"><button class="btn" data-act="vs-copy">${t('vsCopy')}</button><button class="btn btn-primary" data-act="vs-send">${I.share}${t('share')}</button></div>`);
+}
+function showRoutineImport() {
+  openSheet(`<span class="eyebrow">${t('myRoutines')}</span><h2 style="margin-top:6px">${t('rtImportTitle')}</h2>
+    <textarea class="vs-code-in" id="rtCodeIn" rows="4" placeholder="ESR…" autocomplete="off" spellcheck="false"></textarea>
+    <button class="btn btn-primary btn-block" style="margin-top:12px" data-act="rt-import-go">${t('rtImportGo')}</button>`);
+}
+function importRoutine(text) {
+  const r = parseRoutine(text != null ? text : ($('#rtCodeIn') || {}).value);
+  if (!r) { toast(t('rtImportBad')); return; }
+  S.routines = S.routines || [];
+  S.routines.push({ id: Date.now().toString(36), ...r });
+  save();
+  closeSheet();
+  toast(t('rtImported', { name: r.name }));
+  if (current === 'train') render();
+}
+
 // ---------- Training reminders ----------
 // You pick the time and the days; the server wakes the phone (Web Push) and the phone shows a line saved here.
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
@@ -3000,7 +3181,7 @@ function onWarmClick(e) {
 
 // ---------- Missions, XP and levels: small daily and weekly goals that bring you back ----------
 // Everything you do gives XP; three daily missions and three weekly missions give extra. Levels never go down.
-const XP_FOR = { workout: 50, pr: 25, camera: 20, goal: 25, lesson: 15, daily: 20, weigh: 10, coach: 5, protein: 15, water: 10, photo: 15, win: 30, friend: 20, early: 10, night: 10, warmup: 10 };
+const XP_FOR = { workout: 50, pr: 25, camera: 20, goal: 25, lesson: 15, daily: 20, weigh: 10, coach: 5, protein: 15, water: 10, photo: 15, win: 30, friend: 20, early: 10, night: 10, warmup: 10, program: 30 };
 const XP_ONCE = new Set(['weigh', 'coach', 'protein', 'water']); // these give XP once a day
 const MIS_D = [['d-train', 'workout', 1, 40], ['d-daily', 'daily', 1, 25], ['d-camera', 'camera', 1, 30], ['d-lesson', 'lesson', 1, 20],
   ['d-protein', 'protein', 1, 25], ['d-water', 'water', 1, 20], ['d-coach', 'coach', 1, 15], ['d-weigh', 'weigh', 1, 15]];
@@ -3129,7 +3310,8 @@ function showFoods() {
   const f = foodToday();
   const html = `<span class="eyebrow">${t('foodToday')}</span><h2 style="margin-top:6px">${t('foodProtein')}: ${f.p} / ${proteinTarget()} g</h2><p class="muted small" style="margin:4px 0 12px">${t('foodHint', { n: proteinTarget() })}</p>
     <div class="food-grid">${FOODS.map(([k, g]) => `<button class="food-item" data-act="food-pick" data-v="${k}"><b>${t('food_' + k)}</b><small>${g} g</small></button>`).join('')}</div>
-    <div class="split" style="margin-top:14px"><button class="btn btn-sm" data-act="food-add" data-v="-10">−10 g</button><button class="btn btn-sm" data-act="water-add" data-v="-1">−1 ${t('foodGlass')}</button></div>`;
+    <div class="split" style="margin-top:14px"><button class="btn btn-sm" data-act="food-add" data-v="-10">−10 g</button><button class="btn btn-sm" data-act="water-add" data-v="-1">−1 ${t('foodGlass')}</button></div>
+    ${mealsHtml()}`;
   const box = $('#foodSheet');
   if (box && !$('#sheet').hidden) box.innerHTML = html; else openSheet(`<div id="foodSheet">${html}</div>`);
 }
@@ -3414,6 +3596,12 @@ function addRival(r) {
 // Links opened from a message: #reto=<code> (a score to beat) or #vivo=<room> (join a live room).
 function takeChallengeLink() {
   const h = location.hash;
+  if (h.startsWith('#rutina=')) {
+    const code = decodeURIComponent(h.slice(8));
+    history.replaceState(null, '', '#train');
+    setTimeout(() => { if (S.profile) { trainTab = 'routines'; importRoutine(code); } }, 400);
+    return false;
+  }
   if (h.startsWith('#vivo=')) {
     vs.joinCode = h.slice(6).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
     history.replaceState(null, '', '#vs');
@@ -4051,6 +4239,8 @@ function camFinish() {
   if (live.on) liveSend({ t: 'done', n });
   // Personal records belong to the phone's owner: alone, live, or the first name in a duel.
   if (cam.turn === 0) {
+    const pd = progCamDone(c.id);
+    if (pd) cam.lines.push(pd);
     grow('camera', 1, true);
     if (cam.goal && n >= cam.goal) grow('goal', 1, true);
     const prev = D.best[c.id];
