@@ -4,6 +4,7 @@
 //   npx wrangler d1 create earned-strength        -> paste the database_id below
 //   npx wrangler d1 execute earned-strength --remote --file schema.sql
 //   npx wrangler secret put VAPID_PUBLIC and VAPID_PRIVATE_JWK (values in .dev.vars; keep them the same forever)
+//   GOOGLE_CLIENT_ID below = the web client id from Google Cloud (public, not a secret); same value in app/net.js
 {
   "name": "earned-strength-api",
   "main": "src/index.js",
@@ -14,6 +15,6 @@
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
   "ai": { "binding": "AI" },
   "triggers": { "crons": ["*/10 * * * *"] },
-  "vars": { "ORIGINS": "https://earnedstrength.online,https://www.earnedstrength.online,http://localhost:8770,capacitor://localhost,https://localhost" },
+  "vars": { "GOOGLE_CLIENT_ID": "", "ORIGINS": "https://earnedstrength.online,https://www.earnedstrength.online,http://localhost:8770,capacitor://localhost,https://localhost" },
   "observability": { "enabled": true }
 }

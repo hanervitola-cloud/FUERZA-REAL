@@ -74,3 +74,19 @@ CREATE TABLE IF NOT EXISTS push (
   created INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS push_due ON push (next_at);
+-- More sign-ins for the same account (another phone after "Continuar con Google"). Only the key's hash is kept.
+CREATE TABLE IF NOT EXISTS sessions (
+  token_hash TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  created INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS sessions_by_user ON sessions (user_id);
+-- Sign-in providers joined to an account. Only a hash of the provider's user id is kept: no email.
+CREATE TABLE IF NOT EXISTS logins (
+  provider TEXT NOT NULL,
+  sub_hash TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  created INTEGER NOT NULL,
+  PRIMARY KEY (provider, sub_hash)
+);
+CREATE INDEX IF NOT EXISTS logins_by_user ON logins (user_id);

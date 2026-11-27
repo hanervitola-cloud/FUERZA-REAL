@@ -39,6 +39,13 @@ export async function restoreAccount(code) {
   acct = { token };
   try { const me = await api('GET', '/v1/me'); return { id: me.id, name: me.name, code: me.code, token }; } catch (e) { acct = prev; throw e; }
 }
+// "Continuar con Google": the web client id from Google Cloud (public, not a secret). Empty until the account
+// owner creates it; for local tests it can be set in localStorage 'es-gid'.
+const GOOGLE_CLIENT_ID = '';
+export const googleClientId = () => { try { const o = localStorage.getItem('es-gid'); if (o) return o; } catch (e) { /* storage blocked */ } return GOOGLE_CLIENT_ID; };
+// Sends Google's signed token; the server answers with the account (new, joined to this phone's, or existing).
+export const googleLogin = (credential, name) => api('POST', '/v1/auth/google', { credential, name });
+export const logout = () => api('POST', '/v1/logout');
 export const rename = (name) => api('PATCH', '/v1/me', { name });
 export const deleteAccount = () => api('DELETE', '/v1/me');
 export const listFriends = () => api('GET', '/v1/friends').then((j) => j.friends);

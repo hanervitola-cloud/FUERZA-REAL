@@ -4,6 +4,7 @@
 import { Room } from './room.js';
 import { askCoach } from './coach.js';
 import { okEndpoint, nextTime, sendDue } from './push.js';
+import { verifyGoogle } from './google.js';
 
 export { Room };
 
@@ -15,7 +16,7 @@ const CH = {
   ht: 'm', rdl60: 't', bss60: 't', gs60: 't', cu60: 't', sp60: 't', lat60: 't', tp60: 't', sk60: 't', le60: 't', hlr: 'm',
 };
 const CAP = { t: 110, m: 300, h: 1800 };
-const LIMITS = { coach: 40, scores: 120, accounts: 20, backup: 30, rooms: 30, events: 80, cheers: 200, xp: 300 };
+const LIMITS = { coach: 40, scores: 120, accounts: 20, backup: 30, rooms: 30, events: 80, cheers: 200, xp: 300, logins: 60 };
 // Weeks start on Monday (1 Jan 1970 was a Thursday, hence the +3).
 const thisWeek = () => Math.floor((Math.floor(Date.now() / 864e5) + 3) / 7);
 const MAX_WEEK_XP = 6000;
@@ -67,7 +68,9 @@ async function auth(req, env, token) {
   const h = req.headers.get('Authorization') || '';
   const tok = token || (h.startsWith('Bearer ') ? h.slice(7).trim() : '');
   if (!/^[A-Z0-9]{24}$/.test(tok)) return null;
-  const u = await env.DB.prepare('SELECT id, name, code, seen FROM users WHERE token_hash = ?').bind(await sha(tok)).first();
+  const th = await sha(tok);
+  let u = await env.DB.prepare('SELECT id, name, code, seen FROM users WHERE token_hash = ?').bind(th).first();
+  if (!u) u = await env.DB.prepare('SELECT u.id, u.name, u.code, u.seen FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ?').bind(th).first();
   if (u && Date.now() - u.seen > 36e5) await env.DB.prepare('UPDATE users SET seen = ? WHERE id = ?').bind(Date.now(), u.id).run();
   return u;
 }
@@ -83,6 +86,46 @@ async function createUser(req, env, cors) {
     try {
       await env.DB.prepare('INSERT INTO users (id, token_hash, name, code, created, seen) VALUES (?, ?, ?, ?, ?, ?)').bind(id, await sha(token), name, code, now, now).run();
       return json({ id, name, code, token }, 201, cors);
+    } catch (e) { if (!/UNIQUE/.test(String(e))) throw e; }
+  }
+  return fail('busy', 503, cors);
+}
+
+// "Continuar con Google": the same Google account always opens the same Earned Strength account, on any phone.
+async function googleLogin(req, env, cors) {
+  const ip = req.headers.get('CF-Connecting-IP') || 'unknown', ipKey = 'ip:' + (await sha(ip)).slice(0, 16);
+  if (!(await allow(env, ipKey, 'logins'))) return fail('limit', 429, cors);
+  const b = await body(req, 8000);
+  const g = await verifyGoogle(env, b.credential);
+  if (!g) return fail('google', 401, cors);
+  const subHash = await sha('google:' + g.sub), now = Date.now();
+  const link = await env.DB.prepare('SELECT user_id FROM logins WHERE provider = ? AND sub_hash = ?').bind('google', subHash).first();
+  if (link) {
+    // Known Google account: a new key for this phone; other phones stay signed in.
+    const u = await env.DB.prepare('SELECT id, name, code FROM users WHERE id = ?').bind(link.user_id).first();
+    if (!u) return fail('auth', 401, cors);
+    const token = randCode(24);
+    await env.DB.prepare('INSERT INTO sessions (token_hash, user_id, created) VALUES (?, ?, ?)').bind(await sha(token), u.id, now).run();
+    const backup = !!(await env.DB.prepare('SELECT 1 AS x FROM backups WHERE user_id = ?').bind(u.id).first());
+    return json({ ...u, token, google: true, existing: true, backup }, 200, cors);
+  }
+  // First time with this Google account: it joins the account this phone already has, or a new one is made.
+  const me = await auth(req, env);
+  if (me) {
+    await env.DB.prepare('INSERT INTO logins (provider, sub_hash, user_id, created) VALUES (?, ?, ?, ?)').bind('google', subHash, me.id, now).run();
+    return json({ id: me.id, name: me.name, code: me.code, google: true, linked: true }, 200, cors);
+  }
+  if (!(await allow(env, ipKey, 'accounts'))) return fail('limit', 429, cors);
+  const name = cleanName(b.name) || cleanName(g.name) || 'Atleta';
+  const token = randCode(24), id = crypto.randomUUID(), th = await sha(token);
+  for (let i = 0; i < 5; i++) {
+    const code = randCode(6);
+    try {
+      await env.DB.batch([
+        env.DB.prepare('INSERT INTO users (id, token_hash, name, code, created, seen) VALUES (?, ?, ?, ?, ?, ?)').bind(id, th, name, code, now, now),
+        env.DB.prepare('INSERT INTO logins (provider, sub_hash, user_id, created) VALUES (?, ?, ?, ?)').bind('google', subHash, id, now),
+      ]);
+      return json({ id, name, code, token, google: true, created: true }, 201, cors);
     } catch (e) { if (!/UNIQUE/.test(String(e))) throw e; }
   }
   return fail('busy', 503, cors);
@@ -114,6 +157,7 @@ async function route(req, env, cors) {
   const m = req.method;
   if (p === '' || p === '/v1') return json({ ok: true, name: 'earned-strength-api' }, 200, cors);
   if (p === '/v1/users' && m === 'POST') return createUser(req, env, cors);
+  if (p === '/v1/auth/google' && m === 'POST') return googleLogin(req, env, cors);
 
   // Live rooms: the WebSocket goes straight to the room (it checks the token itself).
   const roomWs = p.match(/^\/v1\/rooms\/([A-Z0-9]{6})\/ws$/);
@@ -130,7 +174,21 @@ async function route(req, env, cors) {
 
   const me = await auth(req, env);
   if (!me) return fail('auth', 401, cors);
-  if (p === '/v1/me' && m === 'GET') return json(me, 200, cors);
+  if (p === '/v1/me' && m === 'GET') {
+    const g = await env.DB.prepare('SELECT 1 AS x FROM logins WHERE user_id = ? AND provider = ?').bind(me.id, 'google').first();
+    return json({ ...me, google: !!g }, 200, cors);
+  }
+  // Sign out on this phone. Accounts joined to Google can sign in again; others would be lost, so they keep their key.
+  if (p === '/v1/logout' && m === 'POST') {
+    const h = req.headers.get('Authorization') || '', th = await sha(h.slice(7).trim());
+    const s = await env.DB.prepare('DELETE FROM sessions WHERE token_hash = ? RETURNING user_id').bind(th).first();
+    if (!s) {
+      const g = await env.DB.prepare('SELECT 1 AS x FROM logins WHERE user_id = ?').bind(me.id).first();
+      if (!g) return fail('no_google', 409, cors);
+      await env.DB.prepare('UPDATE users SET token_hash = ? WHERE id = ?').bind(await sha('out:' + crypto.randomUUID()), me.id).run();
+    }
+    return json({ ok: true }, 200, cors);
+  }
   if (p === '/v1/me' && m === 'PATCH') {
     const name = cleanName((await body(req)).name);
     if (!name) return fail('name', 400, cors);
@@ -148,6 +206,8 @@ async function route(req, env, cors) {
       env.DB.prepare('DELETE FROM events WHERE user_id = ?').bind(me.id),
       env.DB.prepare('DELETE FROM xpweek WHERE user_id = ?').bind(me.id),
       env.DB.prepare('DELETE FROM push WHERE user_id = ?').bind(me.id),
+      env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(me.id),
+      env.DB.prepare('DELETE FROM logins WHERE user_id = ?').bind(me.id),
       env.DB.prepare('DELETE FROM users WHERE id = ?').bind(me.id),
     ]);
     return json({ ok: true }, 200, cors);

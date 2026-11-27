@@ -1747,3 +1747,15 @@ body::before,.onboard::before,.workout::before,.builder::before{display:none}
 .muscles .badge.help{background:rgba(229,138,78,.16);color:#E58A4E;border:0}
 :root[data-theme="light"] .muscles .badge.help{color:#A8561A}
 @media (prefers-color-scheme:light){:root[data-theme="auto"] .muscles .badge.help{color:#A8561A}}
+
+/* Continue with Google */
+.g-box{display:flex;justify-content:center;width:100%;min-height:44px}
+.g-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:44px;border-radius:99px;background:#131314;color:#E3E3E3;border:1px solid #8E918F;font-family:var(--body);font-size:15px;font-weight:600}
+.g-logo{width:20px;height:20px;flex:0 0 20px}
+.g-on{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.g-on .g-logo{width:14px;height:14px;flex-basis:14px}
+.g-protect{display:grid;gap:8px;padding:14px;border-radius:16px;background:var(--surface-2)}
+.g-protect b{font-size:15px}
+.g-protect small{font-size:13px;color:var(--muted);line-height:1.4}
+:root[data-theme="light"] .g-btn{background:#fff;color:#1F1F1F;border-color:#747775}
+@media (prefers-color-scheme:light){:root[data-theme="auto"] .g-btn{background:#fff;color:#1F1F1F;border-color:#747775}}

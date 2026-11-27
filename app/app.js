@@ -516,6 +516,7 @@ function render() {
   window.scrollTo(0, 0);
   if (current === 'rank' && progTab === 'body') loadPhotos();
   if (current === 'friends' || (current === 'vs' && vsTab === 'friends')) loadFriends();
+  mountGoogle();
   if (current === 'rank') { mountAvatar(); const cur = $('#rankLadder .cur'); if (cur) cur.parentElement.scrollLeft = Math.max(0, cur.offsetLeft - 70); }
 }
 
@@ -802,15 +803,17 @@ const VIEWS = {
 function acctCard() {
   const A = S.acct;
   if (!A) {
-    return `<section class="card stack acct"><span class="eyebrow">${t('acctTitle')}</span><p class="small muted">${t('acctWhy')}</p>
-      <button class="btn btn-primary btn-sm" data-act="acct-on">${t('acctOn')}</button><button class="link small" data-act="acct-restore">${t('acctHave')}</button></section>`;
+    return `<section class="card stack acct"><span class="eyebrow">${t('acctTitle')}</span><p class="small muted">${t('gWhy')}</p>
+      ${gButton()}<button class="link small" data-act="acct-restore">${t('acctHave')}</button></section>`;
   }
   const when = S.backupAt ? fmtDate(S.backupAt) : t('acctNever');
-  return `<section class="card stack acct"><span class="eyebrow">${t('acctTitle')}</span>
+  return `<section class="card stack acct"><div class="card-head" style="margin:0"><span class="eyebrow">${t('acctTitle')}</span>${A.google ? `<span class="g-on">${G_LOGO}${t('gConnected')}</span>` : ''}</div>
+    ${A.google ? '' : `<div class="g-protect"><b>${t('gProtectT')}</b><small>${t('gProtectP')}</small>${gButton()}</div>`}
     <div class="acct-code"><span><small>${t('acctFriendCode')}</small><b>${esc(A.code)}</b></span><button class="btn btn-sm" data-act="acct-share">${I.share}${t('share')}</button></div>
     <div class="split"><button class="btn btn-sm" data-act="friend-add">${I.plus}${t('friendAdd')}</button><button class="btn btn-sm" data-act="friends">${t('friendsTitle')}</button></div>
     <div class="acct-row"><span class="grow"><b>${t('backupTitle')}</b><small>${t('backupLast', { d: when })}</small></span><button class="btn btn-sm" data-act="backup-now">${t('backupNow')}</button></div>
     <div class="split"><button class="btn btn-sm" data-act="backup-restore">${t('backupRestore')}</button><button class="btn btn-sm" data-act="acct-code">${t('acctRecovery')}</button></div>
+    ${A.google ? `<button class="link small" data-act="acct-logout">${t('gLogout')}</button>` : ''}
     <button class="link small" data-act="acct-delete" style="color:var(--red-2)">${t('acctDelete')}</button></section>`;
 }
 const backupData = () => { const { acct, chat, ...rest } = S; return rest; };
@@ -825,6 +828,7 @@ async function backupNow(quiet) {
 }
 function autoBackup() { if (S.acct && S.profile && net.isOnline() && Date.now() - (S.backupAt || 0) > 12 * 36e5) backupNow(true); }
 async function acctAction(k) {
+  if (k === 'acct-google' || k === 'acct-logout') { googleAction(k); return; }
   if (k === 'acct-on') { try { await ensureAccount(); toast(t('acctReady')); render(); } catch (e) { toast(t('vsNeedNet')); } }
   else if (k === 'acct-share') { vs.shareText = t('acctShareText', { code: S.acct.code }); vsSend(); }
   else if (k === 'acct-code') {
@@ -3363,6 +3367,83 @@ function lookAction(k, v) {
 const frameCls = () => { const f = lookOf().frame, it = FRAMES.find((x) => x[0] === f); return it && f !== 'none' && reqOk(it[1]) ? ' fr-' + f : ''; };
 const titleTag = () => { const v = lookOf().title, it = TITLES.find((x) => x[0] === v); return it && v !== 'none' && reqOk(it[1]) ? `<span class="title-tag">${esc(t('title_' + v))}</span>` : ''; };
 
+// ---------- Sign in with Google ----------
+// Google's own button (Google Identity Services) when a client id is set; our look-alike until then.
+const G_LOGO = '<svg class="g-logo" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
+const gButton = () => `<div class="g-box" data-gbtn><button class="g-btn" type="button" data-act="acct-google">${G_LOGO}<span>${t('gContinue')}</span></button></div>`;
+let gisReady = null, gisInit = false;
+function loadGis() {
+  if (!gisReady) {
+    gisReady = new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://accounts.google.com/gsi/client';
+      s.async = true;
+      s.onload = () => (window.google && window.google.accounts ? res(window.google) : rej(new Error('gis')));
+      s.onerror = () => { gisReady = null; rej(new Error('gis')); };
+      document.head.appendChild(s);
+    });
+  }
+  return gisReady;
+}
+const isLightTheme = () => { const th = document.documentElement.dataset.theme; return th === 'light' || (th === 'auto' && matchMedia('(prefers-color-scheme: light)').matches); };
+async function mountGoogle() {
+  const boxes = [...document.querySelectorAll('[data-gbtn]:not([data-done])')];
+  const cid = net.googleClientId();
+  if (!boxes.length || !cid || !net.isOnline()) return;
+  try {
+    const g = await loadGis();
+    if (!gisInit) { g.accounts.id.initialize({ client_id: cid, callback: onGoogle, ux_mode: 'popup', use_fedcm_for_button: true, cancel_on_tap_outside: true }); gisInit = true; }
+    for (const b of boxes) {
+      if (!document.body.contains(b)) continue;
+      b.dataset.done = '1';
+      const w = Math.max(220, Math.min(400, Math.round(b.getBoundingClientRect().width || 300)));
+      b.innerHTML = '';
+      g.accounts.id.renderButton(b, { type: 'standard', theme: isLightTheme() ? 'outline' : 'filled_black', size: 'large', text: 'continue_with', shape: 'pill', logo_alignment: 'center', width: w, locale: getLang() === 'es' ? 'es-419' : 'en' });
+    }
+  } catch (e) { /* offline or blocked: our own button stays and explains when tapped */ }
+}
+// Google answered with a signed token: the server checks it and gives back the account.
+async function onGoogle(resp) {
+  if (!resp || !resp.credential) return;
+  try {
+    const had = S.acct;
+    net.setAccount(had || null);
+    const r = await net.googleLogin(resp.credential, cleanName(S.profile && S.profile.name));
+    if (r.linked && had) { S.acct = { ...had, google: true }; toast(t('gLinked')); }
+    else { S.acct = { id: r.id, name: r.name, code: r.code, token: r.token, google: true }; toast(t(r.created ? 'gReady' : 'gWelcome', { name: r.name })); }
+    save();
+    net.setAccount(S.acct);
+    closeSheet();
+    render();
+    if (r.existing && r.backup) setTimeout(() => acctAction('backup-restore'), 700);
+    else backupNow(true).then(() => { if (current === 'me') render(); });
+  } catch (e) { toast(t(net.isOnline() ? 'gFail' : 'vsNeedNet')); }
+}
+// Local tests only (never on the real site): feed a practice token as if Google had answered.
+if (['localhost', '127.0.0.1'].includes(location.hostname)) window.__esGoogleTest = onGoogle;
+async function googleAction(k) {
+  if (k === 'acct-google') {
+    // Our look-alike button was tapped: Google's own button is not ready.
+    if (!net.googleClientId()) { toast(t('gSoon')); return; }
+    if (!net.isOnline()) { toast(t('vsNeedNet')); return; }
+    try { const g = await loadGis(); if (!gisInit) await mountGoogle(); g.accounts.id.prompt(); } catch (e) { toast(t('gFail')); }
+  } else if (k === 'acct-logout') {
+    confirmSheet(t('gLogoutT'), t('gLogoutP'), t('gLogoutYes'), async () => {
+      try { await net.logout(); } catch (e) {
+        if (e && e.status === 409) { toast(t('gLogoutNeedsGoogle')); return; }
+        if (e && e.status !== 401) { toast(t('vsNeedNet')); return; }
+      }
+      S.acct = null;
+      delete S.backupAt;
+      net.setAccount(null);
+      try { if (window.google && window.google.accounts) window.google.accounts.id.disableAutoSelect(); } catch (e) { /* fine */ }
+      save();
+      toast(t('gOut'));
+      render();
+    });
+  }
+}
+
 // ---------- Training reminders ----------
 // You pick the time and the days; the server wakes the phone (Web Push) and the phone shows a line saved here.
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
@@ -3899,7 +3980,7 @@ const EV_IC = { workout: 'train', pr: 'trophy', record: 'camera', goal: 'target'
 function friendsView(inside) {
   const A = S.acct;
   const top = inside ? '' : `<header class="top me-top"><button class="icon-btn" data-act="go" data-v="home" aria-label="${t('back')}">${I.back}</button><div class="grow"><p class="eyebrow">${t('frEyebrow')}</p><h1>${t('frTitle')}</h1></div></header>`;
-  if (!A) return top + `<section class="card fr-empty"><span class="fr-big">${I.trophy}</span><b>${t('frNoAcct')}</b><p class="muted small">${t('acctWhy')}</p><button class="btn btn-primary btn-block" data-act="acct-on">${t('acctOn')}</button></section>`;
+  if (!A) return top + `<section class="card fr-empty"><span class="fr-big">${I.trophy}</span><b>${t('frNoAcct')}</b><p class="muted small">${t('gWhy')}</p>${gButton()}<button class="link small" data-act="acct-on">${t('gNoGoogle')}</button></section>`;
   return top + `
     <section class="card fr-invite"><span class="grow"><small>${t('acctFriendCode')}</small><b>${esc(A.code)}</b></span><button class="btn btn-sm" data-act="acct-share">${I.share}${t('frInvite')}</button><button class="btn btn-sm btn-primary" data-act="friend-add">${I.plus}</button></section>
     <div class="section-title"><span class="eyebrow">${t('lgTitle')}</span><span class="muted small" id="lgEnds"></span></div>
@@ -4808,6 +4889,7 @@ VIEWS.vs = vsView;
 // Installable app that also works without internet (sw.js). Only on the real site, not while developing.
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 if (S.acct) net.setAccount(S.acct);
+if (S.acct && S.acct.google === undefined && net.isOnline()) net.api('GET', '/v1/me').then((m) => { if (S.acct) { S.acct.google = !!m.google; save(); if (current === 'me') render(); } }).catch(() => {});
 window.addEventListener('es-auth-lost', () => { S.acct = null; net.setAccount(null); save(); if (['me', 'friends', 'vs'].includes(current)) render(); });
 setTimeout(autoBackup, 4000);
 if (S.profile && S.remind && S.remind.on) setTimeout(writeRemindText, 3000);
