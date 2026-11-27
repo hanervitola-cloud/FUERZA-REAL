@@ -1659,7 +1659,7 @@ body::before,.onboard::before,.workout::before,.builder::before{display:none}
 .sw{width:34px;height:34px;border-radius:50%;background:var(--sw);display:grid;place-items:center;color:#fff}
 .sw[aria-pressed="true"]{box-shadow:0 0 0 2.5px var(--surface),0 0 0 4.5px var(--sw)}
 .sw.locked{opacity:.35}
-.lock{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.2}
+.ic-lock{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.2}
 .chips.wrap{flex-wrap:wrap;overflow:visible}
 .chip.locked{opacity:.5;display:inline-flex;align-items:center;gap:5px}
 .title-tag{display:inline-block;padding:3px 10px;border-radius:99px;background:rgba(var(--acc),.16);color:var(--red);font-size:12px;font-weight:700}
@@ -1676,3 +1676,74 @@ body::before,.onboard::before,.workout::before,.builder::before{display:none}
 /* The character stays above the soft glow; the text above the character */
 .hero .hero-img{z-index:1}
 .hero .hero-copy{z-index:2}
+
+/* Compete tab: my records list */
+.vs-rec-row{display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;text-align:left;color:var(--text)}
+.vs-rec-row+.vs-rec-row{border-top:.5px solid var(--hairline)}
+.vs-rec-row .vs-th{width:48px;height:48px;flex:0 0 48px;border-radius:12px;overflow:hidden;background:var(--surface-2);display:grid;place-items:center}
+.vs-rec-row .vs-th img,.vs-rec-row .vs-th svg{max-width:100%;max-height:100%;object-fit:contain}
+.vs-rec-row b{display:block;font-size:15px}
+.vs-rec-row small{display:block;font-size:12.5px;color:var(--muted)}
+.vs-rec-row em{font-style:normal;font-family:var(--display);font-weight:700;font-size:22px;color:var(--red)}
+/* Train: sports row */
+.sport-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sport-mini{display:grid;gap:6px;justify-items:center;padding:10px 6px 12px;border-radius:18px;background:var(--surface);color:var(--text);text-align:center}
+.sport-mini .sm-art{width:100%;height:64px;display:grid;place-items:center;overflow:hidden}
+.sport-mini .sm-art img,.sport-mini .sm-art svg{max-height:64px;max-width:100%;object-fit:contain}
+.sport-mini b{font-size:12.5px;line-height:1.15}
+.sport-mini .sm-art .move-anim{position:relative;width:100%;height:100%}
+.sport-mini .sm-art .move-anim img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.vs-hero{background:var(--surface);border:0;box-shadow:none}
+
+/* Light mode: dark-made colors, readable on white */
+:root[data-theme="light"] .stage-rank b,:root[data-theme="light"] .hero-rank b,:root[data-theme="light"] .rankup b,:root[data-theme="light"] .rl-card b,:root[data-theme="light"] .rk{color:color-mix(in srgb,var(--c) 58%,#000)}
+:root[data-theme="light"] .stage-rank b{text-shadow:none}
+:root[data-theme="light"] .rl-card.cur small{color:var(--text)}
+:root[data-theme="light"] .rl-card.lock img{filter:grayscale(1) brightness(.9) opacity(.55)}
+:root[data-theme="light"] .mmap .base{fill:#E5E5EA;stroke:#B9B9C0}
+:root[data-theme="light"] .mmap .mm>*{fill:#F4F4F7;stroke:#B9B9C0}
+:root[data-theme="light"] .mmap .mm.mid>*{fill:#F2A49C}
+:root[data-theme="light"] .mmap .mm.low>*{fill:#F8D3CE}
+:root[data-theme="light"] .mmap .mm.on>*{filter:none}
+:root[data-theme="light"] .brmap .base,:root[data-theme="light"] .brmap .bm-base{fill:#E5E5EA;stroke:#B9B9C0}
+:root[data-theme="light"] .th-dot{border-color:var(--bg)}
+@media (prefers-color-scheme:light){
+:root[data-theme="auto"] .stage-rank b,:root[data-theme="auto"] .hero-rank b,:root[data-theme="auto"] .rankup b,:root[data-theme="auto"] .rl-card b,:root[data-theme="auto"] .rk{color:color-mix(in srgb,var(--c) 58%,#000)}
+:root[data-theme="auto"] .stage-rank b{text-shadow:none}
+:root[data-theme="auto"] .rl-card.cur small{color:var(--text)}
+:root[data-theme="auto"] .rl-card.lock img{filter:grayscale(1) brightness(.9) opacity(.55)}
+:root[data-theme="auto"] .mmap .base{fill:#E5E5EA;stroke:#B9B9C0}
+:root[data-theme="auto"] .mmap .mm>*{fill:#F4F4F7;stroke:#B9B9C0}
+:root[data-theme="auto"] .mmap .mm.mid>*{fill:#F2A49C}
+:root[data-theme="auto"] .mmap .mm.low>*{fill:#F8D3CE}
+:root[data-theme="auto"] .mmap .mm.on>*{filter:none}
+:root[data-theme="auto"] .brmap .base,:root[data-theme="auto"] .brmap .bm-base{fill:#E5E5EA;stroke:#B9B9C0}
+:root[data-theme="auto"] .th-dot{border-color:var(--bg)}
+}
+
+/* Light mode: the anatomy drawing */
+:root[data-theme="light"] .bmap .bm-body{fill:#ECECF0}
+:root[data-theme="light"] .bmap .bm-out{stroke:#8E8E93}
+:root[data-theme="light"] .bmap .bm-line{stroke:#AEAEB2}
+:root[data-theme="light"] .bmap .bm-g.mid>*{fill:#F2A49C}
+:root[data-theme="light"] .bmap .bm-g.low>*{fill:#F8D3CE}
+:root[data-theme="light"] .tile[aria-pressed="false"] .bmap .bm-g.on>*{fill:#F2B8B2}
+@media (prefers-color-scheme:light){
+:root[data-theme="auto"] .bmap .bm-body{fill:#ECECF0}
+:root[data-theme="auto"] .bmap .bm-out{stroke:#8E8E93}
+:root[data-theme="auto"] .bmap .bm-line{stroke:#AEAEB2}
+:root[data-theme="auto"] .bmap .bm-g.mid>*{fill:#F2A49C}
+:root[data-theme="auto"] .bmap .bm-g.low>*{fill:#F8D3CE}
+:root[data-theme="auto"] .tile[aria-pressed="false"] .bmap .bm-g.on>*{fill:#F2B8B2}
+}
+/* Labels: same font as the app, easy to read in both themes */
+.badge{font-family:var(--body);font-size:12.5px;font-weight:600;letter-spacing:0;text-transform:none;border:0;background:var(--surface-2);color:var(--text)}
+.badge.main{background:rgba(var(--acc),.14);color:var(--red);border:0}
+.badge.help{background:rgba(229,138,78,.16);color:#E58A4E;border:0}
+.rk{font-family:var(--body);font-size:11.5px;font-weight:700;letter-spacing:.01em;text-transform:none}
+:root[data-theme="light"] .badge.help{color:#A8561A}
+@media (prefers-color-scheme:light){:root[data-theme="auto"] .badge.help{color:#A8561A}}
+.muscles .badge.main{background:rgba(var(--acc),.14);color:var(--red);border:0}
+.muscles .badge.help{background:rgba(229,138,78,.16);color:#E58A4E;border:0}
+:root[data-theme="light"] .muscles .badge.help{color:#A8561A}
+@media (prefers-color-scheme:light){:root[data-theme="auto"] .muscles .badge.help{color:#A8561A}}

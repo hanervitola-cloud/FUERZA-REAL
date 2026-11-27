@@ -478,7 +478,10 @@ document.getElementById('onboard').addEventListener('click', (e) => {
 });
 
 // ---------- Views ----------
-const TABS = [['home', 'tabHome', I.home], ['train', 'tabTrain', I.list], ['build', 'fabLabel', I.train], ['sports', 'tabSports', I.gloves], ['rank', 'tabProgress', I.rank]];
+const TABS = [['home', 'tabHome', I.home], ['vs', 'tabVs', I.trophy], ['build', 'fabLabel', I.train], ['train', 'tabTrain', I.list], ['rank', 'tabProgress', I.rank]];
+// Screens that belong to a tab light up that tab.
+const tabOf = (v) => ({ sports: 'train', friends: 'vs' }[v] || v);
+let vsTab = 'ch';
 let current = 'home';
 let lastView = '';
 let learnTab = 'quiz';
@@ -506,13 +509,13 @@ function render() {
   if (!S.profile) return; // still in the first-time questions
   $('#tabs').innerHTML = TABS.map(([id, label, icon]) => id === 'build'
     ? `<button class="tab tab-main" type="button" data-act="builder"><span class="tab-fab">${icon}</span><span>${t('fabLabel')}</span></button>`
-    : `<button class="tab" type="button" data-act="go" data-v="${id}" ${current === id ? 'aria-current="page"' : ''}>${icon}<span>${t(label)}</span></button>`).join('');
+    : `<button class="tab" type="button" data-act="go" data-v="${id}" ${tabOf(current) === id ? 'aria-current="page"' : ''}>${icon}<span>${t(label)}</span></button>`).join('');
   const fresh = current !== lastView;
   lastView = current;
   $('#main').innerHTML = `<div class="view v-${current}${fresh ? ' enter' : ''}">${VIEWS[current]()}</div>`;
   window.scrollTo(0, 0);
   if (current === 'rank' && progTab === 'body') loadPhotos();
-  if (current === 'friends') loadFriends();
+  if (current === 'friends' || (current === 'vs' && vsTab === 'friends')) loadFriends();
   if (current === 'rank') { mountAvatar(); const cur = $('#rankLadder .cur'); if (cur) cur.parentElement.scrollLeft = Math.max(0, cur.offsetLeft - 70); }
 }
 
@@ -576,7 +579,7 @@ const VIEWS = {
           ${titleTag()}
           <button class="hero-rank" data-act="go" data-v="rank">
             <svg class="ring" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" class="ring-bg"/><circle cx="32" cy="32" r="27" class="ring-fg" stroke-dasharray="169.6" stroke-dashoffset="${(169.6 * (1 - p)).toFixed(1)}"/><text x="32" y="38" text-anchor="middle">${sc.total}</text></svg>
-            <span><span class="eyebrow">${t('yourRank')}</span><b>${esc(RANKS[r].name)}</b><small>${next ? t('pointsTo', { n: next.at - sc.total, rank: esc(next.name) }) : t('topRank')}</small></span>
+            <span><span class="eyebrow">${t('yourRank')}</span><b>${esc(RANKS[r].name)}</b><small>${next ? t(next.at - sc.total === 1 ? 'pointsTo1' : 'pointsTo', { n: next.at - sc.total, rank: esc(next.name) }) : t('topRank')}</small></span>
           </button>
           <div class="hero-pills">${levelPill()}${streakPill()}</div>
         </div>
@@ -605,6 +608,8 @@ const VIEWS = {
       <button class="card card-tap build-cta" data-act="builder"><span class="bc-ic">${I.plus}</span><span class="grow"><b>${t('buildBtnBig')}</b><small>${t('buildSub')}</small></span>${I.chev}</button>
       <div class="section-title"><span class="eyebrow">${t('progsTitle')}</span></div>
       ${progCards()}
+      <div class="section-title"><span class="eyebrow">${t('tabSports')}</span><button class="link small" data-act="go" data-v="sports">${t('seeAll')}</button></div>
+      <div class="sport-row">${SPORTS.map(({ id: k, card }) => `<button class="sport-mini sp-${k}" data-act="sport-open" data-v="${k}"><span class="sm-art">${heroArt(card)}</span><b>${t(k + 'Title')}</b></button>`).join('')}</div>
       ${musclesCard()}
       <div class="section-title"><span class="eyebrow">${t('myRoutines')}</span><button class="link small" data-act="rt-import">${t('rtImportBtn')}</button></div>
       ${mine.length ? `<section class="card list-card">${mine.map((x) => `<div class="rt"><button class="rt-main" data-act="rt-info" data-v="${x.id}"><b>${esc(x.name)}</b><small>${t(x.items.length === 1 ? 'nExShort1' : 'nExShort', { n: x.items.length })} · ${t('place_' + (x.place || 'gym'))}</small></button><button class="btn btn-sm btn-primary" data-act="rt-start" data-v="${x.id}" aria-label="${t('start')}">${I.play}</button></div>`).join('')}</section>`
@@ -678,7 +683,7 @@ const VIEWS = {
       <section class="card">
         <div class="card-head"><span class="eyebrow">${t('strengthScore')}</span><span class="big-num">${sc.total}<span class="muted" style="font-size:18px"> / 100</span></span></div>
         <div class="bar"><i style="width:${(p * 100).toFixed(0)}%"></i></div>
-        <p class="muted small" style="margin-top:10px">${next ? t('pointsTo', { n: next.at - sc.total, rank: esc(next.name) }) : t('reachedTop')}</p>
+        <p class="muted small" style="margin-top:10px">${next ? t(next.at - sc.total === 1 ? 'pointsTo1' : 'pointsTo', { n: next.at - sc.total, rank: esc(next.name) }) : t('reachedTop')}</p>
       </section>
       ${monthBtn()}
       ${stuckCard()}
@@ -725,8 +730,7 @@ const VIEWS = {
   sports() {
     if (sportSel) return sportDetail(sportSel);
     const n = (k) => LESSONS.filter((l) => l.kind === k).length;
-    return `<header class="top"><div><p class="eyebrow">${t('sportsEyebrow')}</p><h1>${t('tabSports')}</h1></div></header>
-      ${vsHomeCard()}
+    return `<header class="top me-top"><button class="icon-btn" data-act="go" data-v="train" aria-label="${t('back')}">${I.back}</button><div class="grow"><p class="eyebrow">${t('sportsEyebrow')}</p><h1>${t('tabSports')}</h1></div></header>
       ${SPORTS.map(({ id: k, card }) => `<button class="sport-card sp-${k}" data-act="sport" data-v="${k}">
         <span class="sp-txt"><span class="eyebrow">${t('sportLabel_' + k)}</span><b>${t(k + 'Title')}</b><small>${t(k + 'Sub')}</small><span class="sp-meta">${t('nLessons', { n: n(k) })} ${I.chev}</span></span>
         <span class="sp-art">${heroArt(card)}</span>
@@ -890,7 +894,7 @@ function showChallenge() {
 // Progress: every rank with the character, and where you are.
 function rankLadder(r, sc) {
   const next = RANKS[r + 1];
-  return `<div class="section-title"><span class="eyebrow">${t('ranksTitle')}</span><span class="muted small">${next ? t('pointsTo', { n: next.at - sc.total, rank: esc(next.name) }) : t('reachedTop')}</span></div>
+  return `<div class="section-title"><span class="eyebrow">${t('ranksTitle')}</span><span class="muted small">${next ? t(next.at - sc.total === 1 ? 'pointsTo1' : 'pointsTo', { n: next.at - sc.total, rank: esc(next.name) }) : t('reachedTop')}</span></div>
     <div class="rank-ladder" id="rankLadder">${RANKS.map((x, i) => `<div class="rl-card ${i === r ? 'cur' : i < r ? 'past' : 'lock'}" style="--c:${x.color}">
       <img src="${avatarSrc(i)}" alt="" loading="lazy"><b>${esc(x.name)}</b><small>${i === r ? t('youAreHere') : i < r ? t('rankPassed') : t('rankFrom', { n: x.at })}</small></div>`).join('')}</div>`;
 }
@@ -2535,7 +2539,9 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-act]');
   if (!b) return;
   const k = b.dataset.act, v = b.dataset.v;
-  if (k === 'go') { if (v === 'sports') sportSel = null; if (v === 'home') curQuote = null; go(v); }
+  if (k === 'go') { if (v === 'sports') sportSel = null; if (v === 'home') curQuote = null; if (v === 'friends') { vsTab = 'friends'; go('vs'); return; } go(v); }
+  else if (k === 'vs-tab') { vsTab = v; render(); }
+  else if (k === 'sport-open') { sportSel = v || null; go('sports'); }
   else if (k === 'coach-ask') { if (current !== 'coach') { go('coach'); setTimeout(() => coachAsk(v), 350); } else coachAsk(v); }
   else if (k === 'missions') showMissions();
   else if (k === 'meas-save') saveMeas();
@@ -3179,7 +3185,7 @@ function ssToggle(i) {
 // ---------- Daily streak with shields ----------
 const STREAK_EV = new Set(['workout', 'camera', 'daily', 'program', 'warmup', 'cooldown', 'lesson', 'goal']);
 const SHIELD = '<svg class="shield" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6z"/></svg>';
-const LOCK = '<svg class="lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+const LOCK = '<svg class="ic-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
 const day0 = (ts) => { const d = new Date(ts); d.setHours(0, 0, 0, 0); return d.getTime(); };
 const daysBetween = (a, b) => Math.round((day0(b) - day0(a)) / DAY);
 // The first time, the streak is built from your past workouts and daily challenges.
@@ -3220,6 +3226,7 @@ function streakNow() {
 }
 function streakPill() {
   const st = stData(), n = streakNow(), on = st.last === day0(Date.now());
+  if (!n && !st.shields) return '';
   return `<button class="st-pill${on ? ' on' : ''}" data-act="streak" aria-label="${t('stEyebrow')}">${I.flame}<b>${n}</b>${st.shields ? `<small class="st-sh">${SHIELD}${st.shields}</small>` : ''}</button>`;
 }
 function showStreak() {
@@ -3889,9 +3896,9 @@ function eventText(e) {
   return '';
 }
 const EV_IC = { workout: 'train', pr: 'trophy', record: 'camera', goal: 'target', level: 'flame' };
-function friendsView() {
+function friendsView(inside) {
   const A = S.acct;
-  const top = `<header class="top me-top"><button class="icon-btn" data-act="go" data-v="home" aria-label="${t('back')}">${I.back}</button><div class="grow"><p class="eyebrow">${t('frEyebrow')}</p><h1>${t('frTitle')}</h1></div></header>`;
+  const top = inside ? '' : `<header class="top me-top"><button class="icon-btn" data-act="go" data-v="home" aria-label="${t('back')}">${I.back}</button><div class="grow"><p class="eyebrow">${t('frEyebrow')}</p><h1>${t('frTitle')}</h1></div></header>`;
   if (!A) return top + `<section class="card fr-empty"><span class="fr-big">${I.trophy}</span><b>${t('frNoAcct')}</b><p class="muted small">${t('acctWhy')}</p><button class="btn btn-primary btn-block" data-act="acct-on">${t('acctOn')}</button></section>`;
   return top + `
     <section class="card fr-invite"><span class="grow"><small>${t('acctFriendCode')}</small><b>${esc(A.code)}</b></span><button class="btn btn-sm" data-act="acct-share">${I.share}${t('frInvite')}</button><button class="btn btn-sm btn-primary" data-act="friend-add">${I.plus}</button></section>
@@ -4006,6 +4013,7 @@ function takeChallengeLink() {
 const vsArt = (ex) => { const m = moveId(ex); return m ? `<img class="vs-img" src="${movePath(m, 2)}" alt="" loading="lazy">` : exThumb(ex); };
 function vsHomeCard() {
   const r = vs.rival && challengeById(vs.rival.c) ? vs.rival : null;
+  if (!r) return '';
   return `<button class="card card-tap vs-home" data-act="go" data-v="vs"><span class="vs-hi">${I.camera}</span><span class="grow"><b>${r ? t('vsHomePending', { name: esc(r.p) }) : t('vsHomeT')}</b><small>${r ? esc(chTitle(challengeById(r.c))) : t('vsHomeSub')}</small></span>${I.chev}</button>`;
 }
 function vsView() {
@@ -4030,7 +4038,22 @@ function vsView() {
     const tie = top[1] && top[1].n === top[0].n;
     return `<div class="vs-duel"><span class="grow"><b>${d.live ? `<em class="live-tag">${t('vsLiveTag')}</em> ` : ''}${esc(chTitle(c))}</b><small>${fmtDate(d.at)} · ${top.map((r) => `${esc(r.p)} ${esc(fmtScore(c, r.n))}`).join(' · ')}</small></span><span class="vs-win">${I.trophy}${tie ? t('vsTie') : esc(top[0].p)}</span></div>`;
   }).join('');
-  return `<header class="top me-top"><button class="icon-btn" data-act="go" data-v="home" aria-label="${t('back')}">${I.back}</button><div class="grow"><p class="eyebrow">${t('vsEyebrow')}</p><h1>${t('vsTitle')}</h1></div></header>
+  const segs = [['ch', 'vsSegCh'], ['friends', 'vsSegFriends'], ['recs', 'vsSegRecs']];
+  if (!segs.some(([id]) => id === vsTab)) vsTab = 'ch';
+  const head = `<header class="top"><div><h1>${t('tabVs')}</h1></div></header>
+    <div class="chips seg">${segs.map(([id, l]) => `<button class="chip" data-act="vs-tab" data-v="${id}" aria-pressed="${vsTab === id}">${t(l)}</button>`).join('')}</div>`;
+  if (vsTab === 'friends') return head + friendsView(true);
+  if (vsTab === 'recs') {
+    const mine = Object.entries(D.best).filter(([cid]) => challengeById(cid)).sort((x, y) => (y[1].at || 0) - (x[1].at || 0));
+    const recRows = mine.map(([cid, b]) => { const c = challengeById(cid); return `<button class="vs-rec-row" data-act="vs-ch" data-v="${cid}"><span class="vs-th">${vsArt(c.ex)}</span><span class="grow"><b>${esc(exName(c.ex))}</b><small>${chMode(c)}${b.at ? ' · ' + fmtDate(b.at) : ''}</small></span><em>${esc(fmtScore(c, b.n))}</em></button>`; }).join('');
+    return head + `
+    <div class="section-title"><span class="eyebrow">${t('vsMyRecs')}</span></div>
+    ${recRows ? `<section class="card list-card">${recRows}</section>` : `<p class="muted small empty">${t('vsNoRecs')}</p>`}
+    <div class="section-title"><span class="eyebrow">${t('vsFriends')}</span><button class="link small" data-act="vs-code">${t('vsHaveCode')}</button></div>
+    ${boards || `<p class="muted small empty">${t('vsNoFriends')}</p>`}
+    ${duels ? `<div class="section-title"><span class="eyebrow">${t('vsDuels')}</span></div><section class="card list-card">${duels}</section>` : ''}`;
+  }
+  return head + `
     <section class="vs-hero"><div class="grow"><b>${t('vsHeroT')}</b><p>${t('vsHeroP')}</p></div><span class="vs-hero-ic">${I.camera}</span></section>
     ${incoming}
     <section class="card list-card vs-ways">
@@ -4042,9 +4065,6 @@ function vsView() {
     <div class="vs-grid">${CAM_CHALLENGES.filter((c) => c.place === 'home').map(tile).join('')}</div>
     <div class="section-title"><span class="eyebrow">${t('vsGym')}</span></div>
     <div class="vs-grid">${CAM_CHALLENGES.filter((c) => c.place === 'gym').map(tile).join('')}</div>
-    <div class="section-title"><span class="eyebrow">${t('vsFriends')}</span><button class="link small" data-act="vs-code">${t('vsHaveCode')}</button></div>
-    ${boards || `<p class="muted small empty">${t('vsNoFriends')}</p>`}
-    ${duels ? `<div class="section-title"><span class="eyebrow">${t('vsDuels')}</span></div><section class="card list-card">${duels}</section>` : ''}
     <p class="muted small vs-note">${I.info}<span>${t('vsPrivacy')}</span></p>`;
 }
 
@@ -4788,7 +4808,7 @@ VIEWS.vs = vsView;
 // Installable app that also works without internet (sw.js). Only on the real site, not while developing.
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 if (S.acct) net.setAccount(S.acct);
-window.addEventListener('es-auth-lost', () => { S.acct = null; net.setAccount(null); save(); if (['me', 'friends'].includes(current)) render(); });
+window.addEventListener('es-auth-lost', () => { S.acct = null; net.setAccount(null); save(); if (['me', 'friends', 'vs'].includes(current)) render(); });
 setTimeout(autoBackup, 4000);
 if (S.profile && S.remind && S.remind.on) setTimeout(writeRemindText, 3000);
 if (S.profile) setTimeout(checkBadges, 2500);
