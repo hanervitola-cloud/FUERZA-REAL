@@ -365,6 +365,8 @@ const UI = {
   mcTired: ['Heads up: {g} trained less than 2 days ago. Go easy or pick another routine.', 'Ojo: {g} entrenaron hace menos de 2 días. Ve con calma o elige otra rutina.'],
   close: ['Close', 'Cerrar'],
   // Growth: missions, food, photos
+  lastShort: ['Last', 'Antes'],
+  suggStart: ['First time: start with about {w} {u} and adjust. If it feels easy, add weight on the next set.', 'Primera vez: empieza con unos {w} {u} y ajusta. Si se siente fácil, súbele en la siguiente serie.'],
   rmOn: ['On: the phone will remind you to train', 'Activados: el celular te recuerda entrenar'],
   rmOff: ['Off', 'Apagados'],
   rmTime: ['Time', 'Hora'],

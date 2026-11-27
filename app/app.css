@@ -1430,3 +1430,19 @@ button,.card-tap,.chip,.tab,.lib-item{-webkit-user-select:none;user-select:none;
 .rm-days{display:flex;gap:6px;justify-content:space-between}
 .rm-days .chip{width:38px;height:38px;padding:0;display:grid;place-items:center;border-radius:50%}
 .rm-days .chip[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
+
+/* Workout screen polish */
+.set.head span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wo-head{flex-wrap:wrap;position:sticky}
+.wo-prog{flex:0 0 100%;height:4px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:2px}
+.wo-prog i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#E2463B,#E8B84A);transition:width .35s ease}
+.sugg.start{color:#E8B84A}
+.sugg.start svg{stroke:#E8B84A}
+.set.done{background:rgba(111,191,142,.1)}
+.set.done .check{background:var(--ok);border-color:var(--ok)}
+.set.done .check svg{stroke:#0E1012}
+@media (prefers-reduced-motion:no-preference){.set.done .check{animation:checkPop .35s cubic-bezier(.2,1.6,.4,1)}}
+@keyframes checkPop{0%{transform:scale(.7)}100%{transform:scale(1)}}
+
+/* The rest timer sits above the bottom button, so it never covers the workout name */
+.rest-pill{top:auto;bottom:calc(88px + var(--safe-b))}

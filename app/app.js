@@ -189,7 +189,17 @@ const rankIndex = (s) => { let i = 0; while (i + 1 < RANKS.length && s >= RANKS[
 // rep range, go up a little; otherwise keep the weight and beat last time by a rep.
 function suggestFor(ex) {
   const def = EXERCISES[ex.id], prev = lastSets(ex.id);
-  if (!prev.length) return null;
+  if (!prev.length) {
+    const st = STANDARDS[ex.id], P = S.profile || {};
+    if (def.bw || !st || st[1] !== 'ratio' || !P.bw) return null;
+    const frac = { beginner: 0.1, comeback: 0.16, intermediate: 0.3, advanced: 0.48 }[P.level] || 0.15;
+    const adj = sexAdj(st[0]);
+    const e1 = bodyBase(P.bw) * (st[2] + (st[3] - st[2]) * frac) * adj;
+    const lo = +String(ex.target).split('-')[0] || 8;
+    const step = unit() === 'lb' ? 5 / LB : def.perHand ? 2 : 2.5;
+    const w = Math.max(step, Math.round(((e1 / (1 + lo / 30)) * 0.85) / step) * step);
+    return { kind: 'start', w, lo };
+  }
   const [lo, hi] = String(ex.target).split('-').map(Number);
   const top = hi || lo;
   if (def.bw) return { kind: 'reps', r: Math.max(...prev.map((s) => s.r)) + (def.timed ? 5 : 1) };
@@ -209,6 +219,7 @@ function suggLine(ex) {
   if (!sg) return '';
   const txt = sg.kind === 'reps' ? t('suggReps', { r: `${sg.r} ${t(def.timed ? 'seconds' : 'reps')}` })
     : sg.kind === 'up' ? t('suggUp', { w: fmtW(sg.w), u: unit(), d: fmtW(sg.d) })
+    : sg.kind === 'start' ? t('suggStart', { w: fmtW(sg.w), u: unit() })
     : t(sg.some ? 'suggSameTop' : 'suggSame', { w: fmtW(sg.w), u: unit(), r: sg.top });
   return `<p class="sugg ${sg.kind}">${I.up}${txt}</p>`;
 }
@@ -1000,7 +1011,10 @@ function updateElapsed() {
   if (!a || !el) return;
   const s = Math.floor((Date.now() - a.start) / 1000);
   const all = a.exercises.flatMap((e) => e.sets);
-  el.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} · ${t('setsDone', { n: all.filter((x) => x.done).length, total: all.length })}`;
+  const done = all.filter((x) => x.done).length;
+  el.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} · ${t('setsDone', { n: done, total: all.length })}`;
+  const pg = $('#woProg');
+  if (pg) pg.style.width = `${all.length ? Math.round((done / all.length) * 100) : 0}%`;
 }
 function setRow(ex, i, j, prev, sg) {
   const def = EXERCISES[ex.id], s = ex.sets[j], p = prev[j] || prev[prev.length - 1];
@@ -1021,7 +1035,7 @@ function renderWorkout() {
   $('#workout').innerHTML = `<div class="wo-inner">
     <header class="wo-head"><button class="icon-btn" data-wo="min" aria-label="${t('back')}">${I.back}</button>
       <div class="grow"><b style="font-size:17px">${esc(histName(a))}</b><div class="wo-time" id="woTime"></div></div>
-      <button class="btn btn-sm" data-wo="rest">${I.timer}${t('rest')}</button></header>
+      <button class="btn btn-sm" data-wo="rest">${I.timer}${t('rest')}</button><div class="wo-prog"><i id="woProg"></i></div></header>
     <p class="hint-row">${I.info}<span>${t('woHint')}</span></p>
     ${a.exercises.map((ex, i) => {
       const def = EXERCISES[ex.id], prev = lastSets(ex.id), sg = suggestFor(ex);
@@ -1029,7 +1043,7 @@ function renderWorkout() {
         <div class="wo-ex-top"><button class="wo-ex-name" data-wo="info" data-v="${ex.id}">${exThumb(ex.id)}<span>${esc(exName(ex.id))}</span>${I.info}</button><button class="icon-btn sm" data-wo="menu" data-i="${i}" aria-label="${t('exOptions')}">${I.more}</button></div>
         <p class="muted small">${t('target', { sets: ex.sets.length, reps: ex.target, what: t(def.timed ? 'seconds' : 'reps') })}${def.perHand ? t('oneDumbbell') : ''}</p>
         ${suggLine(ex)}
-        <div class="sets"><div class="set head"><span>${t('set')}</span><span>${t('lastTime')}</span><span style="text-align:center">${def.bw ? '' : unit()}</span><span style="text-align:center">${t(def.timed ? 'secShort' : 'repsShort')}</span><span></span></div>
+        <div class="sets"><div class="set head"><span>#</span><span>${t('lastShort')}</span><span style="text-align:center">${def.bw ? '' : unit()}</span><span style="text-align:center">${t(def.timed ? 'secShort' : 'repsShort')}</span><span></span></div>
           ${ex.sets.map((_, j) => setRow(ex, i, j, prev, sg)).join('')}</div>
         <div class="wo-ex-btns"><button class="btn btn-sm" data-wo="add" data-i="${i}">${I.plus}${t('addSet')}</button>${BARBELL.includes(ex.id) ? `<button class="btn btn-sm" data-wo="plates" data-i="${i}">${I.plates}${t('platesTool')}</button>` : ''}</div>
       </section>`;
