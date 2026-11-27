@@ -627,7 +627,7 @@ const VIEWS = {
       <section class="card list-card">${hist.length ? hist.map((w) => `<button class="lib-item" data-act="hist" data-v="${esc(w.id)}"><span class="grow"><b>${esc(histName(w))}</b><small>${fmtDate(w.date)} · ${Math.max(1, Math.round(w.dur / 60))} min · ${w.rounds ? t('nRounds', { n: w.rounds.n }) : t('nSets', { n: w.exercises.reduce((a, e) => a + e.sets.length, 0) })}</small></span>${I.chev}</button>`).join('') : `<p class="hist muted">${t('noHistory')}</p>`}</section>`;
     } else {
       const tool = (act, icon, title, sub, v) => `<button class="card card-tap tool" data-act="${act}" ${v ? `data-v="${v}"` : ''}>${icon}<b>${t(title)}</b><span>${t(sub)}</span></button>`;
-      body = `<div class="tools">${tool('rest', I.timer, 'restTimer', 'restTimerSub')}${tool('plates', I.plates, 'platesTool', 'platesSub')}${tool('orm', I.gauge, 'ormTitle', 'ormSub')}${tool('calc', I.calc, 'calcTitle', 'calcSub')}${tool('fight', I.bell, 'roundsBtn', 'roundsTool', 'rounds')}${tool('fight', I.gloves, 'shadowBtn', 'shadowTool', 'shadow')}${tool('warm', I.flame, 'wmTitle', 'wmTool')}</div>`;
+      body = `<div class="tools">${tool('rest', I.timer, 'restTimer', 'restTimerSub')}${tool('plates', I.plates, 'platesTool', 'platesSub')}${tool('orm', I.gauge, 'ormTitle', 'ormSub')}${tool('calc', I.calc, 'calcTitle', 'calcSub')}${tool('fight', I.bell, 'roundsBtn', 'roundsTool', 'rounds')}${tool('fight', I.gloves, 'shadowBtn', 'shadowTool', 'shadow')}${tool('warm', I.flame, 'wmTitle', 'wmTool')}${tool('cool', I.timer, 'cdTitle', 'cdTool')}</div>`;
     }
     return `<header class="top"><div><h1>${t('tabTrain')}</h1></div></header>
       <div class="chips seg">${tabs.map(([id, l]) => `<button class="chip" data-act="train-tab" data-v="${id}" aria-pressed="${trainTab === id}">${t(l)}</button>`).join('')}</div>${body}`;
@@ -673,8 +673,10 @@ const VIEWS = {
         <div class="bar"><i style="width:${(p * 100).toFixed(0)}%"></i></div>
         <p class="muted small" style="margin-top:10px">${next ? t('pointsTo', { n: next.at - sc.total, rank: esc(next.name) }) : t('reachedTop')}</p>
       </section>
+      ${monthBtn()}
       ${stuckCard()}
       <section class="card"><span class="eyebrow">${t('progress')}</span>${scoreChart()}</section>
+      ${setsCard()}
       ${heatHtml()}
       <div class="split">
         <div class="card"><span class="eyebrow">${t('strength')}</span><b>${sc.strength}</b><span class="muted small">${t('strengthSub')}</span></div>
@@ -1162,7 +1164,8 @@ function finishWorkout() {
     <h3>${t('yourScore')}</h3><p>${before.total} → <b>${after.total}</b> / 100</p>
     <h3>${t('thisWeekTitle')}</h3><p>${thisWeek >= goal ? t('weekDone', { n: thisWeek, goal }) : t('weekTodo', { n: thisWeek, goal, left: goal - thisWeek })}</p>
     <p class="coach-line">${I.up}<span>${projection()}</span></p>
-    <div class="split" style="margin-top:18px"><button class="btn" data-act="share-workout">${I.share}${t('share')}</button><button class="btn btn-primary" data-act="close-sheet">${t('done')}</button></div>`);
+    <button class="btn btn-block cool-btn" style="margin-top:18px" data-act="cool" data-v="${esc(w.dayId || '')}">${I.timer}${t('cdBtn')}</button>
+    <div class="split" style="margin-top:10px"><button class="btn" data-act="share-workout">${I.share}${t('share')}</button><button class="btn btn-primary" data-act="close-sheet">${t('done')}</button></div>`);
   confetti(ra > rb ? 90 : 45);
   if (ra > rb) vibrate([60, 40, 60, 40, 120]);
   checkBadges();
@@ -2509,6 +2512,10 @@ document.addEventListener('click', (e) => {
   else if (k === 'rm-save') saveRemind();
   else if (k === 'rm-test') testRemind();
   else if (k === 'warm') openWarm(v);
+  else if (k === 'cool') { closeSheet(); openCool(v); }
+  else if (k === 'sets-grp') showSetsGroup(v);
+  else if (k === 'month') showMonth(+v || 0);
+  else if (k === 'month-share') shareMonth();
   else if (k === 'prog') showProgram(v);
   else if (k === 'prog-start' || k === 'prog-reset' || k === 'prog-done' || k === 'prog-test') progAction(k, v);
   else if (k === 'rt-share') shareRoutine(v);
@@ -2993,6 +3000,98 @@ function importRoutine(text) {
   if (current === 'train') render();
 }
 
+// ---------- Sets per muscle this week ----------
+// Each set counts 1 for the main muscle group and ½ for the ones that help. 10 to 20 a week is the sweet spot for growing.
+const SET_ZONE = [10, 20];
+function weekSets(from = weekStart(Date.now()), to = Date.now() + 1, help = 0.5) {
+  const out = Object.fromEntries(GROUPS.map((g) => [g, 0]));
+  for (const w of S.workouts) {
+    if (w.date < from || w.date >= to || !w.exercises) continue;
+    for (const ex of w.exercises) {
+      const def = EXERCISES[ex.id];
+      if (!def || !ex.sets.length) continue;
+      const main = STANDARDS[ex.id] ? STANDARDS[ex.id][0] : MUSCLE_GROUP[def.muscles[0]];
+      const helps = new Set(def.muscles.map((m) => MUSCLE_GROUP[m]).filter((g) => g && g !== main));
+      if (main && out[main] != null) out[main] += ex.sets.length;
+      for (const g of helps) if (out[g] != null) out[g] += ex.sets.length * help;
+    }
+  }
+  return out;
+}
+const setLevel = (n) => (n >= SET_ZONE[1] + 1 ? 'lots' : n >= SET_ZONE[0] ? 'great' : n >= 4 ? 'ok' : 'low');
+function setsCard() {
+  const ws = weekSets(), max = 24, day = (new Date().getDay() + 6) % 7;
+  if (!Object.values(ws).some((n) => n > 0) && !S.workouts.length) return '';
+  const low = GROUPS.filter((g) => ws[g] < 4);
+  return `<section class="card sets-card"><div class="card-head"><span class="eyebrow">${t('setsTitle')}</span><span class="muted small">${t('setsZone', { a: SET_ZONE[0], b: SET_ZONE[1] })}</span></div>
+    <div class="sets-rows">${GROUPS.map((g) => {
+      const n = Math.round(ws[g] * 2) / 2, lv = setLevel(n);
+      return `<button class="sets-row" data-act="sets-grp" data-v="${g}"><span class="sr-name">${t('g_' + g)}</span><span class="sr-bar"><i class="zone" style="left:${(SET_ZONE[0] / max) * 100}%;width:${((SET_ZONE[1] - SET_ZONE[0]) / max) * 100}%"></i><i class="fill ${lv}" style="width:${Math.min(100, (n / max) * 100)}%"></i></span><span class="sr-n ${lv}">${fmtNum(n)}</span></button>`;
+    }).join('')}</div>
+    <p class="muted small sets-note">${day <= 1 ? t('setsEarly') : low.length ? t('setsLow', { g: low.slice(0, 2).map((g) => t('g_' + g).toLowerCase()).join(', ') }) : t('setsGood')}</p></section>`;
+}
+// Tap a muscle group: a few exercises for it that you can do where you train.
+function showSetsGroup(g) {
+  const place = S.profile.equipment || 'gym', ok = PLACE_OK[place] || PLACE_OK.gym;
+  const list = Object.keys(STANDARDS).filter((id) => STANDARDS[id][0] === g && EXERCISES[id] && ok.includes(placeOf(id)))
+    .sort((a, b) => COMPOUND.includes(b) - COMPOUND.includes(a)).slice(0, 6);
+  const n = Math.round(weekSets()[g] * 2) / 2;
+  openSheet(`<span class="eyebrow">${t('setsTitle')}</span><h2 style="margin-top:6px">${t('g_' + g)}</h2>
+    <p class="muted small">${t('setsGrpNow', { n: fmtNum(n), a: SET_ZONE[0], b: SET_ZONE[1] })}</p>
+    <h3>${t('setsGrpIdeas')}</h3><div class="card list-card">${list.map((id) => exItem(id, 'ex')).join('')}</div>`);
+}
+
+// ---------- Your month: a summary you can share ----------
+let monthPick = 0; // 0 = this month, -1 = last month
+function monthStats(off) {
+  const now = new Date(), a = new Date(now.getFullYear(), now.getMonth() + off, 1), b = new Date(now.getFullYear(), now.getMonth() + off + 1, 1);
+  const from = a.getTime(), to = b.getTime();
+  const ws = S.workouts.filter((w) => w.date >= from && w.date < to && w.exercises && w.exercises.length);
+  const before = S.workouts.filter((w) => w.date < from);
+  let sets = 0, kg = 0, reps = 0, prs = 0;
+  const perEx = {}, seen = new Set(), days = new Set();
+  for (const w of ws) {
+    days.add(dayKey(w.date));
+    const v = workVolume(w);
+    kg += v.kg; reps += v.reps;
+    for (const ex of w.exercises) {
+      sets += ex.sets.length;
+      perEx[ex.id] = (perEx[ex.id] || 0) + ex.sets.length;
+      if (!seen.has(ex.id)) { const old = bestFor(ex.id, before), nw = bestFor(ex.id, ws); if (old > 0 && nw > old) { prs++; seen.add(ex.id); } }
+    }
+  }
+  for (const [k, r] of Object.entries(S.ch || {})) { const [y, m, d] = k.split('-').map(Number), ts = new Date(y, m, d).getTime(); if (ts >= from && ts < to && r[0] >= r[1]) days.add(k); }
+  const fav = Object.entries(perEx).sort((x, y) => y[1] - x[1])[0];
+  const grp = weekSets(from, to, 0), topG = GROUPS.slice().sort((x, y) => grp[y] - grp[x])[0];
+  return { name: a.toLocaleDateString(locale(), { month: 'long' }), n: ws.length, mins: Math.round(ws.reduce((s, w) => s + (w.dur || 0), 0) / 60), sets, kg, reps, prs, days: days.size, fav: fav && fav[0], topG: grp[topG] > 0 ? topG : null };
+}
+function monthBtn() {
+  const off = new Date().getDate() <= 3 ? -1 : 0, m = monthStats(off);
+  if (!m.n && !m.days) return '';
+  return `<button class="card card-tap month-btn" data-act="month" data-v="${off}"><span class="mb-ic">${I.trophy}</span><span class="grow"><span class="eyebrow">${t('monthEyebrow')}</span><b>${t('monthTitle', { m: m.name })}</b><small>${t('monthSub', { n: m.n, d: m.days })}</small></span>${I.chev}</button>`;
+}
+function showMonth(off) {
+  monthPick = off;
+  const m = monthStats(off), p = monthStats(off - 1);
+  const diff = (a, b) => (a > b ? `<em class="up">▲ ${fmtN(a - b)}</em>` : a < b ? `<em class="down">▼ ${fmtN(b - a)}</em>` : '');
+  const big = (v, l, prev) => `<div><b>${v}</b><span>${l}</span>${prev}</div>`;
+  const hrs = m.mins >= 90 ? fmtNum(Math.round(m.mins / 6) / 10) : m.mins;
+  openSheet(`<span class="eyebrow">${t('monthEyebrow')}</span><h2 style="margin-top:6px">${t('monthTitle', { m: m.name })}</h2>
+    <div class="chips" style="margin:10px 0 4px"><button class="chip" data-act="month" data-v="0" aria-pressed="${off === 0}">${t('monthThis')}</button><button class="chip" data-act="month" data-v="-1" aria-pressed="${off === -1}">${t('monthLast')}</button></div>
+    ${m.n || m.days ? `<div class="month-grid">
+      ${big(m.n, t('weekWorkouts'), diff(m.n, p.n))}${big(m.days, t('monthDays'), diff(m.days, p.days))}${big(hrs, t(m.mins >= 90 ? 'monthHours' : 'monthMins'), '')}
+      ${big(m.sets, t('setsWord'), diff(m.sets, p.sets))}${m.kg ? big(fmtN(toDisp(m.kg)), t('lifted', { u: unit() }), '') : big(m.reps, t('repsWord'), '')}${big(m.prs, t('weekPrs'), '')}
+    </div>
+    ${m.fav ? `<p class="month-line">${I.trophy}<span>${t('monthFav', { ex: esc(exName(m.fav)) })}</span></p>` : ''}
+    ${m.topG ? `<p class="month-line">${I.flame}<span>${t('monthGroup', { g: t('g_' + m.topG).toLowerCase() })}</span></p>` : ''}
+    <p class="sum-quote">“${esc(nextQuote())}”</p>
+    <button class="btn btn-primary btn-block" data-act="month-share">${I.share}${t('share')}</button>` : `<p class="muted" style="margin-top:14px">${t('monthEmpty')}</p>`}`);
+}
+async function shareMonth() {
+  const m = monthStats(monthPick);
+  openShare(await makeCard({ eyebrow: t('monthEyebrow'), title: t('monthTitle', { m: m.name }), stats: [[m.n, t('weekWorkouts')], [m.sets, t('setsWord')], [m.prs, t('weekPrs')]], r: rankIndex(computeScore().total) }));
+}
+
 // ---------- Training reminders ----------
 // You pick the time and the days; the server wakes the phone (Web Push) and the phone shows a line saved here.
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
@@ -3062,14 +3161,22 @@ async function testRemind() {
 const WARM_MOVES = {
   jacks: [null, '⭐'], march: [null, '🚶'], arms: [null, '🔄'], hips: [null, '⭕'], legswing: [null, '🦵'],
   squat: ['bw-squat'], pushup: ['push-up'], lunge: ['lunge'], bridge: ['glute-bridge'], superman: ['superman'], plank: ['plank'], calves: ['calf-raise'],
+  // stretches for the end
+  neck: [null, '🙆'], chest: [null, '🚪'], shoulder: [null, '🤗'], triceps: [null, '💪'], catcow: [null, '🐈'], child: [null, '🧘'], cobra: [null, '🐍'],
+  quad: [null, '🦩'], hamstring: [null, '🙇'], hipflex: [null, '🧎'], glute: [null, '🌀'], calfst: [null, '🦶'], breathe: [null, '🌬️'],
 };
 const WARM_PLANS = {
   upper: ['march', 'jacks', 'arms', 'pushup', 'superman', 'plank', 'pushup', 'arms'],
   lower: ['march', 'jacks', 'hips', 'legswing', 'squat', 'lunge', 'bridge', 'calves'],
   full: ['jacks', 'arms', 'hips', 'squat', 'pushup', 'lunge', 'bridge', 'plank'],
 };
+const COOL_PLANS = {
+  upper: ['neck', 'chest', 'shoulder', 'triceps', 'catcow', 'child', 'cobra', 'breathe'],
+  lower: ['quad', 'hamstring', 'hipflex', 'glute', 'calfst', 'child', 'cobra', 'breathe'],
+  full: ['chest', 'shoulder', 'quad', 'hamstring', 'hipflex', 'glute', 'child', 'breathe'],
+};
 const WARM_SECS = 30;
-const warm = { plan: [], i: 0, end: 0, left: 0, paused: false, iv: 0, kind: 'full', voice: true, dayId: '', lastBeep: 0 };
+const warm = { plan: [], i: 0, end: 0, left: 0, paused: false, iv: 0, kind: 'full', voice: true, dayId: '', lastBeep: 0, cool: false };
 function warmKind(dayId) { return /lower|legs/.test(dayId) ? 'lower' : /upper|push|pull/.test(dayId) ? 'upper' : 'full'; }
 function warmEl() {
   let el = $('#warm');
@@ -3085,8 +3192,17 @@ function warmEl() {
 }
 function openWarm(dayId) {
   const d = dayId || nextDay().id;
-  Object.assign(warm, { dayId: d, kind: warmKind(d), i: -1, paused: false });
+  Object.assign(warm, { dayId: d, kind: warmKind(d), i: -1, paused: false, cool: false });
   warm.plan = WARM_PLANS[warm.kind];
+  warmEl().hidden = false;
+  document.body.style.overflow = 'hidden';
+  renderWarm();
+}
+// Stretching after training: same screens, calmer moves.
+function openCool(dayId) {
+  const last = S.workouts[S.workouts.length - 1], d = dayId || (last && last.dayId) || '';
+  Object.assign(warm, { dayId: d, kind: warmKind(d), i: -1, paused: false, cool: true });
+  warm.plan = COOL_PLANS[warm.kind];
   warmEl().hidden = false;
   document.body.style.overflow = 'hidden';
   renderWarm();
@@ -3100,16 +3216,16 @@ function renderWarm() {
   const el = warmEl(), w = warm;
   if (w.i < 0) {
     el.innerHTML = `<div class="f-top"><button class="icon-btn" data-w="close" aria-label="${t('close')}">${I.close}</button></div>
-      <div class="f-body"><span class="eyebrow">${t('wmEyebrow')}</span><h1>${t('wmTitle')}</h1><p class="muted small">${t('wmSub_' + w.kind, { n: Math.round((w.plan.length * WARM_SECS) / 60) })}</p>
+      <div class="f-body"><span class="eyebrow">${t(w.cool ? 'cdEyebrow' : 'wmEyebrow')}</span><h1>${t(w.cool ? 'cdTitle' : 'wmTitle')}</h1><p class="muted small">${t(w.cool ? 'cdSub' : 'wmSub_' + w.kind, { n: Math.round((w.plan.length * WARM_SECS) / 60) })}</p>
         <ol class="wm-list">${w.plan.map((id) => `<li><span class="wm-th">${warmArt(id)}</span><span class="grow"><b>${t('wm_' + id)}</b><small>${t('wmc_' + id)}</small></span><em>${WARM_SECS} s</em></li>`).join('')}</ol>
         <label class="f-voice"><input type="checkbox" data-w="voice" ${w.voice ? 'checked' : ''}>${t('fVoice')}</label></div>
-      <div class="f-foot"><button class="btn btn-primary btn-block" data-w="go">${I.play}${t('wmStart')}</button></div>`;
+      <div class="f-foot"><button class="btn btn-primary btn-block" data-w="go">${I.play}${t(w.cool ? 'cdStart' : 'wmStart')}</button></div>`;
     return;
   }
   if (w.i >= w.plan.length) {
     el.innerHTML = `<div class="f-top"><button class="icon-btn" data-w="close" aria-label="${t('close')}">${I.close}</button></div>
-      <div class="f-body center"><div class="f-done-ic">${I.check}</div><h1>${t('wmDone')}</h1><p class="muted">${t('wmDoneSub')}</p><p class="ps-quote">“${esc(nextQuote())}”</p></div>
-      <div class="f-foot"><button class="btn btn-primary btn-block" data-w="start">${I.play}${t('startWorkout')}</button><button class="btn btn-block" data-w="close">${t('close')}</button></div>`;
+      <div class="f-body center"><div class="f-done-ic">${I.check}</div><h1>${t(w.cool ? 'cdDone' : 'wmDone')}</h1><p class="muted">${t(w.cool ? 'cdDoneSub' : 'wmDoneSub')}</p><p class="ps-quote">“${esc(nextQuote())}”</p></div>
+      <div class="f-foot">${w.cool ? '' : `<button class="btn btn-primary btn-block" data-w="start">${I.play}${t('startWorkout')}</button>`}<button class="btn btn-block" data-w="close">${t('close')}</button></div>`;
     return;
   }
   const id = w.plan[w.i], nx = w.plan[w.i + 1];
@@ -3148,7 +3264,7 @@ function warmFinish() {
   try { if (warm.lock) warm.lock.release(); } catch (e) { /* released */ }
   bell(2);
   confetti(40);
-  grow('warmup', 1, true);
+  grow(warm.cool ? 'cooldown' : 'warmup', 1, true);
   renderWarm();
 }
 function closeWarm() {
@@ -3181,7 +3297,7 @@ function onWarmClick(e) {
 
 // ---------- Missions, XP and levels: small daily and weekly goals that bring you back ----------
 // Everything you do gives XP; three daily missions and three weekly missions give extra. Levels never go down.
-const XP_FOR = { workout: 50, pr: 25, camera: 20, goal: 25, lesson: 15, daily: 20, weigh: 10, coach: 5, protein: 15, water: 10, photo: 15, win: 30, friend: 20, early: 10, night: 10, warmup: 10, program: 30 };
+const XP_FOR = { workout: 50, pr: 25, camera: 20, goal: 25, lesson: 15, daily: 20, weigh: 10, coach: 5, protein: 15, water: 10, photo: 15, win: 30, friend: 20, early: 10, night: 10, warmup: 10, program: 30, cooldown: 10 };
 const XP_ONCE = new Set(['weigh', 'coach', 'protein', 'water']); // these give XP once a day
 const MIS_D = [['d-train', 'workout', 1, 40], ['d-daily', 'daily', 1, 25], ['d-camera', 'camera', 1, 30], ['d-lesson', 'lesson', 1, 20],
   ['d-protein', 'protein', 1, 25], ['d-water', 'water', 1, 20], ['d-coach', 'coach', 1, 15], ['d-weigh', 'weigh', 1, 15]];
