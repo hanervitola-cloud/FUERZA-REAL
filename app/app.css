@@ -1674,5 +1674,5 @@ body::before,.onboard::before,.workout::before,.builder::before{display:none}
 @keyframes frameSpin{to{--fa:360deg}}
 @media (prefers-reduced-motion:reduce){.hero.fr-fire::before,.hero.fr-neon::before{animation:none}}
 /* The character stays above the soft glow; the text above the character */
-.hero-img{z-index:1}
-.hero-copy{z-index:2}
+.hero .hero-img{z-index:1}
+.hero .hero-copy{z-index:2}
