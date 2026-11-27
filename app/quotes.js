@@ -216,10 +216,13 @@ export function personalQuotes(c, es) {
     add('p-name2', `I know you can improve, ${nm}. Prove it to yourself.`, `Yo sé que puedes mejorar, ${nm}. Demuéstratelo a ti mismo.`);
     add('p-name3', `${nm}, if you do not save yourself, nobody will.`, `${nm}, si no te salvas tú mismo, nadie lo hará.`);
   }
-  if (c.workouts > 0) add('p-count', `${c.workouts} workouts logged. Number ${c.workouts + 1} is today's.`, `${c.workouts} entrenamientos anotados. El número ${c.workouts + 1} es el de hoy.`);
+  if (c.workouts > 0) add('p-count', `${c.workouts} workout${c.workouts === 1 ? '' : 's'} logged. Number ${c.workouts + 1} is today's.`, `${c.workouts} entrenamiento${c.workouts === 1 ? '' : 's'} anotado${c.workouts === 1 ? '' : 's'}. El número ${c.workouts + 1} es el de hoy.`);
   else add('p-first', 'Your first workout is the hardest one. After that it is all adding up.', 'Tu primer entrenamiento es el más difícil. Después todo es sumar.');
   if (c.streak > 0) add('p-streak', `${c.streak} week${c.streak === 1 ? '' : 's'} in a row hitting your goal. Do not break the chain.`, `${c.streak} semana${c.streak === 1 ? '' : 's'} seguida${c.streak === 1 ? '' : 's'} cumpliendo. No rompas la cadena.`);
-  if (c.rank) add('p-rank', `${c.rank.pts} points to ${c.rank.name}. They are in your next sessions.`, `Te faltan ${c.rank.pts} puntos para ${c.rank.name}. Están en tus próximas sesiones.`);
-  if (c.target) add('p-target', `${c.target.left} ${c.u} to go until ${c.target.goal} ${c.u}. One week at a time.`, `Te faltan ${c.target.left} ${c.u} para llegar a ${c.target.goal} ${c.u}. Semana a semana.`);
+  if (c.rank) {
+    const one = c.rank.pts === 1;
+    add('p-rank', `${c.rank.pts} point${one ? '' : 's'} to ${c.rank.name}. ${one ? 'It is' : 'They are'} in your next sessions.`, `Te falta${one ? '' : 'n'} ${c.rank.pts} punto${one ? '' : 's'} para ${c.rank.name}. ${one ? 'Está' : 'Están'} en tus próximas sesiones.`);
+  }
+  if (c.target) add('p-target', `${c.target.left} ${c.u} to go until ${c.target.goal} ${c.u}. One week at a time.`, `Te falta${c.target.left === 1 ? '' : 'n'} ${c.target.left} ${c.u} para llegar a ${c.target.goal} ${c.u}. Semana a semana.`);
   return out;
 }
