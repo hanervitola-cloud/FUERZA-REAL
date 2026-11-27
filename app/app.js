@@ -202,25 +202,30 @@ function suggestFor(ex) {
   }
   const [lo, hi] = String(ex.target).split('-').map(Number);
   const top = hi || lo;
-  if (def.bw) return { kind: 'reps', r: Math.max(...prev.map((s) => s.r)) + (def.timed ? 5 : 1) };
+  const feel = lastFeel(ex.id);
+  if (def.bw) return { kind: 'reps', r: Math.max(...prev.map((s) => s.r)) + (def.timed ? [5, 10, 5, 0][feel] : [1, 2, 1, 0][feel]), feel };
   const w = Math.max(...prev.map((s) => s.w));
   if (!w) return null;
   const atW = prev.filter((s) => s.w === w);
-  if (atW.every((s) => s.r >= top)) {
-    // Steps that exist on real bars, machines and dumbbells: 2.5 kg (2 kg per dumbbell) or 5 lb.
-    const step = unit() === 'lb' ? 5 / LB : def.perHand ? 2 : 2.5;
-    const next = Math.round((w + step) / step) * step;
-    return { kind: 'up', w: next > w ? next : w + step, d: step, lo };
+  // Steps that exist on real bars, machines and dumbbells: 2.5 kg (2 kg per dumbbell) or 5 lb.
+  const step = unit() === 'lb' ? 5 / LB : def.perHand ? 2 : 2.5;
+  // How it felt last time: easy goes up more, very hard stays or goes down a little.
+  if (atW.every((s) => s.r >= top) && feel !== 3) {
+    const d = step * (feel === 1 ? 2 : 1), next = Math.round((w + d) / step) * step;
+    return { kind: 'up', w: next > w ? next : w + d, d, lo, feel };
   }
-  return { kind: 'same', w, lo, top, some: atW.some((s) => s.r >= top) };
+  if (feel === 1 && atW.every((s) => s.r >= (lo || 1))) return { kind: 'up', w: Math.round((w + step) / step) * step, d: step, lo, feel };
+  if (feel === 3 && !atW.some((s) => s.r >= (lo || 1)) && w - step >= step) return { kind: 'down', w: Math.round((w - step) / step) * step, lo, feel };
+  return { kind: 'same', w, lo, top, some: atW.some((s) => s.r >= top), feel };
 }
 function suggLine(ex) {
   const sg = suggestFor(ex), def = EXERCISES[ex.id];
   if (!sg) return '';
   const txt = sg.kind === 'reps' ? t('suggReps', { r: `${sg.r} ${t(def.timed ? 'seconds' : 'reps')}` })
-    : sg.kind === 'up' ? t('suggUp', { w: fmtW(sg.w), u: unit(), d: fmtW(sg.d) })
+    : sg.kind === 'up' ? t(sg.feel === 1 ? 'suggUpEasy' : 'suggUp', { w: fmtW(sg.w), u: unit(), d: fmtW(sg.d) })
+    : sg.kind === 'down' ? t('suggDown', { w: fmtW(sg.w), u: unit() })
     : sg.kind === 'start' ? t('suggStart', { w: fmtW(sg.w), u: unit() })
-    : t(sg.some ? 'suggSameTop' : 'suggSame', { w: fmtW(sg.w), u: unit(), r: sg.top });
+    : t(sg.feel === 3 ? 'suggHard' : sg.some ? 'suggSameTop' : 'suggSame', { w: fmtW(sg.w), u: unit(), r: sg.top });
   return `<p class="sugg ${sg.kind}">${I.up}${txt}</p>`;
 }
 function lastSets(id) {
@@ -564,15 +569,16 @@ const VIEWS = {
         <button class="link other-btn" data-act="builder">${t('otherWorkout')}</button>
       </section>`;
     return `
-      <section class="hero" style="--c:${RANKS[r].color}">
+      <section class="hero${frameCls()}" style="--c:${RANKS[r].color}">
         <div class="hero-copy">
           <p class="eyebrow">${new Date().toLocaleDateString(locale(), { weekday: 'long', month: 'long', day: 'numeric' })}</p>
           <h1>${greeting()}${S.profile.name ? ',<br>' + esc(S.profile.name) : ''}</h1>
+          ${titleTag()}
           <button class="hero-rank" data-act="go" data-v="rank">
             <svg class="ring" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" class="ring-bg"/><circle cx="32" cy="32" r="27" class="ring-fg" stroke-dasharray="169.6" stroke-dashoffset="${(169.6 * (1 - p)).toFixed(1)}"/><text x="32" y="38" text-anchor="middle">${sc.total}</text></svg>
             <span><span class="eyebrow">${t('yourRank')}</span><b>${esc(RANKS[r].name)}</b><small>${next ? t('pointsTo', { n: next.at - sc.total, rank: esc(next.name) }) : t('topRank')}</small></span>
           </button>
-          ${levelPill()}
+          <div class="hero-pills">${levelPill()}${streakPill()}</div>
         </div>
         <img class="hero-img" src="${avatarSrc(r)}" alt="">
         <button class="icon-btn hero-chat" data-act="go" data-v="coach" aria-label="${t('coachTitle')}">${I.chat}</button>
@@ -580,6 +586,7 @@ const VIEWS = {
       </section>
       ${today}
       ${progHomeCard()}
+      ${chestCard()}
       ${weekCard()}
       ${missionsCard()}
       ${foodCard()}
@@ -766,6 +773,7 @@ const VIEWS = {
         <div class="field"><span class="lbl">${t('perWeek')}</span>${sel('days', [2, 3, 4, 5, 6].map((n) => ({ id: n, name: t('nDays', { n }) })), P.days)}</div>
         <div class="field"><span class="lbl">${t('restDefault')}</span>${sel('rest', [60, 90, 120, 180].map((n) => ({ id: n, name: n < 120 ? t('nSeconds', { n }) : t('nMinutes', { n: n / 60 }) })), S.rest)}</div>
       </section>
+      ${lookCard()}
       ${remindCard()}
       ${acctCard()}
       <section class="card stack">
@@ -1046,13 +1054,16 @@ function renderWorkout() {
     <p class="hint-row">${I.info}<span>${t('woHint')}</span></p>
     ${a.exercises.map((ex, i) => {
       const def = EXERCISES[ex.id], prev = lastSets(ex.id), sg = suggestFor(ex);
-      return `<section class="card wo-ex">
+      const ssNext = ex.ss && a.exercises[i + 1];
+      return `<section class="card wo-ex${ssNext ? ' ss-a' : ''}${i && a.exercises[i - 1].ss ? ' ss-b' : ''}">${ssNext ? `<span class="ss-tag">${I.repeat}${t('ssWith', { name: esc(exName(ssNext.id)) })}</span>` : ''}
         <div class="wo-ex-top"><button class="wo-ex-name" data-wo="info" data-v="${ex.id}">${exThumb(ex.id)}<span>${esc(exName(ex.id))}</span>${I.info}</button><button class="icon-btn sm" data-wo="menu" data-i="${i}" aria-label="${t('exOptions')}">${I.more}</button></div>
         <p class="muted small">${t('target', { sets: ex.sets.length, reps: ex.target, what: t(def.timed ? 'seconds' : 'reps') })}${def.perHand ? t('oneDumbbell') : ''}</p>
         ${suggLine(ex)}
+        ${noteLine(ex.id)}
         <div class="sets"><div class="set head"><span>#</span><span>${t('lastShort')}</span><span style="text-align:center">${def.bw ? '' : unit()}</span><span style="text-align:center">${t(def.timed ? 'secShort' : 'repsShort')}</span><span></span></div>
           ${ex.sets.map((_, j) => setRow(ex, i, j, prev, sg)).join('')}</div>
         <div class="wo-ex-btns"><button class="btn btn-sm" data-wo="add" data-i="${i}">${I.plus}${t('addSet')}</button>${BARBELL.includes(ex.id) ? `<button class="btn btn-sm" data-wo="plates" data-i="${i}">${I.plates}${t('platesTool')}</button>` : ''}</div>
+        ${ex.sets.length && ex.sets.every((s) => s.done) ? feelHtml(i) : ''}
       </section>`;
     }).join('')}
     <button class="btn add-ex" data-wo="add-ex">${I.plus}${t('addExercise')}</button>
@@ -1085,6 +1096,16 @@ woEl.addEventListener('click', (e) => {
     const wi = row && row.querySelector('input[data-k="w"]');
     showPlates(wi ? num(wi.value || (wi.placeholder !== unit() ? wi.placeholder : '')) || '' : '');
   }
+  else if (k === 'feel') {
+    const ex = a.exercises[+b.dataset.i], v = +b.dataset.v;
+    if (!ex || ![1, 2, 3].includes(v)) return;
+    ex.f = v;
+    save();
+    b.parentElement.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-pressed', c === b));
+    toast(t('feelSaved' + v));
+    vibrate(15);
+  }
+  else if (k === 'note') openNote(b.dataset.v);
   else if (k === 'check') {
     unlockAudio();
     const row = b.closest('.set'), i = +row.dataset.i, j = +row.dataset.j;
@@ -1110,8 +1131,15 @@ woEl.addEventListener('click', (e) => {
     }
     save();
     updateElapsed();
-    const all = a.exercises.flatMap((x) => x.sets);
-    if (s.done && all.some((x) => !x.done)) startRest(S.rest);
+    const all = a.exercises.flatMap((x) => x.sets), nxt = a.exercises[i + 1], card = row.closest('.wo-ex');
+    if (card && s.done && ex.sets.every((x) => x.done) && !card.querySelector('.feel')) card.insertAdjacentHTML('beforeend', feelHtml(i));
+    if (card && !s.done) { const fe = card.querySelector('.feel'); if (fe) fe.remove(); }
+    // Superset: go straight to the next exercise, rest after the second one.
+    if (s.done && ex.ss && nxt && nxt.sets.some((x) => !x.done)) {
+      toast(t('ssGo', { name: exName(nxt.id) }));
+      const cards = document.querySelectorAll('#workout .wo-ex');
+      if (cards[i + 1]) cards[i + 1].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (s.done && all.some((x) => !x.done)) startRest(S.rest);
     if (s.done && all.every((x) => x.done)) toast(t('allDone'));
   } else if (k === 'finish') {
     const any = a.exercises.some((x) => x.sets.some((s) => s.done));
@@ -1127,7 +1155,7 @@ function finishWorkout() {
   const prevWorkouts = S.workouts.slice();
   const w = {
     id: Date.now().toString(36), dayId: a.dayId, name: a.name, equip: a.equip, place: a.place || a.equip, date: a.start, dur: Math.round((Date.now() - a.start) / 1000),
-    exercises: a.exercises.map((ex) => ({ id: ex.id, t: ex.target, sets: ex.sets.filter((s) => s.done).map((s) => ({ w: Math.round(toKg(num(s.w)) * 100) / 100, r: num(s.r) })) })).filter((ex) => ex.sets.length),
+    exercises: a.exercises.map((ex) => ({ id: ex.id, t: ex.target, ...(ex.f ? { f: ex.f } : {}), sets: ex.sets.filter((s) => s.done).map((s) => ({ w: Math.round(toKg(num(s.w)) * 100) / 100, r: num(s.r) })) })).filter((ex) => ex.sets.length),
   };
   S.workouts.push(w);
   S.active = null;
@@ -1334,7 +1362,8 @@ function openExMenu(i) {
   openSheet(`<span class="eyebrow">${t('exOptions')}</span><h2 style="margin-top:6px">${esc(exName(ex.id))}</h2>
     <h3>${t('swapFor')}</h3>
     ${locked ? `<p class="muted small">${t('swapLocked')}</p>` : alts.length ? `<div class="card list-card">${alts.map((id) => exItem(id, 'swap-to', `data-i="${i}"`)).join('')}</div>` : `<p class="muted small">${t('noAlts')}</p>`}
-    ${S.active.exercises.length > 1 ? `<div class="split" style="margin-top:16px"><button class="btn" data-act="move-ex" data-i="${i}" data-v="-1" ${i === 0 ? 'disabled' : ''}>${I.up}${t('moveUp')}</button><button class="btn" data-act="move-ex" data-i="${i}" data-v="1" ${i === S.active.exercises.length - 1 ? 'disabled' : ''}>${I.down}${t('moveDown')}</button></div>` : ''}
+    <div class="split" style="margin-top:16px"><button class="btn" data-act="ex-note" data-v="${ex.id}">${I.bookmark}${t('noteBtn')}</button>${i < S.active.exercises.length - 1 ? `<button class="btn" data-act="ss-link" data-i="${i}">${I.repeat}${t(ex.ss ? 'ssOff' : 'ssOn')}</button>` : ''}</div>
+    ${S.active.exercises.length > 1 ? `<div class="split" style="margin-top:10px"><button class="btn" data-act="move-ex" data-i="${i}" data-v="-1" ${i === 0 ? 'disabled' : ''}>${I.up}${t('moveUp')}</button><button class="btn" data-act="move-ex" data-i="${i}" data-v="1" ${i === S.active.exercises.length - 1 ? 'disabled' : ''}>${I.down}${t('moveDown')}</button></div>` : ''}
     ${S.active.exercises.length > 1 ? `<button class="btn btn-block" style="margin-top:10px;color:var(--red-2)" data-act="remove-ex" data-i="${i}">${I.trash}${t('removeEx')}</button>` : ''}`);
 }
 let pickGroup = 'all';
@@ -1745,6 +1774,8 @@ function moveEx(i, dir) {
   const list = S.active.exercises, j = i + dir;
   if (j < 0 || j >= list.length) return;
   [list[i], list[j]] = [list[j], list[i]];
+  list[i].ss = false;
+  list[j].ss = false;
   save();
   closeSheet();
   renderWorkout();
@@ -2384,6 +2415,7 @@ function badges() {
     B('strength', 'bBench', benchBw ? 1 : 0, 1, I.check), B('strength', 'bPr5', cnt('pr'), 5, I.trophy), B('strength', 'bPr25', cnt('pr'), 25, I.trophy),
     B('compete', 'bCam1', cnt('camera'), 1, I.camera), B('compete', 'bCam10', cnt('camera'), 10, I.camera), B('compete', 'bGoal', cnt('goal'), 1, I.target), B('compete', 'bGoal10', cnt('goal'), 10, I.target),
     B('compete', 'bWin', cnt('win'), 1, I.trophy), B('compete', 'bWin10', cnt('win'), 10, I.trophy), B('compete', 'bVariety', recs, 5, I.camera), B('compete', 'bDaily7', cnt('daily'), 7, I.target),
+    B('habit', 'bDay7', stData().best || 0, 7, I.flame), B('habit', 'bDay30', stData().best || 0, 30, I.flame),
     B('habit', 'bStreak3', st, 3, I.flame), B('habit', 'bStreak8', st, 8, I.flame), B('habit', 'bLvl5', lv, 5, I.up), B('habit', 'bLvl10', lv, 10, I.up), B('habit', 'bLvl20', lv, 20, I.up),
     B('habit', 'bMission10', cnt('mission'), 10, I.check), B('habit', 'bProtein7', cnt('protein'), 7, I.flame), B('habit', 'bWater7', cnt('water'), 7, I.flame),
     B('habit', 'bPhoto', cnt('photo'), 1, I.camera), B('habit', 'bPhoto5', cnt('photo'), 5, I.camera),
@@ -2512,6 +2544,14 @@ document.addEventListener('click', (e) => {
   else if (k === 'rm-save') saveRemind();
   else if (k === 'rm-test') testRemind();
   else if (k === 'warm') openWarm(v);
+  else if (k === 'ex-note') openNote(v);
+  else if (k === 'note-save') saveNote(v);
+  else if (k === 'ss-link') ssToggle(+b.dataset.i);
+  else if (k === 'streak') showStreak();
+  else if (k === 'chest') showChest();
+  else if (k === 'chest-open') openChest();
+  else if (k === 'kcal-add') addKcal(+v || 0);
+  else if (k === 'theme' || k === 'look-acc' || k === 'look-title' || k === 'look-frame') lookAction(k, v);
   else if (k === 'cool') { closeSheet(); openCool(v); }
   else if (k === 'sets-grp') showSetsGroup(v);
   else if (k === 'month') showMonth(+v || 0);
@@ -2521,10 +2561,10 @@ document.addEventListener('click', (e) => {
   else if (k === 'rt-share') shareRoutine(v);
   else if (k === 'rt-import') showRoutineImport();
   else if (k === 'rt-import-go') importRoutine();
-  else if (k === 'meal-add') { const m = MEALS.find((x) => x[0] === v); if (m) { addFood(m[1], v); toast(`+${m[1]} g · ${t('meal_' + v)}`); } }
+  else if (k === 'meal-add') { const m = MEALS.find((x) => x[0] === v); if (m) { addFood(m[1], v, MEAL_KCAL[v] || 0); toast(`+${m[1]} g · ${t('meal_' + v)}`); } }
   else if (k === 'fr-cheer') { b.disabled = true; b.classList.add('on'); vibrate(15); net.cheer(v).then((n) => { const s = b.querySelector('span'); if (s) s.textContent = n; }).catch(() => { b.disabled = false; b.classList.remove('on'); toast(t('vsNeedNet')); }); }
   else if (k === 'food-add') addFood(+v);
-  else if (k === 'food-pick') { const f = FOODS.find((x) => x[0] === v); if (f) { addFood(f[1], v); toast(`+${f[1]} g · ${t('food_' + v)}`); } }
+  else if (k === 'food-pick') { const f = FOODS.find((x) => x[0] === v); if (f) { addFood(f[1], v, KCAL[v] || 0); toast(`+${f[1]} g · ${t('food_' + v)}`); } }
   else if (k === 'water-add') addWater(+v);
   else if (k === 'food-list') showFoods();
   else if (k === 'week-hide') { const L = lastWeek(); if (L) { S.weekSeen = L.key; save(); } const el = $('#weekCard'); if (el) el.remove(); }
@@ -2954,7 +2994,7 @@ function progCamDone(cid) {
 // ---------- Meal ideas with protein ----------
 const MEALS = [['eggs', 25], ['chicken', 40], ['tuna', 35], ['oats', 22], ['yogurt', 25], ['beans', 18], ['beef', 35], ['shake', 30], ['lentils', 20], ['fish', 30], ['arepa', 20], ['tofu', 22]];
 function mealsHtml() {
-  return `<h3>${t('mealsTitle')}</h3><div class="meals">${MEALS.map(([k, g]) => `<div class="meal"><span class="grow"><b>${t('meal_' + k)}</b><small>${t('mealI_' + k)}</small></span><button class="btn btn-sm" data-act="meal-add" data-v="${k}">+${g} g</button></div>`).join('')}</div>`;
+  return `<h3>${t('mealsTitle')}</h3><div class="meals">${MEALS.map(([k, g]) => `<div class="meal"><span class="grow"><b>${t('meal_' + k)}</b><small>${t('mealI_' + k)} · ${MEAL_KCAL[k] || 0} kcal</small></span><button class="btn btn-sm" data-act="meal-add" data-v="${k}">+${g} g</button></div>`).join('')}</div>`;
 }
 
 // ---------- Share a routine with a code ----------
@@ -3091,6 +3131,230 @@ async function shareMonth() {
   const m = monthStats(monthPick);
   openShare(await makeCard({ eyebrow: t('monthEyebrow'), title: t('monthTitle', { m: m.name }), stats: [[m.n, t('weekWorkouts')], [m.sets, t('setsWord')], [m.prs, t('weekPrs')]], r: rankIndex(computeScore().total) }));
 }
+
+// ---------- How heavy did it feel? (it changes the next suggestion) ----------
+const FEELS = [[1, 'feelEasy'], [2, 'feelOk'], [3, 'feelHard']];
+function lastFeel(id) {
+  for (let k = S.workouts.length - 1; k >= 0; k--) {
+    const ex = (S.workouts[k].exercises || []).find((e) => e.id === id);
+    if (ex) return ex.f || 0;
+  }
+  return 0;
+}
+function feelHtml(i) {
+  const ex = S.active.exercises[i];
+  return `<div class="feel"><span>${t('feelQ')}</span><div class="feel-chips">${FEELS.map(([v, k]) => `<button class="chip" data-wo="feel" data-i="${i}" data-v="${v}" aria-pressed="${ex.f === v}">${t(k)}</button>`).join('')}</div></div>`;
+}
+
+// ---------- Machine notes and supersets ----------
+function noteLine(id) {
+  const n = (S.notes || {})[id];
+  return n ? `<button class="wo-note" data-wo="note" data-v="${id}">${I.bookmark}<span>${esc(n)}</span></button>` : '';
+}
+function openNote(id) {
+  openSheet(`<span class="eyebrow">${esc(exName(id))}</span><h2 style="margin-top:6px">${t('noteTitle')}</h2><p class="muted small" style="margin:6px 0 10px">${t('noteHint')}</p>
+    <textarea class="vs-code-in note-in" id="noteIn" rows="3" maxlength="140" placeholder="${t('notePh')}">${esc((S.notes || {})[id] || '')}</textarea>
+    <button class="btn btn-primary btn-block" style="margin-top:12px" data-act="note-save" data-v="${id}">${t('noteSave')}</button>`);
+}
+function saveNote(id) {
+  if (!EXERCISES[id]) return;
+  const v = String(($('#noteIn') || {}).value || '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 140);
+  S.notes = S.notes || {};
+  if (v) S.notes[id] = v; else delete S.notes[id];
+  save();
+  closeSheet();
+  if (S.active && !$('#workout').hidden) renderWorkout();
+  toast(t(v ? 'noteSaved' : 'noteDeleted'));
+}
+function ssToggle(i) {
+  const list = S.active && S.active.exercises, ex = list && list[i];
+  if (!ex || !list[i + 1]) return;
+  ex.ss = !ex.ss;
+  save();
+  closeSheet();
+  renderWorkout();
+  toast(t(ex.ss ? 'ssDone' : 'ssRemoved'));
+}
+
+// ---------- Daily streak with shields ----------
+const STREAK_EV = new Set(['workout', 'camera', 'daily', 'program', 'warmup', 'cooldown', 'lesson', 'goal']);
+const SHIELD = '<svg class="shield" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6z"/></svg>';
+const LOCK = '<svg class="lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+const day0 = (ts) => { const d = new Date(ts); d.setHours(0, 0, 0, 0); return d.getTime(); };
+const daysBetween = (a, b) => Math.round((day0(b) - day0(a)) / DAY);
+// The first time, the streak is built from your past workouts and daily challenges.
+function stData() {
+  if (!S.st) {
+    const days = new Set(S.workouts.map((w) => day0(w.date)));
+    for (const [k, r] of Object.entries(S.ch || {})) if (r[0] >= r[1]) { const [y, m, d] = k.split('-').map(Number); days.add(new Date(y, m, d).getTime()); }
+    const list = [...days].sort((x, y) => x - y);
+    let run = 0, best = 0, prev = 0;
+    for (const d of list) { run = prev && daysBetween(prev, d) === 1 ? run + 1 : 1; best = Math.max(best, run); prev = d; }
+    S.st = { n: run, last: prev, shields: 0, best, log: list.slice(-30) };
+  }
+  return S.st;
+}
+// Called when you do something that counts (train, a challenge, warm-up...). Once a day.
+function markActive() {
+  const st = stData(), today = day0(Date.now());
+  if (st.last === today) return;
+  const gap = st.last ? daysBetween(st.last, today) : 99;
+  let saved = 0;
+  if (gap === 1) st.n++;
+  else if (gap > 1 && st.n > 0 && gap - 1 <= st.shields) { saved = gap - 1; st.shields -= saved; st.n++; }
+  else st.n = 1;
+  st.last = today;
+  st.log = [...(st.log || []), today].slice(-30);
+  st.best = Math.max(st.best || 0, st.n);
+  let won = false;
+  if (st.n % 7 === 0 && st.shields < 2) { st.shields++; won = true; }
+  save();
+  if (saved) setTimeout(() => toast(t(saved === 1 ? 'stSaved1' : 'stSaved', { n: saved })), 1800);
+  else if (won) setTimeout(() => toast(t('stShieldWon')), 1800);
+}
+function streakNow() {
+  const st = stData();
+  if (!st.last) return 0;
+  const gap = daysBetween(st.last, Date.now());
+  return gap <= 1 || gap - 1 <= st.shields ? st.n : 0;
+}
+function streakPill() {
+  const st = stData(), n = streakNow(), on = st.last === day0(Date.now());
+  return `<button class="st-pill${on ? ' on' : ''}" data-act="streak" aria-label="${t('stEyebrow')}">${I.flame}<b>${n}</b>${st.shields ? `<small class="st-sh">${SHIELD}${st.shields}</small>` : ''}</button>`;
+}
+function showStreak() {
+  const st = stData(), n = streakNow(), today = day0(Date.now()), log = st.log || [];
+  const week = Array.from({ length: 7 }, (_, k) => {
+    const d = today - (6 - k) * DAY, on = log.some((x) => daysBetween(x, d) === 0);
+    return `<span><i class="${on ? 'on' : ''}${k === 6 ? ' today' : ''}">${on ? I.check : ''}</i>${new Date(d).toLocaleDateString(locale(), { weekday: 'narrow' })}</span>`;
+  }).join('');
+  openSheet(`<span class="eyebrow">${t('stEyebrow')}</span>
+    <div class="st-big">${I.flame}<b>${n}</b><span>${t(n === 1 ? 'stDay1' : 'stDays')}</span></div>
+    <div class="st-week">${week}</div>
+    <p class="muted small">${st.last === today ? t('stTodayDone') : t('stTodayTodo')}</p>
+    <div class="st-row"><div><b>${st.best || 0}</b><small>${t('stBest')}</small></div><div><b class="st-shields">${[0, 1].map((k) => `<i class="${k < st.shields ? 'on' : ''}">${SHIELD}</i>`).join('')}</b><small>${t('stShields')}</small></div></div>
+    <h3>${t('stHowT')}</h3><ul class="st-how"><li>${t('stHow1')}</li><li>${t('stHow2')}</li><li>${t('stHow3')}</li></ul>`);
+}
+
+// ---------- Weekly chest: a prize for meeting your weekly goal ----------
+const chestWeek = () => dayKey(weekStart(Date.now()));
+function chestReady() {
+  const n = S.workouts.filter((w) => w.date >= weekStart(Date.now()) && w.exercises && w.exercises.length).length;
+  return n >= (S.profile.days || 3) && S.chestWk !== chestWeek();
+}
+function chestCard() {
+  if (!chestReady()) return '';
+  return `<button class="card card-tap chest-card" data-act="chest"><span class="chest-ic">🎁</span><span class="grow"><b>${t('chestReady')}</b><small>${t('chestReadySub')}</small></span>${I.chev}</button>`;
+}
+function showChest() {
+  if (!chestReady()) return;
+  openSheet(`<div class="chest-box" id="chestBox"><span class="chest-gift">🎁</span><h2>${t('chestTitle')}</h2><p class="muted small">${t('chestSub')}</p><button class="btn btn-primary btn-block" data-act="chest-open">${t('chestOpen')}</button></div>`);
+}
+function openChest() {
+  if (!chestReady()) return;
+  const box = $('#chestBox');
+  S.chestWk = chestWeek();
+  const xp = 50 + Math.floor(Math.random() * 11) * 10, st = stData();
+  let shield = false;
+  if (st.shields < 2 && Math.random() < 0.35) { st.shields++; shield = true; }
+  save();
+  grow('chest', xp / 10, true);
+  const gift = box && box.querySelector('.chest-gift'), btn = box && box.querySelector('.btn');
+  if (gift) gift.classList.add('shake');
+  if (btn) btn.disabled = true;
+  vibrate([20, 40, 20, 40, 20]);
+  setTimeout(() => {
+    const b = $('#chestBox');
+    if (b) b.innerHTML = `<span class="chest-gift open">✨</span><h2>${t('chestGot')}</h2>
+      <div class="chest-prizes"><div><b>+${xp}</b><small>XP</small></div>${shield ? `<div><b>${SHIELD}</b><small>${t('chestShield')}</small></div>` : ''}</div>
+      <p class="sum-quote">“${esc(nextQuote())}”</p><button class="btn btn-block" data-act="close-sheet">${t('done')}</button>`;
+    confetti(80);
+    vibrate([30, 30, 80]);
+    const c = $('.chest-card');
+    if (c) c.remove();
+  }, 950);
+}
+
+// ---------- Calories ----------
+const KCAL = { egg: 70, eggs2: 140, chicken: 165, beef: 250, tuna: 120, fish: 140, milk: 120, yogurt: 150, cheese: 80, beans: 230, shake: 130, tofu: 90, peanut: 95 };
+const MEAL_KCAL = { eggs: 450, chicken: 600, tuna: 550, oats: 450, yogurt: 350, beans: 600, beef: 650, shake: 500, lentils: 400, fish: 500, arepa: 500, tofu: 450 };
+// About what your body uses in a day (Mifflin-St Jeor), adjusted a little for your goal.
+function kcalTarget() {
+  const P = S.profile || {}, kg = P.bw || 70, cm = P.height || 170, age = P.age || 25;
+  const base = 10 * kg + 6.25 * cm - 5 * age + (P.sex === 'f' ? -161 : P.sex === 'x' ? -78 : 5);
+  const act = 1.3 + Math.min(6, P.days || 3) * 0.05;
+  const k = base * act + (P.goal === 'muscle' ? 250 : P.goal === 'fat' ? (age < 18 ? -200 : -400) : 0);
+  return Math.round(Math.max(P.sex === 'f' ? 1500 : 1700, k) / 50) * 50;
+}
+function addKcal(n) {
+  const f = foodToday();
+  f.k = Math.max(0, Math.min(9000, (f.k || 0) + n));
+  save();
+  if (n > 0) vibrate(10);
+  refreshFood();
+}
+// Three rings, like an activity watch: calories, protein, water.
+function ringsSvg(vals) {
+  const R = [44, 33, 22];
+  return `<svg class="rings" viewBox="0 0 100 100" aria-hidden="true">${vals.map(([p, c], i) => {
+    const r = R[i], L = 2 * Math.PI * r;
+    return `<circle cx="50" cy="50" r="${r}" stroke="${c}" opacity=".18"/><circle cx="50" cy="50" r="${r}" stroke="${c}" stroke-dasharray="${L.toFixed(1)}" stroke-dashoffset="${(L * (1 - Math.max(0, Math.min(1, p)))).toFixed(1)}"/>`;
+  }).join('')}</svg>`;
+}
+
+// ---------- Appearance: theme, color, title and frame ----------
+const ACCENTS = [['red', '226,70,59', '#FF7A6B', 0], ['blue', '10,132,255', '#64A8FF', 0], ['green', '48,209,88', '#6EE08E', 3], ['orange', '255,159,10', '#FFC266', 5], ['purple', '191,90,242', '#D49AF7', 8], ['pink', '255,55,95', '#FF7F9C', 12], ['gold', '232,184,74', '#F3D27E', 15]];
+const TITLES = [['none', null], ['rookie', null], ['steady', ['st', 7]], ['beast', ['cnt', 'pr', 10]], ['champ', ['cnt', 'win', 1]], ['camera', ['cnt', 'camera', 10]], ['unstop', ['st', 30]], ['legend', ['lv', 20]]];
+const FRAMES = [['none', null], ['line', null], ['gold', ['lv', 10]], ['fire', ['st', 14]], ['neon', ['cnt', 'goal', 5]]];
+function reqOk(r) {
+  if (!r) return true;
+  if (r[0] === 'lv') return levelOf(xpTotal()).L >= r[1];
+  if (r[0] === 'st') return (stData().best || 0) >= r[1];
+  return cnt(r[1]) >= r[2];
+}
+const reqText = (r) => (r[0] === 'lv' ? t('reqLv', { n: r[1] }) : r[0] === 'st' ? t('reqSt', { n: r[1] }) : t('req_' + r[1], { n: r[2] }));
+const lookOf = () => S.look || {};
+function applyLook() {
+  const de = document.documentElement, L = lookOf(), th = ['dark', 'light', 'auto'].includes(S.theme) ? S.theme : 'dark';
+  de.dataset.theme = th;
+  const a = ACCENTS.find((x) => x[0] === L.acc && levelOf(xpTotal()).L >= x[3]) || ACCENTS[0];
+  de.style.setProperty('--acc', a[1]);
+  de.style.setProperty('--acc-2', a[2]);
+  const light = th === 'light' || (th === 'auto' && matchMedia('(prefers-color-scheme: light)').matches);
+  const m = document.querySelector('meta[name="theme-color"]');
+  if (m) m.content = light ? '#F2F2F7' : '#000000';
+}
+const chipLock = (act, id, label, on, ok) => `<button class="chip${ok ? '' : ' locked'}" data-act="${act}" data-v="${id}" aria-pressed="${on}">${ok ? '' : LOCK}${esc(label)}</button>`;
+function lookCard() {
+  const L = lookOf(), th = S.theme || 'dark', lv = levelOf(xpTotal()).L;
+  return `<section class="card stack look-card"><span class="eyebrow">${t('lookTitle')}</span>
+    <div class="field"><span class="lbl">${t('themeLbl')}</span><div class="chips seg">${[['dark', 'themeDark'], ['light', 'themeLight'], ['auto', 'themeAuto']].map(([id, k]) => `<button class="chip" data-act="theme" data-v="${id}" aria-pressed="${th === id}">${t(k)}</button>`).join('')}</div></div>
+    <div class="field"><span class="lbl">${t('accLbl')}</span><div class="swatches">${ACCENTS.map(([id, rgb, , need]) => `<button class="sw${lv >= need ? '' : ' locked'}" style="--sw:rgb(${rgb})" data-act="look-acc" data-v="${id}" aria-pressed="${(L.acc || 'red') === id}" aria-label="${t('acc_' + id)}">${lv >= need ? '' : LOCK}</button>`).join('')}</div></div>
+    <div class="field"><span class="lbl">${t('titleLbl')}</span><div class="chips wrap">${TITLES.map(([id, r]) => chipLock('look-title', id, t('title_' + id), (L.title || 'none') === id, reqOk(r))).join('')}</div></div>
+    <div class="field"><span class="lbl">${t('frameLbl')}</span><div class="chips wrap">${FRAMES.map(([id, r]) => chipLock('look-frame', id, t('frame_' + id), (L.frame || 'none') === id, reqOk(r))).join('')}</div></div>
+  </section>`;
+}
+function lookAction(k, v) {
+  S.look = S.look || {};
+  if (k === 'theme') S.theme = ['dark', 'light', 'auto'].includes(v) ? v : 'dark';
+  else if (k === 'look-acc') {
+    const a = ACCENTS.find((x) => x[0] === v);
+    if (!a) return;
+    if (levelOf(xpTotal()).L < a[3]) { toast(t('reqLv', { n: a[3] })); return; }
+    S.look.acc = v;
+  } else {
+    const list = k === 'look-title' ? TITLES : FRAMES, it = list.find((x) => x[0] === v);
+    if (!it) return;
+    if (!reqOk(it[1])) { toast(reqText(it[1])); return; }
+    S.look[k === 'look-title' ? 'title' : 'frame'] = v;
+  }
+  save();
+  applyLook();
+  render();
+  vibrate(10);
+}
+const frameCls = () => { const f = lookOf().frame, it = FRAMES.find((x) => x[0] === f); return it && f !== 'none' && reqOk(it[1]) ? ' fr-' + f : ''; };
+const titleTag = () => { const v = lookOf().title, it = TITLES.find((x) => x[0] === v); return it && v !== 'none' && reqOk(it[1]) ? `<span class="title-tag">${esc(t('title_' + v))}</span>` : ''; };
 
 // ---------- Training reminders ----------
 // You pick the time and the days; the server wakes the phone (Web Push) and the phone shows a line saved here.
@@ -3297,7 +3561,7 @@ function onWarmClick(e) {
 
 // ---------- Missions, XP and levels: small daily and weekly goals that bring you back ----------
 // Everything you do gives XP; three daily missions and three weekly missions give extra. Levels never go down.
-const XP_FOR = { workout: 50, pr: 25, camera: 20, goal: 25, lesson: 15, daily: 20, weigh: 10, coach: 5, protein: 15, water: 10, photo: 15, win: 30, friend: 20, early: 10, night: 10, warmup: 10, program: 30, cooldown: 10 };
+const XP_FOR = { workout: 50, pr: 25, camera: 20, goal: 25, lesson: 15, daily: 20, weigh: 10, coach: 5, protein: 15, water: 10, photo: 15, win: 30, friend: 20, early: 10, night: 10, warmup: 10, program: 30, cooldown: 10, chest: 10 };
 const XP_ONCE = new Set(['weigh', 'coach', 'protein', 'water']); // these give XP once a day
 const MIS_D = [['d-train', 'workout', 1, 40], ['d-daily', 'daily', 1, 25], ['d-camera', 'camera', 1, 30], ['d-lesson', 'lesson', 1, 20],
   ['d-protein', 'protein', 1, 25], ['d-water', 'water', 1, 20], ['d-coach', 'coach', 1, 15], ['d-weigh', 'weigh', 1, 15]];
@@ -3334,6 +3598,7 @@ function misText(id) { const d = misDef(id); return t('m_' + id, { n: misNeed(d)
 // Something happened: give XP, move missions forward, celebrate a mission or a new level.
 function grow(ev, count = 1, quiet) {
   const X = xpData(), day = dayKey(Date.now());
+  if (STREAK_EV.has(ev)) markActive();
   if (XP_ONCE.has(ev)) {
     if (X.once.day !== day) X.once = { day, list: [] };
     if (X.once.list.includes(ev)) return;
@@ -3393,21 +3658,24 @@ function showMissions() {
 const FOODS = [['egg', 6], ['eggs2', 12], ['chicken', 31], ['beef', 26], ['tuna', 25], ['fish', 22], ['milk', 8], ['yogurt', 15], ['cheese', 7], ['beans', 15], ['shake', 24], ['tofu', 12], ['peanut', 7]];
 const proteinTarget = () => Math.round((S.profile.bw || 70) * (S.profile.goal === 'fat' ? 2.0 : 1.8) / 5) * 5;
 const waterTarget = () => Math.max(6, Math.ceil(((S.profile.bw || 70) * 0.035) / 0.25));
-function foodToday() { const k = dayKey(Date.now()); S.food = S.food || {}; if (!S.food[k]) S.food[k] = { p: 0, w: 0, log: [] }; return S.food[k]; }
+function foodToday() { const k = dayKey(Date.now()); S.food = S.food || {}; if (!S.food[k]) S.food[k] = { p: 0, w: 0, k: 0, log: [] }; return S.food[k]; }
 function foodCard() {
-  const f = foodToday(), pt = proteinTarget(), wt = waterTarget();
-  const pp = Math.min(1, f.p / pt), wp = Math.min(1, f.w / wt);
+  const f = foodToday(), pt = proteinTarget(), wt = waterTarget(), kt = kcalTarget(), k = f.k || 0;
   return `<section class="card food-card" id="foodCard"><div class="card-head"><span class="eyebrow">${t('foodToday')}</span><button class="link small" data-act="food-list">${t('foodMore')}</button></div>
-    <div class="food-row"><span class="food-ic">${I.flame}</span><span class="grow"><b>${t('foodProtein')}</b><span class="bar sm"><i style="width:${pp * 100}%"></i></span><small>${f.p} / ${pt} g${f.p >= pt ? ' · ✓' : ''}</small></span>
-      <span class="food-btns">${[10, 20, 30].map((g) => `<button class="btn btn-sm" data-act="food-add" data-v="${g}">+${g}</button>`).join('')}</span></div>
-    <div class="food-row"><span class="food-ic water">💧</span><span class="grow"><b>${t('foodWater')}</b><span class="bar sm"><i style="width:${wp * 100}%;background:#5AA7E6"></i></span><small>${t('foodGlasses', { n: f.w, t: wt })}${f.w >= wt ? ' · ✓' : ''}</small></span>
-      <span class="food-btns"><button class="btn btn-sm" data-act="water-add" data-v="1">+1 ${t('foodGlass')}</button></span></div>
+    <div class="food-rings">${ringsSvg([[k / kt, '#FF9F0A'], [f.p / pt, '#30D158'], [f.w / wt, '#0A84FF']])}
+      <ul class="ring-legend">
+        <li style="--c:#FF9F0A"><small>${t('kcalWord')}</small><b>${fmtN(k)}<span> / ${fmtN(kt)}</span></b></li>
+        <li style="--c:#30D158"><small>${t('foodProtein')}</small><b>${f.p}<span> / ${pt} g</span></b></li>
+        <li style="--c:#0A84FF"><small>${t('foodWater')}</small><b>${f.w}<span> / ${wt}</span></b></li>
+      </ul></div>
+    <div class="food-quick"><button class="btn btn-sm" data-act="food-list">${I.plus}${t('foodAddMeal')}</button><button class="btn btn-sm" data-act="food-add" data-v="20">+20 g</button><button class="btn btn-sm" data-act="water-add" data-v="1">+1 💧</button></div>
   </section>`;
 }
 function refreshFood() { const el = $('#foodCard'); if (el) el.outerHTML = foodCard(); const sh = $('#foodSheet'); if (sh) showFoods(); }
-function addFood(g, label) {
+function addFood(g, label, kcal = 0) {
   const f = foodToday(), pt = proteinTarget(), was = f.p;
   f.p = Math.max(0, Math.min(400, f.p + g));
+  if (kcal) f.k = Math.max(0, Math.min(9000, (f.k || 0) + kcal));
   if (g > 0) f.log = [...(f.log || []), [label || '', g]].slice(-30);
   const ks = Object.keys(S.food).sort();
   for (const k of ks.slice(0, Math.max(0, ks.length - 30))) delete S.food[k];
@@ -3425,7 +3693,8 @@ function addWater(n) {
 function showFoods() {
   const f = foodToday();
   const html = `<span class="eyebrow">${t('foodToday')}</span><h2 style="margin-top:6px">${t('foodProtein')}: ${f.p} / ${proteinTarget()} g</h2><p class="muted small" style="margin:4px 0 12px">${t('foodHint', { n: proteinTarget() })}</p>
-    <div class="food-grid">${FOODS.map(([k, g]) => `<button class="food-item" data-act="food-pick" data-v="${k}"><b>${t('food_' + k)}</b><small>${g} g</small></button>`).join('')}</div>
+    <div class="kcal-box"><div class="card-head" style="margin:0"><b>${t('kcalTitle')}</b><span><b>${fmtN(f.k || 0)}</b> / ${fmtN(kcalTarget())} kcal</span></div><div class="chips">${[100, 250, 500].map((n) => `<button class="chip" data-act="kcal-add" data-v="${n}">+${n}</button>`).join('')}<button class="chip" data-act="kcal-add" data-v="-100">−100</button></div><p class="muted small">${t('kcalHint')}</p></div>
+    <div class="food-grid">${FOODS.map(([k, g]) => `<button class="food-item" data-act="food-pick" data-v="${k}"><b>${t('food_' + k)}</b><small>${g} g · ${KCAL[k] || 0} kcal</small></button>`).join('')}</div>
     <div class="split" style="margin-top:14px"><button class="btn btn-sm" data-act="food-add" data-v="-10">−10 g</button><button class="btn btn-sm" data-act="water-add" data-v="-1">−1 ${t('foodGlass')}</button></div>
     ${mealsHtml()}`;
   const box = $('#foodSheet');
@@ -4524,6 +4793,8 @@ setTimeout(autoBackup, 4000);
 if (S.profile && S.remind && S.remind.on) setTimeout(writeRemindText, 3000);
 if (S.profile) setTimeout(checkBadges, 2500);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') autoBackup(); });
+applyLook();
+try { matchMedia('(prefers-color-scheme: light)').addEventListener('change', applyLook); } catch (e) { /* old browser */ }
 runSplash();
 if (!S.profile) showOnboard();
 else {
