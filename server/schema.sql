@@ -62,3 +62,15 @@ CREATE TABLE IF NOT EXISTS xpweek (
   xp INTEGER NOT NULL,
   PRIMARY KEY (user_id, week)
 );
+-- Training reminders: where to wake the phone, at what local time and on which days.
+CREATE TABLE IF NOT EXISTS push (
+  endpoint TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  hour INTEGER NOT NULL,
+  minute INTEGER NOT NULL,
+  days TEXT NOT NULL,
+  tz INTEGER NOT NULL,
+  next_at INTEGER NOT NULL,
+  created INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS push_due ON push (next_at);

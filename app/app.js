@@ -748,9 +748,7 @@ const VIEWS = {
         <div class="field"><span class="lbl">${t('perWeek')}</span>${sel('days', [2, 3, 4, 5, 6].map((n) => ({ id: n, name: t('nDays', { n }) })), P.days)}</div>
         <div class="field"><span class="lbl">${t('restDefault')}</span>${sel('rest', [60, 90, 120, 180].map((n) => ({ id: n, name: n < 120 ? t('nSeconds', { n }) : t('nMinutes', { n: n / 60 }) })), S.rest)}</div>
       </section>
-      <section class="card">
-        <div class="row">${I.phone.replace('<svg', '<svg style="width:22px;height:22px;stroke:var(--red);fill:none;stroke-width:2;flex:0 0 auto"')}<span class="grow"><b>${t('reminders')}</b><br><span class="muted small">${t('remindersSub')}</span></span></div>
-      </section>
+      ${remindCard()}
       ${acctCard()}
       <section class="card stack">
         <span class="eyebrow">${t('yourData')}</span>
@@ -2483,6 +2481,10 @@ document.addEventListener('click', (e) => {
   if (k === 'go') { if (v === 'sports') sportSel = null; if (v === 'home') curQuote = null; go(v); }
   else if (k === 'coach-ask') coachAsk(v);
   else if (k === 'missions') showMissions();
+  else if (k === 'rm-toggle') { const R = remind(); if (R.on) { remindOff().then(() => { render(); toast(t('rmOffToast')); }); } else { R.on = true; saveRemind().then(() => render()); } }
+  else if (k === 'rm-day') { const R = remind(), d = +v; R.days = R.days.includes(d) ? R.days.filter((x) => x !== d) : [...R.days, d]; b.setAttribute('aria-pressed', String(R.days.includes(d))); save(); }
+  else if (k === 'rm-save') saveRemind();
+  else if (k === 'rm-test') testRemind();
   else if (k === 'warm') openWarm(v);
   else if (k === 'fr-cheer') { b.disabled = true; b.classList.add('on'); vibrate(15); net.cheer(v).then((n) => { const s = b.querySelector('span'); if (s) s.textContent = n; }).catch(() => { b.disabled = false; b.classList.remove('on'); toast(t('vsNeedNet')); }); }
   else if (k === 'food-add') addFood(+v);
@@ -2712,6 +2714,70 @@ function loadDemo() {
   });
   S.workouts = [...S.workouts.filter((w) => !String(w.id).startsWith('demo')), ...made].sort((x, y) => x.date - y.date);
   save();
+}
+
+// ---------- Training reminders ----------
+// You pick the time and the days; the server wakes the phone (Web Push) and the phone shows a line saved here.
+const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+const defaultDays = (n) => ({ 2: [2, 4], 3: [1, 3, 5], 4: [1, 2, 4, 5], 5: [1, 2, 3, 4, 5], 6: [1, 2, 3, 4, 5, 6] }[n] || [1, 3, 5]);
+const remind = () => { if (!S.remind) S.remind = { on: false, time: '18:00', days: defaultDays(S.profile.days) }; return S.remind; };
+const pushOk = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+function remindCard() {
+  const R = remind(), letters = getLang() === 'es' ? ['L', 'M', 'X', 'J', 'V', 'S', 'D'] : ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  return `<section class="card stack remind" id="remindCard"><div class="row"><span class="rm-ic">${I.bell}</span><span class="grow"><b>${t('reminders')}</b><br><span class="muted small">${t(R.on ? 'rmOn' : 'rmOff')}</span></span>
+      <button class="switch${R.on ? ' on' : ''}" data-act="rm-toggle" role="switch" aria-checked="${R.on}" aria-label="${t('reminders')}"><i></i></button></div>
+    <div class="rm-set"><label class="rm-time"><span>${t('rmTime')}</span><input type="time" id="rmTime" value="${esc(R.time)}"></label>
+      <div class="rm-days">${DAY_ORDER.map((d, i) => `<button class="chip" data-act="rm-day" data-v="${d}" aria-pressed="${R.days.includes(d)}">${letters[i]}</button>`).join('')}</div></div>
+    <div class="split"><button class="btn btn-sm" data-act="rm-test">${t('rmTest')}</button><button class="btn btn-sm btn-primary" data-act="rm-save">${t('rmSave')}</button></div>
+    <p class="muted small">${t(pushOk() ? 'rmNote' : 'rmNoSupport')}</p></section>`;
+}
+// What the reminder will say: today's workout, your name, and lines that change.
+async function writeRemindText() {
+  if (!('caches' in window)) return;
+  const d = nextDay(), nm = S.profile.name || '';
+  const bodies = [t('rmB1', { day: dayName(d), name: nm }), t('rmB2', { name: nm }), t('rmB3', { day: dayName(d) }), nextQuote(), nextQuote(), nextQuote()];
+  try { const c = await caches.open('es-remind'); await c.put('/app/__remind', new Response(JSON.stringify({ title: 'Earned Strength', bodies, url: '/app/#home' }), { headers: { 'content-type': 'application/json' } })); } catch (e) { /* no storage */ }
+}
+const b64uToBytes = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)), (c) => c.charCodeAt(0));
+async function saveRemind() {
+  const R = remind(), tm = $('#rmTime');
+  if (tm && /^\d\d:\d\d$/.test(tm.value)) R.time = tm.value;
+  if (!R.days.length) { toast(t('rmPickDay')); return; }
+  save();
+  if (!R.on) { toast(t('rmSaved')); return; }
+  if (!pushOk()) { toast(t('rmNoSupport')); return; }
+  try {
+    if ((await Notification.requestPermission()) !== 'granted') { toast(t('rmDenied')); R.on = false; save(); render(); return; }
+    const reg = await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription()) || (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uToBytes(net.VAPID_PUBLIC) }));
+    await ensureAccount();
+    const [h, m] = R.time.split(':').map(Number);
+    await net.savePush(sub.toJSON(), h, m, R.days, -new Date().getTimezoneOffset());
+    R.endpoint = sub.endpoint;
+    save();
+    await writeRemindText();
+    toast(t('rmSavedOn', { time: R.time }));
+  } catch (e) { toast(t(net.isOnline() ? 'rmFail' : 'vsNeedNet')); }
+}
+async function remindOff() {
+  const R = remind();
+  R.on = false;
+  save();
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) { if (S.acct) await net.deletePush(sub.endpoint).catch(() => {}); await sub.unsubscribe(); }
+  } catch (e) { /* nothing to undo */ }
+}
+async function testRemind() {
+  if (!('Notification' in window)) { toast(t('rmNoSupport')); return; }
+  if ((await Notification.requestPermission()) !== 'granted') { toast(t('rmDenied')); return; }
+  const d = nextDay();
+  const body = t('rmB1', { day: dayName(d), name: S.profile.name || '' });
+  try {
+    const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+    if (reg) await reg.showNotification('Earned Strength', { body, icon: 'icons/icon-192.png', tag: 'es-test' }); else new Notification('Earned Strength', { body, icon: 'icons/icon-192.png' });
+  } catch (e) { toast(body); }
 }
 
 // ---------- Guided warm-up: about 4 minutes, picked for what you train today ----------
@@ -4053,6 +4119,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.se
 if (S.acct) net.setAccount(S.acct);
 window.addEventListener('es-auth-lost', () => { S.acct = null; net.setAccount(null); save(); if (['me', 'friends'].includes(current)) render(); });
 setTimeout(autoBackup, 4000);
+if (S.profile && S.remind && S.remind.on) setTimeout(writeRemindText, 3000);
 if (S.profile) setTimeout(checkBadges, 2500);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') autoBackup(); });
 runSplash();

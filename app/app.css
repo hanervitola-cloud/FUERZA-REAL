@@ -1416,3 +1416,17 @@ button,.card-tap,.chip,.tab,.lib-item{-webkit-user-select:none;user-select:none;
 .ob-start ol{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:10px}
 .ob-start li{display:flex;gap:10px;align-items:center;font-size:14.5px;line-height:1.35}
 .ob-start li span{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;background:#E8B84A;color:#1a1a1a;font-weight:800;font-size:13px}
+
+/* Reminders */
+.rm-ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto;background:rgba(226,70,59,.14)}
+.rm-ic svg{width:20px;height:20px;stroke:var(--red-2);fill:none;stroke-width:2}
+.switch{width:50px;height:30px;border-radius:99px;background:rgba(255,255,255,.14);position:relative;flex:0 0 auto;transition:background .2s}
+.switch i{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.switch.on{background:var(--ok)}
+.switch.on i{transform:translateX(20px)}
+.rm-set{display:grid;gap:10px}
+.rm-time{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px}
+.rm-time input{height:42px;border-radius:12px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);padding:0 12px;font-size:16px;color-scheme:dark}
+.rm-days{display:flex;gap:6px;justify-content:space-between}
+.rm-days .chip{width:38px;height:38px;padding:0;display:grid;place-items:center;border-radius:50%}
+.rm-days .chip[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}

@@ -12,7 +12,7 @@ self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CODE).then((c) => c.addAll(SHELL)).catch(() => {}).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => ![CODE, MEDIA].includes(k)).map((k) => caches.delete(k))))
+  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => ![CODE, MEDIA, 'es-remind'].includes(k)).map((k) => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 
@@ -45,4 +45,22 @@ self.addEventListener('fetch', (e) => {
   } else if (CDN.includes(url.hostname)) {
     e.respondWith(cacheFirst(req));
   }
+});
+
+// Training reminder: the server only wakes the phone; the words come from what the app saved here.
+self.addEventListener('push', (e) => {
+  e.waitUntil((async () => {
+    let d = { title: 'Earned Strength', bodies: ['💪'], url: '/app/#home' };
+    try { const c = await caches.open('es-remind'); const r = await c.match('/app/__remind'); if (r) d = await r.json(); } catch (x) { /* default text */ }
+    const body = d.bodies[Math.floor(Math.random() * d.bodies.length)];
+    await self.registration.showNotification(d.title, { body, icon: '/app/icons/icon-192.png', badge: '/app/icons/icon-192.png', tag: 'es-remind', renotify: true, data: { url: d.url } });
+  })());
+});
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || '/app/';
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    const w = list.find((c) => c.url.includes('/app/'));
+    return w ? w.focus() : self.clients.openWindow(url);
+  }));
 });

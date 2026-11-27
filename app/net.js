@@ -56,3 +56,7 @@ export const getFeed = () => api('GET', '/v1/feed').then((j) => j.feed);
 export const cheer = (id) => api('POST', `/v1/events/${encodeURIComponent(id)}/cheer`).then((j) => j.cheers);
 export const pushXp = (xp) => api('PUT', '/v1/xp', { xp });
 export const getLeague = () => api('GET', '/v1/league');
+// Public key for training reminders (Web Push). The private half stays on the server.
+export const VAPID_PUBLIC = 'BA-iSJQV7KA_YQPkYUDikQcGFvRf4LYVrUVxLhDxkFIE3WdqRGiqr0NRDmxibqtO9oJwzVCk8ag_PPTaC63d944';
+export const savePush = (sub, hour, minute, days, tz) => api('PUT', '/v1/push', { sub, hour, minute, days, tz });
+export const deletePush = (endpoint) => api('DELETE', '/v1/push', { endpoint });

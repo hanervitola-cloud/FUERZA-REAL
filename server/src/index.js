@@ -3,6 +3,7 @@
 // the parts that need internet.
 import { Room } from './room.js';
 import { askCoach } from './coach.js';
+import { okEndpoint, nextTime, sendDue } from './push.js';
 
 export { Room };
 
@@ -146,6 +147,7 @@ async function route(req, env, cors) {
       env.DB.prepare('DELETE FROM cheers WHERE user_id = ? OR event_id IN (SELECT id FROM events WHERE user_id = ?)').bind(me.id, me.id),
       env.DB.prepare('DELETE FROM events WHERE user_id = ?').bind(me.id),
       env.DB.prepare('DELETE FROM xpweek WHERE user_id = ?').bind(me.id),
+      env.DB.prepare('DELETE FROM push WHERE user_id = ?').bind(me.id),
       env.DB.prepare('DELETE FROM users WHERE id = ?').bind(me.id),
     ]);
     return json({ ok: true }, 200, cors);
@@ -198,6 +200,24 @@ async function route(req, env, cors) {
       WHERE u.id = ?1 OR u.id IN (SELECT b FROM friends WHERE a = ?1) ORDER BY xp DESC, u.name LIMIT 50`).bind(me.id, week).all();
     const endsAt = (week + 1) * 7 * 864e5 - 3 * 864e5;
     return json({ league: rows.results.map((r, i) => ({ pos: i + 1, name: r.name, xp: r.xp, me: r.id === me.id })), endsAt }, 200, cors);
+  }
+  // Training reminders: the phone's push address, the hour and the days.
+  if (p === '/v1/push' && m === 'PUT') {
+    const b = await body(req);
+    const sub = b.sub || {};
+    const hour = Math.round(+b.hour), minute = Math.round(+b.minute), tz = Math.round(+b.tz);
+    const days = Array.isArray(b.days) ? [...new Set(b.days.map((d) => Math.round(+d)).filter((d) => d >= 0 && d <= 6))] : [];
+    if (!okEndpoint(sub.endpoint, env.DEV === '1') || !(hour >= 0 && hour <= 23) || !(minute >= 0 && minute <= 59) || !days.length || !(Math.abs(tz) <= 840)) return fail('bad_push', 400, cors);
+    const next = nextTime(hour, minute, days, tz, Date.now());
+    await env.DB.prepare(`INSERT INTO push (endpoint, user_id, hour, minute, days, tz, next_at, created) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT (endpoint) DO UPDATE SET user_id = excluded.user_id, hour = excluded.hour, minute = excluded.minute, days = excluded.days, tz = excluded.tz, next_at = excluded.next_at`)
+      .bind(sub.endpoint, me.id, hour, minute, JSON.stringify(days), tz, next, Date.now()).run();
+    return json({ ok: true, next }, 200, cors);
+  }
+  if (p === '/v1/push' && m === 'DELETE') {
+    const b = await body(req);
+    await env.DB.prepare('DELETE FROM push WHERE endpoint = ? AND user_id = ?').bind(String(b.endpoint || ''), me.id).run();
+    return json({ ok: true }, 200, cors);
   }
   if (p === '/v1/friends' && m === 'GET') {
     const rows = await env.DB.prepare('SELECT u.id, u.name, u.code FROM friends f JOIN users u ON u.id = f.b WHERE f.a = ? ORDER BY u.name').bind(me.id).all();
@@ -271,6 +291,8 @@ async function route(req, env, cors) {
 }
 
 export default {
+  // Every 10 minutes: send the training reminders that are due.
+  async scheduled(event, env, ctx) { ctx.waitUntil(sendDue(env)); },
   async fetch(req, env) {
     const cors = corsHeaders(req, env);
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
