@@ -670,7 +670,9 @@ const VIEWS = {
         <div class="bar"><i style="width:${(p * 100).toFixed(0)}%"></i></div>
         <p class="muted small" style="margin-top:10px">${next ? t('pointsTo', { n: next.at - sc.total, rank: esc(next.name) }) : t('reachedTop')}</p>
       </section>
+      ${stuckCard()}
       <section class="card"><span class="eyebrow">${t('progress')}</span>${scoreChart()}</section>
+      ${heatHtml()}
       <div class="split">
         <div class="card"><span class="eyebrow">${t('strength')}</span><b>${sc.strength}</b><span class="muted small">${t('strengthSub')}</span></div>
         <div class="card"><span class="eyebrow">${t('consistency')}</span><b>${sc.consistency}</b><span class="muted small">${t('weeksHit', { n: sc.goalWeeks })}</span></div>
@@ -1653,6 +1655,7 @@ function bodyHtml() {
     </section>
     ${log.length ? `<section class="card list-card">${[...log].reverse().slice(0, 8).map((e) => `<div class="hist"><span>${fmtDate(e.d)}</span><b>${fmtW(e.kg)} ${unit()}</b></div>`).join('')}</section>` : ''}
     <p class="muted small empty">${t('bwNote')}</p>
+    ${measHtml()}
     ${photosHtml()}`;
 }
 
@@ -2493,8 +2496,9 @@ document.addEventListener('click', (e) => {
   if (!b) return;
   const k = b.dataset.act, v = b.dataset.v;
   if (k === 'go') { if (v === 'sports') sportSel = null; if (v === 'home') curQuote = null; go(v); }
-  else if (k === 'coach-ask') coachAsk(v);
+  else if (k === 'coach-ask') { if (current !== 'coach') { go('coach'); setTimeout(() => coachAsk(v), 350); } else coachAsk(v); }
   else if (k === 'missions') showMissions();
+  else if (k === 'meas-save') saveMeas();
   else if (k === 'rm-toggle') { const R = remind(); if (R.on) { remindOff().then(() => { render(); toast(t('rmOffToast')); }); } else { R.on = true; saveRemind().then(() => render()); } }
   else if (k === 'rm-day') { const R = remind(), d = +v; R.days = R.days.includes(d) ? R.days.filter((x) => x !== d) : [...R.days, d]; b.setAttribute('aria-pressed', String(R.days.includes(d))); save(); }
   else if (k === 'rm-save') saveRemind();
@@ -2728,6 +2732,84 @@ function loadDemo() {
   });
   S.workouts = [...S.workouts.filter((w) => !String(w.id).startsWith('demo')), ...made].sort((x, y) => x.date - y.date);
   save();
+}
+
+// ---------- 90 days at a glance, body measurements, and stuck exercises ----------
+// A square per day for the last 13 weeks: darker = more training that day.
+function heatHtml() {
+  const first = weekStart(Date.now() - 12 * 7 * DAY), today = dayKey(Date.now());
+  const per = {};
+  for (const w of S.workouts) { const k = dayKey(w.date); per[k] = (per[k] || 0) + 1; }
+  const chDays = new Set(Object.entries(S.ch || {}).filter(([, r]) => r[0] >= r[1]).map(([k]) => k));
+  let active = 0, cols = '';
+  for (let c = 0; c < 13; c++) {
+    let cells = '';
+    for (let r = 0; r < 7; r++) {
+      const ts = first + (c * 7 + r) * DAY, k = dayKey(ts), n = per[k] || 0;
+      if (ts > Date.now()) { cells += '<i class="hm-x"></i>'; continue; }
+      if (n || chDays.has(k)) active++;
+      cells += `<i class="${n >= 2 ? 'hm3' : n === 1 ? 'hm2' : chDays.has(k) ? 'hm1' : ''}${k === today ? ' hm-today' : ''}" title="${fmtDate(ts)}"></i>`;
+    }
+    cols += `<span class="hm-col">${cells}</span>`;
+  }
+  const letters = getLang() === 'es' ? ['L', '', 'X', '', 'V', '', 'D'] : ['M', '', 'W', '', 'F', '', 'S'];
+  return `<section class="card heat"><div class="card-head"><span class="eyebrow">${t('hmTitle')}</span><span class="muted small">${t('hmActive', { n: active })}</span></div>
+    <div class="hm"><span class="hm-col hm-l">${letters.map((l) => `<em>${l}</em>`).join('')}</span>${cols}</div>
+    <div class="hm-key"><span>${t('hmLess')}</span><i></i><i class="hm1"></i><i class="hm2"></i><i class="hm3"></i><span>${t('hmMore')}</span></div></section>`;
+}
+// Body measurements in cm (or inches if you use pounds).
+const MEAS = ['waist', 'chest', 'arm', 'thigh', 'hips'];
+const measUnit = () => (unit() === 'lb' ? 'in' : 'cm');
+const toMeasDisp = (cm) => (measUnit() === 'in' ? Math.round((cm / 2.54) * 10) / 10 : Math.round(cm * 10) / 10);
+function measHtml() {
+  const L = S.meas || [], last = L[L.length - 1], first = L[0];
+  return `<div class="section-title"><span class="eyebrow">${t('measTitle')}</span>${last ? `<span class="muted small">${fmtDate(last.d)}</span>` : ''}</div>
+    <section class="card meas">${MEAS.map((k) => {
+      const v = last && last[k], f = first && first[k], diff = v && f && L.length > 1 ? toMeasDisp(v) - toMeasDisp(f) : 0;
+      return `<label class="meas-row"><span class="grow"><b>${t('meas_' + k)}</b>${v ? `<small>${t('measNow', { v: toMeasDisp(v), u: measUnit() })}${Math.abs(diff) >= 0.1 ? ` · <em class="${(k === 'waist' || k === 'hips') === diff < 0 ? 'good' : ''}">${diff > 0 ? '+' : '−'}${Math.abs(Math.round(diff * 10) / 10)}</em>` : ''}</small>` : ''}</span>
+        <input type="number" inputmode="decimal" data-meas="${k}" placeholder="${v ? toMeasDisp(v) : measUnit()}" aria-label="${t('meas_' + k)}"></label>`;
+    }).join('')}
+    <button class="btn btn-primary btn-block" data-act="meas-save">${t('measSave')}</button><p class="muted small">${t('measHint')}</p></section>`;
+}
+function saveMeas() {
+  const row = { d: Date.now() };
+  let any = false;
+  document.querySelectorAll('[data-meas]').forEach((el) => {
+    const v = num(el.value);
+    if (v > 0) { row[el.dataset.meas] = measUnit() === 'in' ? v * 2.54 : v; any = true; }
+  });
+  if (!any) { toast(t('measEmpty')); return; }
+  const L = S.meas || [], last = L[L.length - 1];
+  if (last && dayKey(last.d) === dayKey(row.d)) Object.assign(last, row); else L.push({ ...(last || {}), ...row });
+  S.meas = L.slice(-120);
+  save();
+  grow('weigh', 1, true);
+  toast(t('measSaved'));
+  render();
+}
+// Exercises where your best has not gone up in the last 3 sessions (spread over a week or more).
+function stuckList() {
+  const out = [];
+  for (const id of Object.keys(EXERCISES)) {
+    const def = EXERCISES[id];
+    if (def.timed) continue;
+    const sessions = S.workouts.filter((w) => (w.exercises || []).some((e) => e.id === id && e.sets.length)).sort((x, y) => x.date - y.date);
+    if (sessions.length < 5) continue;
+    const best = (w) => Math.max(...w.exercises.filter((e) => e.id === id).flatMap((e) => e.sets.map((s) => (def.bw ? s.r : e1rm(s.w, s.r)))));
+    const recent = sessions.slice(-3), before = sessions.slice(0, -3);
+    if (recent[recent.length - 1].date - recent[0].date < 7 * DAY || Date.now() - recent[recent.length - 1].date > 21 * DAY) continue;
+    const top = Math.max(...before.map(best));
+    if (Math.max(...recent.map(best)) <= top) out.push(id);
+  }
+  return out.slice(0, 2);
+}
+function stuckCard() {
+  const list = stuckList();
+  if (!list.length) return '';
+  return `<section class="card stuck"><div class="card-head"><span class="eyebrow">${t('stuckTitle')}</span></div>
+    ${list.map((id) => `<p class="stuck-ex"><b>${esc(exName(id))}</b> · ${t('stuckSub')}</p>`).join('')}
+    <ul class="stuck-tips">${['stuckT1', 'stuckT2', 'stuckT3'].map((k) => `<li>${t(k)}</li>`).join('')}</ul>
+    <button class="btn btn-sm" data-act="coach-ask" data-v="${esc(t('stuckAsk'))}">${I.chat}${t('stuckCoach')}</button></section>`;
 }
 
 // ---------- Training reminders ----------
