@@ -2,163 +2,141 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="canonical" href="https://earnedstrength.online/calculator">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Protein and Calorie Calculator | Earned Strength</title>
-<meta name="description" content="Calculate your recommended daily protein and maintenance calories based on your weight, activity level, and goal (bulking, cutting, or maintenance).">
-<meta name="author" content="Haner Vitola">
+<meta name="description" content="Calculate your daily protein and calories for your goal (build muscle, lose fat or maintain) from your weight and activity level.">
+<link rel="canonical" href="https://earnedstrength.online/calculator">
+<meta name="theme-color" content="#000000">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="styles.css">
-<link rel="icon" type="image/svg+xml" href="favicon.svg">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2308795116201707" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="site.css">
 </head>
 <body>
 
-<header class="site">
+<header class="top">
   <div class="wrap">
-    <a href="/" class="logo">EARNED<span>STRENGTH</span></a>
-    <nav class="site" aria-label="Main">
-      <div class="nav-drop">
-        <a href="/#articles" class="nav-drop-toggle" aria-haspopup="true" aria-expanded="false">Articles<svg class="nav-chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3"/></svg></a>
-        <div class="mega">
-          <div class="mega-col"><span class="mega-title">Training</span><a href="/beginner-routine">Beginner routine</a><a href="/hypertrophy-strength">Hypertrophy vs strength</a><a href="/gym-myths">8 gym myths</a><a href="/stop-training-muscles">When you stop training</a></div>
-          <div class="mega-col"><span class="mega-title">Nutrition</span><a href="/daily-protein">How much protein you need</a><a href="/high-protein-foods">High-protein foods</a><a href="/bulking-cutting">Bulking vs cutting</a><a href="/lose-weight">Losing weight</a></div>
-          <div class="mega-col"><span class="mega-title">Supplements &amp; health</span><a href="/creatine-guide">Creatine guide</a><a href="/protein-powder">Protein powder</a><a href="/steroids-article">Why steroids aren't worth it</a></div>
-          <div class="mega-col"><span class="mega-title">Recovery</span><a href="/after-workout-muscles">After a workout</a><a href="/sleep-recovery">Sleep and recovery</a><a href="/overtraining-signs">Signs of overtraining</a></div>
-          <div class="mega-col"><span class="mega-title">Mindset</span><a href="/discipline-motivation">Discipline vs motivation</a><a href="/social-media-comparison">Social media comparison</a></div>
-        </div>
-      </div>
-      <a href="/calculator">Calculator</a>
-      <a href="/about">About</a>
-      <a href="/contact">Contact</a>
-    </nav>
+    <a class="brand" href="/"><img src="img/logo-128.png" alt="">Earned Strength</a>
+    <nav aria-label="Main"><a href="/#features" data-i="navFeatures">Features</a><a href="/#channel" data-i="navChannel">Channel</a><a href="/calculator" data-i="navCalc">Calculator</a></nav>
+    <button class="lang" type="button" data-lang data-i="lang">Español</button>
+    <a class="btn btn-primary btn-sm" href="/app/" data-i="openApp">Open the app</a>
   </div>
 </header>
 
-<article class="article">
+<main class="page">
   <div class="wrap">
-    <span class="tag">Tool</span>
-    <h1>Protein and Calorie Calculator</h1>
-    <div class="meta">Instant results</div>
+    <span class="eyebrow" data-i="cEye">Free tool</span>
+    <h1 data-i="cTitle">Protein and calorie calculator</h1>
+    <p class="lead" data-i="cLead">Enter your weight, how much you train and your goal. You get your daily protein and calories in seconds.</p>
 
-    <p class="intro">Enter your weight, activity level, and goal to get an estimate of how much protein and how many calories you need per day.</p>
-
-    <div class="calc-card">
-      <div class="calc-field">
-        <label for="calc-weight">Your weight (kg)</label>
-        <input type="number" id="calc-weight" class="calc-input" placeholder="e.g. 70" min="30" max="200">
+    <form class="calc" id="calc" novalidate>
+      <div class="field">
+        <label for="weight" data-i="cWeight">Your weight</label>
+        <div class="split">
+          <input id="weight" type="number" inputmode="decimal" min="25" max="300" step="0.1" data-i-ph="cWeightPh" placeholder="e.g. 70">
+          <select id="unit" aria-label="Unit"><option value="kg">kg</option><option value="lb">lb</option></select>
+        </div>
       </div>
-
-      <div class="calc-field">
-        <label for="calc-activity">Activity level</label>
-        <select id="calc-activity" class="calc-select">
-          <option value="24">Sedentary (little or no exercise)</option>
-          <option value="27">Light (you train 1-3 days a week)</option>
-          <option value="30" selected>Moderate (you train 3-5 days a week)</option>
-          <option value="33">Intense (you train 6-7 days a week)</option>
+      <div class="field">
+        <label for="activity" data-i="cActivity">How much do you train?</label>
+        <select id="activity">
+          <option value="24" data-i="cA1">Little or no exercise</option>
+          <option value="27" data-i="cA2">1 to 3 days a week</option>
+          <option value="30" data-i="cA3" selected>3 to 5 days a week</option>
+          <option value="33" data-i="cA4">6 or 7 days a week</option>
         </select>
       </div>
-
-      <div class="calc-field">
-        <label for="calc-goal">Your goal</label>
-        <select id="calc-goal" class="calc-select">
-          <option value="maintain">Maintenance</option>
-          <option value="bulk">Bulking (build muscle)</option>
-          <option value="cut">Cutting (lose fat)</option>
+      <div class="field">
+        <label for="goal" data-i="cGoal">Your goal</label>
+        <select id="goal">
+          <option value="maintain" data-i="cG1">Stay the same</option>
+          <option value="bulk" data-i="cG2">Build muscle</option>
+          <option value="cut" data-i="cG3">Lose fat</option>
         </select>
       </div>
-
-      <button class="calc-button" id="calc-button">Calculate</button>
-
-      <div class="calc-results" id="calc-results">
-        <div class="calc-result-item">
-          <span class="rlabel">Recommended daily protein</span>
-          <span class="rvalue" id="result-protein">—</span>
-        </div>
-        <div class="calc-result-item">
-          <span class="rlabel">Estimated calories for your goal</span>
-          <span class="rvalue" id="result-calories">—</span>
-        </div>
-        <p class="calc-note">These numbers are a general estimate based on your weight and activity level, not an exact medical calculation. Adjust based on how your body responds over the first 2-3 weeks. For a more precise calculation, a nutritionist can also factor in your age, height, and body composition.</p>
+      <button class="btn btn-primary" type="submit" data-i="cGo">Calculate</button>
+      <p class="error" id="err" role="alert"></p>
+      <div class="results" id="results" aria-live="polite">
+        <div class="result"><b id="rProtein">—</b><span data-i="cRP">protein a day</span></div>
+        <div class="result"><b id="rKcal">—</b><span data-i="cRK">calories a day</span></div>
       </div>
+    </form>
+
+    <div class="app-nudge">
+      <img src="img/logo-128.png" alt="" width="56" height="56">
+      <p><b data-i="cNudgeT">Track it every day in the app</b><span data-i="cNudgeP">Protein, water and calories in three rings, with meal ideas.</span></p>
+      <a class="btn btn-ghost btn-sm" href="/app/" data-i="openApp">Open the app</a>
     </div>
 
-    <h2>How it's calculated</h2>
-    <div class="risk">
-      <span class="num">•</span>
-      <div>
-        <h3>Protein</h3>
-        <p>I use 1.8 g per kg of body weight, the middle of the 1.6–2.2 g/kg range recommended for people who train for strength. More detail in the <a href="/daily-protein">complete protein guide</a>.</p>
-      </div>
-    </div>
-    <div class="risk">
-      <span class="num">•</span>
-      <div>
-        <h3>Maintenance calories</h3>
-        <p>Estimated by multiplying your weight by a factor based on your activity level (between 24 and 33 kcal/kg). For bulking, 15% is added; for cutting, 20% is subtracted. More context in <a href="/bulking-cutting">bulking vs cutting</a>.</p>
-      </div>
-    </div>
-
-    <p class="muted">This calculator provides a general estimate and does not replace the advice of a nutritionist, especially if you have any medical condition.</p>
+    <h2 data-i="cHow">How it is calculated</h2>
+    <h3 data-i="cHowP">Protein</h3>
+    <p data-i="cHowPt">1.8 g per kg of bodyweight: the middle of the 1.6 to 2.2 g/kg range that research recommends for people who train for strength.</p>
+    <h3 data-i="cHowK">Calories</h3>
+    <p data-i="cHowKt">Your weight times a factor for how much you train (24 to 33 kcal per kg). To build muscle 15% is added; to lose fat 20% is taken off.</p>
+    <p class="muted" data-i="cNote">A general estimate, not a medical calculation. Adjust it after 2 or 3 weeks depending on how your body responds. If you have a medical condition, ask a nutritionist.</p>
   </div>
-</article>
+</main>
 
-<footer class="site">
-  <div class="wrap footer-grid">
-    <div class="footer-brand">
-      <a href="/" class="logo">EARNED<span>STRENGTH</span></a>
-      <p>Plain-language guides to training and nutrition, with the sources listed at the end of every article. Written by <a href="/author">Haner Vitola</a>.</p>
-      <a class="btn btn-ghost btn-sm" href="https://www.youtube.com/@earnedstrength-s5h" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>YouTube channel</a>
+<footer class="foot">
+  <div class="wrap">
+    <div>
+      <a class="brand" href="/"><img src="img/logo-128.png" alt="">Earned Strength</a>
+      <p data-i="footAbout">The app for natural training: your plan, your rank and your coach.</p>
     </div>
-    <div class="footer-col">
-      <span class="footer-title">Start here</span>
-      <a href="/beginner-routine">Beginner routine</a>
-      <a href="/gym-myths">Gym myths</a>
-      <a href="/daily-protein">Daily protein</a>
-      <a href="/calculator">Protein &amp; calorie calculator</a>
+    <div>
+      <h5 data-i="footApp">App</h5>
+      <nav><a href="/app/" data-i="openApp">Open the app</a><a href="/calculator" data-i="navCalc">Calculator</a><a href="https://www.youtube.com/@earnedstrength-s5h" target="_blank" rel="noopener">YouTube</a></nav>
     </div>
-    <div class="footer-col footer-links">
-      <span class="footer-title">Earned Strength</span>
-      <a href="/about">About</a>
-      <a href="/author">About the author</a>
-      <a href="/about#editorial">Editorial policy</a>
-      <a href="/contact">Contact</a>
-      <a href="/privacy">Privacy</a>
-      <a href="/terms">Terms</a>
+    <div>
+      <h5 data-i="footSite">Site</h5>
+      <nav><a href="/privacy" data-i="footPrivacy">Privacy</a><a href="/terms" data-i="footTerms">Terms</a><a href="mailto:fuerzareal1000@gmail.com" data-i="footContact">Contact</a></nav>
     </div>
-  </div>
-  <div class="wrap footer-bottom">
-    <p>Earned Strength publishes informational content about training and health. It does not replace the advice of a doctor or certified trainer.</p>
-    <p>&copy; 2026 Earned Strength</p>
+    <div class="legal"><span data-i="footNote">Informational content about training. It does not replace advice from a doctor or a certified trainer.</span><span>&copy; <span data-year>2026</span> Earned Strength</span></div>
   </div>
 </footer>
 
-<script src="script.js" defer></script>
 <script>
-  document.getElementById('calc-button').addEventListener('click', function () {
-    var weight = parseFloat(document.getElementById('calc-weight').value);
-    if (!weight || weight <= 0) {
-      alert('Please enter a valid weight.');
-      return;
-    }
-    var activityFactor = parseFloat(document.getElementById('calc-activity').value);
-    var goal = document.getElementById('calc-goal').value;
-
-    var protein = Math.round(weight * 1.8);
-    var maintenance = Math.round(weight * activityFactor);
-    var calories = maintenance;
-    if (goal === 'bulk') {
-      calories = Math.round(maintenance * 1.15);
-    } else if (goal === 'cut') {
-      calories = Math.round(maintenance * 0.8);
-    }
-
-    document.getElementById('result-protein').textContent = protein + ' g';
-    document.getElementById('result-calories').textContent = calories + ' kcal';
-    document.getElementById('calc-results').classList.add('show');
+window.ES_TITLE = { en: 'Protein and Calorie Calculator | Earned Strength', es: 'Calculadora de proteína y calorías | Earned Strength' };
+window.ES_WORDS = {
+  en: { cEye: 'Free tool', cTitle: 'Protein and calorie calculator', cLead: 'Enter your weight, how much you train and your goal. You get your daily protein and calories in seconds.',
+    cWeight: 'Your weight', cWeightPh: 'e.g. 70', cActivity: 'How much do you train?', cA1: 'Little or no exercise', cA2: '1 to 3 days a week', cA3: '3 to 5 days a week', cA4: '6 or 7 days a week',
+    cGoal: 'Your goal', cG1: 'Stay the same', cG2: 'Build muscle', cG3: 'Lose fat', cGo: 'Calculate', cRP: 'protein a day', cRK: 'calories a day', cErr: 'Enter a weight between 25 and 300.',
+    cNudgeT: 'Track it every day in the app', cNudgeP: 'Protein, water and calories in three rings, with meal ideas.',
+    cHow: 'How it is calculated', cHowP: 'Protein', cHowPt: '1.8 g per kg of bodyweight: the middle of the 1.6 to 2.2 g/kg range that research recommends for people who train for strength.',
+    cHowK: 'Calories', cHowKt: 'Your weight times a factor for how much you train (24 to 33 kcal per kg). To build muscle 15% is added; to lose fat 20% is taken off.',
+    cNote: 'A general estimate, not a medical calculation. Adjust it after 2 or 3 weeks depending on how your body responds. If you have a medical condition, ask a nutritionist.' },
+  es: { cEye: 'Herramienta gratis', cTitle: 'Calculadora de proteína y calorías', cLead: 'Escribe tu peso, cuánto entrenas y tu meta. En segundos tienes tu proteína y tus calorías del día.',
+    cWeight: 'Tu peso', cWeightPh: 'ej. 70', cActivity: '¿Cuánto entrenas?', cA1: 'Poco o nada de ejercicio', cA2: '1 a 3 días por semana', cA3: '3 a 5 días por semana', cA4: '6 o 7 días por semana',
+    cGoal: 'Tu meta', cG1: 'Mantenerme', cG2: 'Ganar músculo', cG3: 'Bajar grasa', cGo: 'Calcular', cRP: 'de proteína al día', cRK: 'calorías al día', cErr: 'Escribe un peso entre 25 y 300.',
+    cNudgeT: 'Llévalo cada día en la app', cNudgeP: 'Proteína, agua y calorías en tres anillos, con ideas de comidas.',
+    cHow: 'Cómo se calcula', cHowP: 'Proteína', cHowPt: '1,8 g por kg de peso: la mitad del rango de 1,6 a 2,2 g/kg que recomiendan los estudios para quien entrena fuerza.',
+    cHowK: 'Calorías', cHowKt: 'Tu peso por un factor según cuánto entrenas (24 a 33 kcal por kg). Para ganar músculo se suma un 15%; para bajar grasa se resta un 20%.',
+    cNote: 'Es un cálculo aproximado, no médico. Ajústalo después de 2 o 3 semanas según cómo responda tu cuerpo. Si tienes alguna condición médica, consulta a un nutricionista.' }
+};
+</script>
+<script src="site.js"></script>
+<script>
+(function () {
+  var form = document.getElementById('calc');
+  var W = window.ES_WORDS;
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var lang = window.esLang();
+    var raw = parseFloat(String(document.getElementById('weight').value).replace(',', '.'));
+    var kg = document.getElementById('unit').value === 'lb' ? raw / 2.2046 : raw;
+    var err = document.getElementById('err');
+    if (!(kg >= 25 && kg <= 300)) { err.textContent = W[lang].cErr; document.getElementById('results').classList.remove('show'); return; }
+    err.textContent = '';
+    var factor = parseFloat(document.getElementById('activity').value);
+    var goal = document.getElementById('goal').value;
+    var kcal = kg * factor * (goal === 'bulk' ? 1.15 : goal === 'cut' ? 0.8 : 1);
+    var fmt = function (n) { return Math.round(n).toLocaleString(lang === 'es' ? 'es' : 'en'); };
+    document.getElementById('rProtein').textContent = fmt(kg * 1.8) + ' g';
+    document.getElementById('rKcal').textContent = fmt(Math.round(kcal / 10) * 10);
+    document.getElementById('results').classList.add('show');
   });
+})();
 </script>
 </body>
 </html>

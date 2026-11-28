@@ -112,7 +112,7 @@ const UI = {
   quizTab: ['Myths', 'Mitos'], articlesTab: ['Articles', 'Artículos'], videosTab: ['Videos', 'Videos'],
   questionN: ['Question {n} of {total}', 'Pregunta {n} de {total}'], nRight: ['{n} / {total} right', '{n} / {total} bien'],
   nextQuestion: ['Next question', 'Siguiente pregunta'],
-  quizNote: ['Every answer comes from an Earned Strength article, with the studies listed at the end of each one.', 'Cada respuesta viene de un artículo de Earned Strength, con los estudios al final de cada uno.'],
+  quizNote: ['Every answer is based on research. Ask the coach if you want to know more.', 'Cada respuesta se basa en estudios. Pregúntale al coach si quieres saber más.'],
   englishNote: ['', 'Los artículos y videos están en inglés por ahora.'],
   watch: ['Watch on YouTube', 'Ver en YouTube'],
   // Profile

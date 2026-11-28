@@ -548,7 +548,7 @@ const todayIdx = () => Math.floor((Date.now() - new Date().getTimezoneOffset() *
 const enNote = () => t('inEnglish').trim() && getLang() === 'es' ? t('inEnglish') : '';
 function verdict(answer, m) {
   const right = (answer === 1) === m.fact;
-  return `<div class="verdict ${right ? 'right' : 'wrong'}"><b>${t(right ? 'correct' : 'notQuite')} ${t('itsA', { x: t(m.fact ? 'aFact' : 'aMyth') })}</b>${esc(m.a)}<br><a class="link" href="${m.link}">${t('readArticle')}${enNote()}</a></div>`;
+  return `<div class="verdict ${right ? 'right' : 'wrong'}"><b>${t(right ? 'correct' : 'notQuite')} ${t('itsA', { x: t(m.fact ? 'aFact' : 'aMyth') })}</b>${esc(m.a)}</div>`;
 }
 const repsLabel = (id, reps) => `${reps}${EXERCISES[id].timed ? ' ' + t('sec') : ''}`;
 
@@ -706,7 +706,8 @@ const VIEWS = {
   },
 
   learn() {
-    const tabs = [['quiz', 'quizTab'], ['articles', 'articlesTab'], ['videos', 'videosTab']];
+    const tabs = [['quiz', 'quizTab'], ['videos', 'videosTab']];
+    if (!tabs.some(([id]) => id === learnTab)) learnTab = 'quiz';
     if (!tabs.some(([id]) => id === learnTab)) learnTab = 'quiz';
     let body = '';
     if (learnTab === 'quiz') {
@@ -947,7 +948,6 @@ function showCalc() {
       <div class="field"><label for="cG">${t('goal')}</label><select id="cG"><option value="1">${t('maintain')}</option><option value="1.15" ${S.profile.goal === 'muscle' ? 'selected' : ''}>${t('bulk')}</option><option value="0.8" ${S.profile.goal === 'fat' ? 'selected' : ''}>${t('cut')}</option></select></div>
       <div class="result"><div><span class="eyebrow">${t('protein')}</span><b id="cP">-</b><span class="muted small">${t('gramsDay')}</span></div><div><span class="eyebrow">${t('calories')}</span><b id="cC">-</b><span class="muted small">${t('kcalDay')}</span></div></div>
       <p class="muted small">${t('calcNote')}</p>
-      <a class="link" href="/daily-protein">${t('whyNumbers')}${enNote()}</a>
     </div>`);
   const calc = () => {
     const kg = toKg(num($('#cW', sh).value));
