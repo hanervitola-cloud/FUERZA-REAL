@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "online.earnedstrength.app",
+      "sha256_cert_fingerprints": [
+        "87:B6:B7:62:DD:E5:75:C4:61:32:4E:BB:0C:7B:45:20:B7:EE:56:91:F6:CD:7A:F9:FF:0C:70:90:72:76:BA:E7"
+      ]
+    }
+  }
+]
