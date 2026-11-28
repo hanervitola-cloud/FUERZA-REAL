@@ -4,8 +4,14 @@
 
 let keyCache = { at: 0, keys: null };
 async function googleKeys(env) {
-  // Local tests only: a practice key instead of Google's real ones (needs DEV=1, which production never has).
-  if (env.DEV === '1' && env.GOOGLE_TEST_JWKS) return JSON.parse(env.GOOGLE_TEST_JWKS).keys;
+  // Local tests only: a practice key next to Google's real ones (needs DEV=1, which production never has).
+  if (env.DEV === '1' && env.GOOGLE_TEST_JWKS) {
+    const test = JSON.parse(env.GOOGLE_TEST_JWKS).keys;
+    try { return [...test, ...(await realKeys())]; } catch (e) { return test; }
+  }
+  return realKeys();
+}
+async function realKeys() {
   if (keyCache.keys && Date.now() - keyCache.at < 36e5) return keyCache.keys;
   const r = await fetch('https://www.googleapis.com/oauth2/v3/certs');
   if (!r.ok) throw new Error('google_keys');

@@ -1759,3 +1759,5 @@ body::before,.onboard::before,.workout::before,.builder::before{display:none}
 .g-protect small{font-size:13px;color:var(--muted);line-height:1.4}
 :root[data-theme="light"] .g-btn{background:#fff;color:#1F1F1F;border-color:#747775}
 @media (prefers-color-scheme:light){:root[data-theme="auto"] .g-btn{background:#fff;color:#1F1F1F;border-color:#747775}}
+/* Google's button sits in a light frame: same color scheme, so no white box shows behind it */
+.g-box{color-scheme:light}

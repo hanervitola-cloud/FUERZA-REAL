@@ -3392,7 +3392,7 @@ async function mountGoogle() {
   if (!boxes.length || !cid || !net.isOnline()) return;
   try {
     const g = await loadGis();
-    if (!gisInit) { g.accounts.id.initialize({ client_id: cid, callback: onGoogle, ux_mode: 'popup', use_fedcm_for_button: true, cancel_on_tap_outside: true }); gisInit = true; }
+    if (!gisInit) { g.accounts.id.initialize({ client_id: cid, callback: onGoogle, ux_mode: 'popup', use_fedcm_for_button: false, use_fedcm_for_prompt: false, cancel_on_tap_outside: true }); gisInit = true; }
     for (const b of boxes) {
       if (!document.body.contains(b)) continue;
       b.dataset.done = '1';

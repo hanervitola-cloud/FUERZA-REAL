@@ -41,7 +41,7 @@ export async function restoreAccount(code) {
 }
 // "Continuar con Google": the web client id from Google Cloud (public, not a secret). Empty until the account
 // owner creates it; for local tests it can be set in localStorage 'es-gid'.
-const GOOGLE_CLIENT_ID = '';
+const GOOGLE_CLIENT_ID = '373023778876-ul5nqid2apg1jhdvq1cpgf0cvneofl5e.apps.googleusercontent.com';
 export const googleClientId = () => { try { const o = localStorage.getItem('es-gid'); if (o) return o; } catch (e) { /* storage blocked */ } return GOOGLE_CLIENT_ID; };
 // Sends Google's signed token; the server answers with the account (new, joined to this phone's, or existing).
 export const googleLogin = (credential, name) => api('POST', '/v1/auth/google', { credential, name });
