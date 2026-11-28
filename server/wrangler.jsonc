@@ -10,7 +10,7 @@
   "main": "src/index.js",
   "compatibility_date": "2025-09-01",
   "routes": [{ "pattern": "api.earnedstrength.online", "custom_domain": true }],
-  "d1_databases": [{ "binding": "DB", "database_name": "earned-strength", "database_id": "00000000-0000-0000-0000-000000000000" }],
+  "d1_databases": [{ "binding": "DB", "database_name": "earned-strength", "database_id": "342c023f-7f17-4b39-9bcf-0e6b81a8701d" }],
   "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
   "ai": { "binding": "AI" },
