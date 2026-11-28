@@ -57,7 +57,8 @@ export const sendScore = (c, n, w, u) => api('POST', '/v1/scores', { c, n, w, u 
 export const getRank = (c, scope) => api('GET', `/v1/rank/${encodeURIComponent(c)}?scope=${scope === 'friends' ? 'friends' : 'global'}`);
 export const askAI = (payload) => api('POST', '/v1/coach', payload, { timeout: 25000 }).then((j) => j.text);
 export const newRoom = (c, w, u) => api('POST', '/v1/rooms', { c, w, u }).then((j) => j.code);
-export const roomSocket = (code) => new WebSocket(`${API.replace(/^http/, 'ws')}/v1/rooms/${encodeURIComponent(code)}/ws?t=${encodeURIComponent(acct ? acct.token : '')}`);
+// The key goes in the WebSocket protocol list (never in the address, which can end up in logs).
+export const roomSocket = (code) => new WebSocket(`${API.replace(/^http/, 'ws')}/v1/rooms/${encodeURIComponent(code)}/ws`, ['es-v1', 'tk.' + (acct ? acct.token : 'none')]);
 export const postEvent = (kind, data) => api('POST', '/v1/events', { kind, data });
 export const getFeed = () => api('GET', '/v1/feed').then((j) => j.feed);
 export const cheer = (id) => api('POST', `/v1/events/${encodeURIComponent(id)}/cheer`).then((j) => j.cheers);

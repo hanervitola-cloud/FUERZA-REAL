@@ -16,7 +16,8 @@ const CH = {
   ht: 'm', rdl60: 't', bss60: 't', gs60: 't', cu60: 't', sp60: 't', lat60: 't', tp60: 't', sk60: 't', le60: 't', hlr: 'm',
 };
 const CAP = { t: 110, m: 300, h: 1800 };
-const LIMITS = { coach: 40, scores: 120, accounts: 20, backup: 30, rooms: 30, events: 80, cheers: 200, xp: 300, logins: 60 };
+const isChallenge = (c) => typeof c === 'string' && Object.hasOwn(CH, c);
+const LIMITS = { coach: 40, scores: 120, accounts: 20, backup: 30, rooms: 30, events: 80, cheers: 200, xp: 300, logins: 60, friends: 40 };
 // Weeks start on Monday (1 Jan 1970 was a Thursday, hence the +3).
 const thisWeek = () => Math.floor((Math.floor(Date.now() / 864e5) + 3) / 7);
 const MAX_WEEK_XP = 6000;
@@ -49,7 +50,7 @@ function corsHeaders(req, env) {
   const ok = (env.ORIGINS || '').split(',').map((x) => x.trim()).includes(o);
   return ok ? { 'Access-Control-Allow-Origin': o, 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS', 'Access-Control-Max-Age': '86400', Vary: 'Origin' } : { Vary: 'Origin' };
 }
-const json = (data, status, cors) => new Response(JSON.stringify(data), { status: status || 200, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...cors } });
+const json = (data, status, cors) => new Response(JSON.stringify(data), { status: status || 200, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'referrer-policy': 'no-referrer', ...cors } });
 const fail = (code, status, cors) => json({ error: code }, status, cors);
 
 async function body(req, max = 20000) {
@@ -163,7 +164,9 @@ async function route(req, env, cors) {
   const roomWs = p.match(/^\/v1\/rooms\/([A-Z0-9]{6})\/ws$/);
   if (roomWs) {
     if (req.headers.get('Upgrade') !== 'websocket') return fail('websocket_only', 426, cors);
-    const me = await auth(req, env, url.searchParams.get('t') || '');
+    const proto = (req.headers.get('Sec-WebSocket-Protocol') || '').split(',').map((x) => x.trim());
+    const tk = proto.find((x) => x.startsWith('tk.'));
+    const me = await auth(req, env, tk ? tk.slice(3) : '');
     if (!me) return fail('auth', 401, cors);
     const stub = env.ROOMS.get(env.ROOMS.idFromName(roomWs[1]));
     const fwd = new URL('https://room/ws');
@@ -284,7 +287,8 @@ async function route(req, env, cors) {
     return json({ friends: rows.results }, 200, cors);
   }
   if (p === '/v1/friends' && m === 'POST') {
-    const code = String((await body(req)).code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!(await allow(env, me.id, 'friends'))) return fail('limit', 429, cors);
+    const code = String((await body(req)).code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
     const f = await env.DB.prepare('SELECT id, name, code FROM users WHERE code = ?').bind(code).first();
     if (!f) return fail('not_found', 404, cors);
     if (f.id === me.id) return fail('self', 400, cors);
@@ -318,7 +322,7 @@ async function route(req, env, cors) {
   }
   if (p === '/v1/scores' && m === 'POST') {
     const b = await body(req);
-    const kind = CH[b.c];
+    const kind = isChallenge(b.c) ? CH[b.c] : null;
     const n = Math.round(+b.n);
     if (!kind || !Number.isFinite(n) || n <= 0 || n > CAP[kind]) return fail('bad_score', 400, cors);
     if (!(await allow(env, me.id, 'scores'))) return fail('limit', 429, cors);
@@ -330,16 +334,16 @@ async function route(req, env, cors) {
   }
   const rk = p.match(/^\/v1\/rank\/([a-z0-9]{2,8})$/);
   if (rk && m === 'GET') {
-    if (!CH[rk[1]]) return fail('not_found', 404, cors);
+    if (!isChallenge(rk[1])) return fail('not_found', 404, cors);
     return json(await rank(env, me, rk[1], url.searchParams.get('scope') === 'friends' ? 'friends' : 'global'), 200, cors);
   }
   if (p === '/v1/rooms' && m === 'POST') {
     const b = await body(req);
-    if (!CH[b.c]) return fail('bad_challenge', 400, cors);
+    if (!isChallenge(b.c)) return fail('bad_challenge', 400, cors);
     if (!(await allow(env, me.id, 'rooms'))) return fail('limit', 429, cors);
     const code = randCode(6);
     const stub = env.ROOMS.get(env.ROOMS.idFromName(code));
-    await stub.fetch('https://room/init', { method: 'POST', body: JSON.stringify({ c: b.c, w: Number.isFinite(+b.w) && +b.w > 0 ? +b.w : null, u: b.u === 'lb' ? 'lb' : 'kg', host: me.id }) });
+    await stub.fetch('https://room/init', { method: 'POST', body: JSON.stringify({ c: b.c, w: Number.isFinite(+b.w) && +b.w > 0 && +b.w < 1000 ? Math.round(+b.w * 10) / 10 : null, u: b.u === 'lb' ? 'lb' : 'kg', host: me.id }) });
     return json({ code }, 201, cors);
   }
   if (p === '/v1/coach' && m === 'POST') {
@@ -350,9 +354,21 @@ async function route(req, env, cors) {
   return fail('not_found', 404, cors);
 }
 
+async function cleanup(env) {
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM usage WHERE day < ?').bind(today() - 2),
+    env.DB.prepare('DELETE FROM events WHERE at < ?').bind(Date.now() - 30 * 864e5),
+    env.DB.prepare('DELETE FROM cheers WHERE event_id NOT IN (SELECT id FROM events)'),
+  ]);
+}
+
 export default {
   // Every 10 minutes: send the training reminders that are due.
-  async scheduled(event, env, ctx) { ctx.waitUntil(sendDue(env)); },
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(sendDue(env));
+    const d = new Date();
+    if (d.getUTCHours() === 4 && d.getUTCMinutes() < 10) ctx.waitUntil(cleanup(env));
+  },
   async fetch(req, env) {
     const cors = corsHeaders(req, env);
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });

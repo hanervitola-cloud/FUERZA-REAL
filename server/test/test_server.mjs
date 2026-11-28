@@ -42,8 +42,8 @@ ok((await call('GET', '/v1/backup', Bt)).s === 404, 'no backup for someone else'
 // Live room: Haner creates, Ana joins, both ready -> go, counts, done.
 const room = await call('POST', '/v1/rooms', A, { c: 'sq60', w: 0 });
 ok(room.s === 201 && /^[A-Z0-9]{6}$/.test(room.j.code), 'room created ' + room.j.code);
-const wsUrl = (tok) => B.replace('http', 'ws') + `/v1/rooms/${room.j.code}/ws?t=${tok}`;
-const open = (tok) => new Promise((res, rej) => { const ws = new WebSocket(wsUrl(tok)); const log = []; ws.onmessage = (e) => log.push(JSON.parse(e.data)); ws.onopen = () => res({ ws, log }); ws.onerror = rej; });
+const wsUrl = () => B.replace('http', 'ws') + `/v1/rooms/${room.j.code}/ws`;
+const open = (tok) => new Promise((res, rej) => { const ws = new WebSocket(wsUrl(), ['es-v1', 'tk.' + tok]); const log = []; ws.onmessage = (e) => log.push(JSON.parse(e.data)); ws.onopen = () => res({ ws, log }); ws.onerror = rej; });
 const h = await open(A), an = await open(Bt);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 await wait(400);
@@ -68,7 +68,7 @@ an.ws.close();
 await wait(400);
 ok(st(h).players.length === 1, 'leaving updates the room');
 h.ws.close();
-const bad = await new Promise((res) => { const ws = new WebSocket(B.replace('http', 'ws') + `/v1/rooms/${room.j.code}/ws?t=BAD`); ws.onerror = () => res('rejected'); ws.onopen = () => res('opened'); });
+const bad = await new Promise((res) => { const ws = new WebSocket(B.replace('http', 'ws') + `/v1/rooms/${room.j.code}/ws`, ['es-v1', 'tk.BAD']); ws.onerror = () => res('rejected'); ws.onopen = () => res('opened'); });
 ok(bad === 'rejected', 'room needs a valid account');
 // Activity and weekly league.
 ok((await call('POST', '/v1/events', A, { kind: 'hack', data: {} })).s === 400, 'unknown activity rejected');
@@ -92,3 +92,14 @@ const lg = await call('GET', '/v1/league', A);
 ok(lg.j.league.length === 2 && lg.j.league[0].name === 'Ana' && lg.j.league[1].xp === 120 && lg.j.league[1].me, 'league: friends only, sorted, XP never goes down');
 const ai = await call('POST', '/v1/coach', A, { lang: 'es', messages: [{ me: true, text: '¿agua con sal antes de entrenar?' }] });
 console.log('coach (local has no AI, 503 expected):', ai.s, JSON.stringify(ai.j).slice(0, 100));
+
+// Security checks added before going online.
+ok((await call('POST', '/v1/scores', A, { c: 'constructor', n: 5 })).s === 400, 'odd challenge names refused');
+ok((await call('POST', '/v1/rooms', A, { c: '__proto__' })).s === 400, 'odd room challenge refused');
+const old = await new Promise((res) => { const ws = new WebSocket(B.replace('http', 'ws') + `/v1/rooms/${room.j.code}/ws?t=${A}`); ws.onerror = () => res('rejected'); ws.onopen = () => res('opened'); });
+ok(old === 'rejected', 'key in the address is no longer accepted');
+let lim = 0;
+for (let i = 0; i < 45; i++) { const r = await call('POST', '/v1/friends', Bt, { code: 'ZZZZZ' + (i % 10) }); if (r.s === 429) { lim = i; break; } }
+ok(lim > 0 && lim <= 40, `friend code guessing stops after the daily limit (${lim})`);
+const hdr = await fetch(B + '/v1', { headers: H });
+ok(hdr.headers.get('x-content-type-options') === 'nosniff', 'answers marked as plain data');

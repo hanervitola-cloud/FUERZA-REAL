@@ -15,6 +15,6 @@
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
   "ai": { "binding": "AI" },
   "triggers": { "crons": ["*/10 * * * *"] },
-  "vars": { "GOOGLE_CLIENT_ID": "", "ORIGINS": "https://earnedstrength.online,https://www.earnedstrength.online,http://localhost:8770,capacitor://localhost,https://localhost" },
+  "vars": { "GOOGLE_CLIENT_ID": "", "ORIGINS": "https://earnedstrength.online,https://www.earnedstrength.online,capacitor://localhost,https://localhost" },
   "observability": { "enabled": true }
 }

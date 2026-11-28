@@ -6,6 +6,8 @@ import { DurableObject } from 'cloudflare:workers';
 
 const MAX = 8;
 const LIFE = 3 * 36e5;
+// Each phone may send about 20 messages a second; more are dropped so nobody can flood a room.
+const rate = new WeakMap();
 const clean = (s) => String(s || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 16);
 
 export class Room extends DurableObject {
@@ -31,7 +33,8 @@ export class Room extends DurableObject {
     server.serializeAttachment({ pid, uid, name: clean(url.searchParams.get('name')) || 'Atleta', ready: false, n: 0, done: false, joined: Date.now() });
     server.send(JSON.stringify({ t: 'you', pid, host: uid === cfg.host }));
     await this.broadcast();
-    return new Response(null, { status: 101, webSocket: client });
+    const asked = (req.headers.get('Sec-WebSocket-Protocol') || '').split(',').map((x) => x.trim());
+    return new Response(null, { status: 101, webSocket: client, headers: asked.includes('es-v1') ? { 'Sec-WebSocket-Protocol': 'es-v1' } : {} });
   }
 
   players(skip) {
@@ -59,6 +62,11 @@ export class Room extends DurableObject {
 
   async webSocketMessage(ws, raw) {
     if (typeof raw !== 'string' || raw.length > 20000) return;
+    const now = Date.now(), q = rate.get(ws) || { t: now, n: 0 };
+    if (now - q.t > 2000) { q.t = now; q.n = 0; }
+    q.n += 1;
+    rate.set(ws, q);
+    if (q.n > 40) return;
     let m;
     try { m = JSON.parse(raw); } catch (e) { return; }
     const a = ws.deserializeAttachment();
